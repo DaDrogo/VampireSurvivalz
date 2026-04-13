@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(unity-mcp-cli run-tool:*)",
+      "Bash(npx unity-mcp-cli:*)",
+      "Bash(npm --version)",
+      "Bash(unity-mcp-cli run-system-tool:*)",
+      "Bash(cmd.exe:*)",
+      "Bash(powershell.exe:*)",
+      "mcp__ai-game-developer__scene-list-opened",
+      "mcp__ai-game-developer__scene-get-data",
+      "mcp__ai-game-developer__gameobject-find",
+      "mcp__ai-game-developer__script-execute",
+      "mcp__ai-game-developer__assets-refresh",
+      "mcp__ai-game-developer__scene-save",
+      "mcp__ai-game-developer__gameobject-component-get",
+      "mcp__ai-game-developer__object-get-data"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "ai-game-developer"
+  ]
+}

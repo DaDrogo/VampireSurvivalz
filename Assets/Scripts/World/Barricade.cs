@@ -84,6 +84,8 @@ public class Barricade : MonoBehaviour, IInteractable, IDamageable
         _collider.enabled = true;
         if (builtSprite != null) _renderer.sprite = builtSprite;
 
+        PathfindingGrid.Instance?.RegisterBarricade(transform.position, this);
+
         OnStateChanged?.Invoke(State);
         OnHealthChanged?.Invoke(CurrentHealth, maxHealth);
     }
@@ -100,6 +102,7 @@ public class Barricade : MonoBehaviour, IInteractable, IDamageable
 
     private void DestroyBarricade()
     {
+        PathfindingGrid.Instance?.UnregisterBarricade(transform.position);
         OnDestroyed?.Invoke();
         Destroy(gameObject);
     }
