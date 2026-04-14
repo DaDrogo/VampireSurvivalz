@@ -46,9 +46,11 @@ public class PathfindingGrid : MonoBehaviour
     {
         if (Instance != null) { Destroy(gameObject); return; }
         Instance = this;
-
-        BuildGrid();
     }
+
+    // BuildGrid is called in Start so MapGenerator.Awake() has already painted
+    // tiles before the grid reads the tilemap bounds.
+    private void Start() => BuildGrid();
 
     // ═════════════════════════════════════════════════════════════════════════
     //  Grid construction

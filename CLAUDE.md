@@ -50,4 +50,59 @@ This is a Vampire Survivors clone. Expected architecture:
 
 ## Current State
 
-The project is freshly initialized. Only `Assets/NewMonoBehaviourScript.cs` (placeholder) and `Assets/Scenes/SampleScene.unity` (empty template scene) exist. All game systems remain to be built.
+The core gameplay loop is implemented. Below is a full inventory of what exists.
+
+### Scripts — `Assets/Scripts/`
+
+#### Managers
+| File | Purpose |
+|------|---------|
+| `GameManager.cs` | Singleton. State machine: Preparation → Wave → GameOver. Handles enemy spawning with per-wave stat scaling (HP/speed/damage ×% per wave). Builds a Game Over screen procedurally at runtime. `OnEnemyDied()` / `TriggerGameOver()` are the integration points. |
+| `WaveManager.cs` | **Legacy** — superseded by GameManager. Still compiles but should not be placed in the scene. |
+| `SpawnManager.cs` | **Legacy** — continuous spawn loop (pre-wave system). Still compiles but not used with the wave flow. |
+| `ResourceManager.cs` | Singleton. Tracks Wood & Metal integers. `AddResource(type, amount)` / `GetResource(type)`. Fires `OnWoodChanged` / `OnMetalChanged` events. Survives scene loads (`DontDestroyOnLoad`). |
+| `UIManager.cs` | Singleton. Subscribes to GameManager and ResourceManager events. Auto-builds the full HUD at runtime (resource panel top-left, state/timer labels). Optionally binds an Inspector-assigned health bar Slider. |
+| `BuildingManager.cs` | Singleton. Press 1–5 to enter placement mode for a `BuildingDefinition[]`. Ghost preview (green = valid, red = blocked/unaffordable). Left-click to place, right-click/Escape to cancel. Stays in placement mode after placing. |
+
+#### Player
+| File | Purpose |
+|------|---------|
+| `PlayerController.cs` | Requires `Rigidbody2D` + `PlayerInput`. WASD/stick movement via New Input System. Interact radius (single-press `IInteractable`, hold `IHoldInteractable`). Health + i-frames. Fires `OnHealthChanged` / `OnDied`. Calls `GameManager.TriggerGameOver()` on death. |
+
+#### Enemies
+| File | Purpose |
+|------|---------|
+| `Enemy.cs` | Requires `Rigidbody2D`. Pathfinds to player via `Pathfinder` (A*); falls back to straight-line if no grid. Two-pass pathing: avoids barricades first, routes through them if blocked. Attacks barricades it collides with. Contact-damages the player. `ApplyWaveScaling(h, s, d)` is called by GameManager after spawning. Calls `GameManager.OnEnemyDied()` on death. |
+
+#### World
+| File | Purpose |
+|------|---------|
+| `Barricade.cs` | Requires `BoxCollider2D` + `SpriteRenderer`. Ghost state (free, passable) → Built state (costs Wood, blocks movement, registers on pathfinding grid). Enemies deal damage to it; destroyed when HP reaches 0. Fires `OnStateChanged` / `OnHealthChanged` / `OnDestroyed`. |
+| `HarvestableObject.cs` | Hold-interact to harvest Wood or Metal. Procedural world-space progress bar (no prefab needed). Destroys itself on completion. |
+| `Turret.cs` | Finds the closest enemy within `detectionRange`, rotates a head transform to face it, fires `Projectile` prefabs at `fireRate` shots/sec. |
+| `Projectile.cs` | Fired by Turret. Requires `Rigidbody2D` + trigger `Collider2D`. Travels toward target world position. Deals damage on trigger with "Enemy"-tagged colliders, then destroys self. |
+
+#### Interaction Interfaces
+| File | Purpose |
+|------|---------|
+| `IInteractable.cs` | `Interact()` — instant one-press interaction. |
+| `IHoldInteractable.cs` | `HoldDuration`, `OnHoldStart/Tick/Cancelled/Completed` — button-held interaction driven by PlayerController. |
+| `IDamageable.cs` | `CurrentHealth`, `MaxHealth`, `TakeDamage(float)` — implemented by Player, Enemy, Barricade. |
+
+#### Pathfinding
+| File | Purpose |
+|------|---------|
+| `PathfindingGrid.cs` | Singleton. Grid of `PathNode`s over the scene. `RegisterBarricade` / `UnregisterBarricade` mark cells. `NextSearchVersion()` avoids full reset between searches. |
+| `PathNode.cs` | Grid cell data: world position, grid coords, wall/barricade flags, A* fields (GCost/HCost/Parent/SearchVersion). |
+| `Pathfinder.cs` | Static A* with octile heuristic. `FindPath(start, end, avoidBarricades)` — two-pass call pattern used by Enemy. |
+
+### Placeholder
+- `Assets/NewMonoBehaviourScript.cs` — empty default script, can be deleted.
+
+### What Is NOT Yet Built
+- Art / sprites (all rendering uses placeholder white squares or SpriteRenderer defaults)
+- XP system and level-up / upgrade UI
+- Weapon auto-attack on the player (only turrets shoot right now)
+- Object pooling (enemies and projectiles are instantiate/destroy)
+- Audio
+- Scene setup (SampleScene is still an empty template — GameObjects, prefabs, and the scene hierarchy need to be assembled in the Unity Editor)
