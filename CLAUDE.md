@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Vampire Survivalz** is a Vampire Survivors-style 2D top-down survival/roguelike game built in Unity 6000.0.59f2.
+**VampireSurvivalz** is a Vampire Survivors-style 2D top-down survival/roguelike game built in Unity 6000.0.59f2.
 
 ## Unity Version & Requirements
 
@@ -17,7 +17,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 There are no external build scripts. All building is done through Unity Editor or Visual Studio.
 
-- Open project: Launch Unity Hub and open the `D:\Github\Vampire Survivalz` folder with Unity 6000.0.59f2
+- Open project: Launch Unity Hub and open the `D:\Github\VampireSurvivalz` folder with Unity 6000.0.59f2
 - Build: Unity Editor → File → Build Settings → StandaloneWindows64 → Build
 - Tests: Unity Editor → Window → General → Test Runner (Unity Test Framework v1.6.0 is installed)
 - IDE: Visual Studio or Rider (both configured via package manager)
