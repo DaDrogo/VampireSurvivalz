@@ -26,7 +26,9 @@ public class UIManager : MonoBehaviour
         if (Instance != null) { Destroy(gameObject); return; }
         Instance = this;
 
-        if (woodText == null) BuildHUD();
+        // If any critical HUD label is missing, build a complete fallback HUD.
+        if (woodText == null || metalText == null || stateText == null || timerText == null)
+            BuildHUD();
     }
 
     private void Start()

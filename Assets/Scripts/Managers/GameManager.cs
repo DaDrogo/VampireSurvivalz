@@ -43,6 +43,10 @@ public class GameManager : MonoBehaviour
     [SerializeField] private Vector2 safeZoneSize     = new Vector2(10f, 10f);
     [SerializeField] private float   spawnBorderWidth = 5f;
 
+    [Header("Startup")]
+    [Tooltip("If true, the game starts automatically on scene load. Disable when using a menu Start button.")]
+    [SerializeField] private bool autoStartOnSceneLoad = true;
+
     // ── Public state (read by UI / other systems) ─────────────────────────────
 
     public GameState CurrentState      { get; private set; } = GameState.Preparation;
@@ -78,7 +82,43 @@ public class GameManager : MonoBehaviour
         Instance = this;
     }
 
-    private void Start() => EnterPreparation();
+    private void Start()
+    {
+        if (autoStartOnSceneLoad)
+            StartGame();
+    }
+
+    /// <summary>
+    /// Entry point for a UI Start button.
+    /// Regenerates the map, rebuilds the pathfinding grid, and starts the preparation phase.
+    /// </summary>
+    public void StartGame()
+    {
+        StopAllCoroutines();
+        Time.timeScale = 1f;
+
+        WaveNumber = 0;
+        TimeRemaining = 0f;
+        EnemiesRemaining = 0;
+        EnemiesThisWave = 0;
+        _enemiesSpawned = 0;
+
+        if (_gameOverScreen != null)
+            _gameOverScreen.SetActive(false);
+
+        MapGenerator mapGenerator = FindAnyObjectByType<MapGenerator>();
+        if (mapGenerator != null)
+        {
+            mapGenerator.Generate();
+            PathfindingGrid.Instance?.BuildGrid();
+        }
+        else
+        {
+            Debug.LogWarning("GameManager: MapGenerator not found. Starting game without map regeneration.");
+        }
+
+        EnterPreparation();
+    }
 
     // ═════════════════════════════════════════════════════════════════════════
     //  State transitions

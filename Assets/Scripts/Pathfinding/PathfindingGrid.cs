@@ -56,7 +56,7 @@ public class PathfindingGrid : MonoBehaviour
     //  Grid construction
     // ═════════════════════════════════════════════════════════════════════════
 
-    private void BuildGrid()
+    public void BuildGrid()
     {
         if (wallTilemap == null)
         {

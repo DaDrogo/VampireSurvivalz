@@ -116,7 +116,7 @@ public class WaveManager : MonoBehaviour
 
         float mult = 1f + (WaveNumber - 1) * difficultyIncreasePerWave;
         if (go.TryGetComponent(out Enemy enemy))
-            enemy.SetDifficultyMultiplier(mult);
+            enemy.ApplyWaveScaling(mult, mult, mult);
     }
 
     // ── Called by Enemy.Die() ─────────────────────────────────────────────────
