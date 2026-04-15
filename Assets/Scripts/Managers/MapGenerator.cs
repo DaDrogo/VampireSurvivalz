@@ -70,7 +70,8 @@ public class MapGenerator : MonoBehaviour
     {
         if (useRandomSeed) seed = Random.Range(0, int.MaxValue);
         Random.InitState(seed);
-        Generate();
+        // Generation is driven by GameManager.StartGame() so the map and grid
+        // are always built together in the correct order.
     }
 
     // ── Generation entry point ────────────────────────────────────────────────

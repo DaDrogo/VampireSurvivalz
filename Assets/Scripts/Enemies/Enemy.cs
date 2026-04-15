@@ -178,10 +178,11 @@ public class Enemy : MonoBehaviour, IDamageable
     /// </summary>
     public void ApplyWaveScaling(float healthMult, float speedMult, float damageMult)
     {
-        maxHealth    *= healthMult;
-        moveSpeed    *= speedMult;
-        attackDamage *= damageMult;
-        CurrentHealth = maxHealth;
+        maxHealth     *= healthMult;
+        moveSpeed     *= speedMult;
+        attackDamage  *= damageMult;
+        contactDamage *= damageMult;
+        CurrentHealth  = maxHealth;
     }
 
     private void Die()

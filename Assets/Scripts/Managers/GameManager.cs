@@ -106,6 +106,8 @@ public class GameManager : MonoBehaviour
         if (_gameOverScreen != null)
             _gameOverScreen.SetActive(false);
 
+        ResourceManager.Instance?.ResetResources();
+
         MapGenerator mapGenerator = FindAnyObjectByType<MapGenerator>();
         if (mapGenerator != null)
         {

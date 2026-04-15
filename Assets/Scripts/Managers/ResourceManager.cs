@@ -60,6 +60,13 @@ public class ResourceManager : MonoBehaviour
         }
     }
 
+    /// <summary>Resets all resources to zero. Called by GameManager on new game / restart.</summary>
+    public void ResetResources()
+    {
+        Wood  = 0;
+        Metal = 0;
+    }
+
     /// <summary>Returns current amount of a resource, or -1 if the type is unknown.</summary>
     public int GetResource(string type)
     {
