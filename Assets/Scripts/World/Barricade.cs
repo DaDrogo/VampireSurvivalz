@@ -32,11 +32,16 @@ public class Barricade : MonoBehaviour, IInteractable, IDamageable
 
     private void Awake()
     {
+        SpriteColliderAutoFit.Fit(gameObject);
         _collider = GetComponent<BoxCollider2D>();
         _renderer = GetComponent<SpriteRenderer>();
 
         ApplyGhostState();
     }
+
+#if UNITY_EDITOR
+    private void OnValidate() => SpriteColliderAutoFit.Fit(gameObject);
+#endif
 
     // ── IInteractable ─────────────────────────────────────────────────────────
 
@@ -83,6 +88,7 @@ public class Barricade : MonoBehaviour, IInteractable, IDamageable
 
         _collider.enabled = true;
         if (builtSprite != null) _renderer.sprite = builtSprite;
+        SpriteColliderAutoFit.Fit(gameObject);
 
         PathfindingGrid.Instance?.RegisterBarricade(transform.position, this);
 
@@ -98,6 +104,7 @@ public class Barricade : MonoBehaviour, IInteractable, IDamageable
         // Ghost barricades are passable — only the built state blocks movement
         _collider.enabled = false;
         if (ghostSprite != null) _renderer.sprite = ghostSprite;
+        SpriteColliderAutoFit.Fit(gameObject);
     }
 
     private void DestroyBarricade()

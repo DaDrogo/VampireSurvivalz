@@ -45,6 +45,7 @@ public class PlayerController : MonoBehaviour, IDamageable
 
     private void Awake()
     {
+        SpriteColliderAutoFit.Fit(gameObject);
         _rb = GetComponent<Rigidbody2D>();
         _rb.gravityScale   = 0f;
         _rb.freezeRotation = true;
@@ -52,6 +53,10 @@ public class PlayerController : MonoBehaviour, IDamageable
         CurrentHealth   = maxHealth;
         _interactAction = GetComponent<PlayerInput>().actions.FindAction("Interact");
     }
+
+#if UNITY_EDITOR
+    private void OnValidate() => SpriteColliderAutoFit.Fit(gameObject);
+#endif
 
     // ── Input callbacks (SendMessages) ────────────────────────────────────────
 

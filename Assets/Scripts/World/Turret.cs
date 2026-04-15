@@ -1,7 +1,13 @@
 using UnityEngine;
 
-public class Turret : MonoBehaviour
+public class Turret : MonoBehaviour, IDamageable
 {
+    [Header("Health")]
+    [SerializeField] private float maxHealth = 150f;
+
+    public float CurrentHealth { get; private set; }
+    public float MaxHealth     => maxHealth;
+
     [Header("Detection")]
     [SerializeField] private float detectionRange = 8f;
 
@@ -14,6 +20,22 @@ public class Turret : MonoBehaviour
     [SerializeField] private Transform head;               // child transform that rotates
 
     private float _fireCooldown;
+
+    private void Awake()
+    {
+        SpriteColliderAutoFit.Fit(gameObject);
+        CurrentHealth = maxHealth;
+    }
+
+    public void TakeDamage(float damage)
+    {
+        CurrentHealth = Mathf.Max(0f, CurrentHealth - damage);
+        if (CurrentHealth <= 0f) Destroy(gameObject);
+    }
+
+#if UNITY_EDITOR
+    private void OnValidate() => SpriteColliderAutoFit.Fit(gameObject);
+#endif
 
     private void Update()
     {

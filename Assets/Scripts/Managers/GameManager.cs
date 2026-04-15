@@ -38,10 +38,27 @@ public class GameManager : MonoBehaviour
     [SerializeField] private float damageScalePerWave  = 0.10f;
     [SerializeField] private GameObject enemyPrefab;
 
-    [Header("Spawn Area")]
-    [SerializeField] private Vector2 spawnCenter      = Vector2.zero;
-    [SerializeField] private Vector2 safeZoneSize     = new Vector2(10f, 10f);
-    [SerializeField] private float   spawnBorderWidth = 5f;
+    [Header("Spawn Area — Polygon (takes priority)")]
+    [Tooltip("Draw a PolygonCollider2D (Trigger, no Rigidbody) over valid spawn ground. " +
+             "When assigned, the ring below is ignored.")]
+    [SerializeField] private PolygonCollider2D spawnArea;
+
+    [Tooltip("Fallback list of Transforms used when no PolygonCollider2D is set.")]
+    [SerializeField] private Transform[] spawnPoints;
+
+    [Header("Spawn Area — Obstacle Rejection")]
+    [Tooltip("Layer mask for walls/geometry. Candidates overlapping this mask are rejected.")]
+    [SerializeField] private LayerMask obstacleLayer;
+
+    [Tooltip("Radius of the Physics2D.OverlapCircle check (~half enemy width).")]
+    [SerializeField] private float spawnOverlapRadius = 0.4f;
+
+    [Tooltip("Max random samples before falling back to nearest-walkable.")]
+    [SerializeField] [Range(10, 200)] private int spawnMaxAttempts = 50;
+
+    [Header("Spawn Area — Rect Fallback (used when no Polygon or Points assigned)")]
+    [SerializeField] private Vector2 spawnCenter  = Vector2.zero;
+    [SerializeField] private Vector2 spawnAreaSize = new Vector2(20f, 20f);
 
     [Header("Startup")]
     [Tooltip("If true, the game starts automatically on scene load. Disable when using a menu Start button.")]
@@ -226,35 +243,101 @@ public class GameManager : MonoBehaviour
             return;
         }
 
-        var go = Instantiate(enemyPrefab, GetSpawnPosition(), Quaternion.identity);
+        Vector2 pos = GetSpawnPosition();
+        var go = Instantiate(enemyPrefab, pos, Quaternion.identity);
 
         if (go.TryGetComponent(out Enemy enemy))
             enemy.ApplyWaveScaling(healthMult, speedMult, damageMult);
     }
 
     // ═════════════════════════════════════════════════════════════════════════
-    //  Spawn position
+    //  Spawn position — polygon → point list → ring fallback, all obstacle-checked
     // ═════════════════════════════════════════════════════════════════════════
 
     private Vector2 GetSpawnPosition()
     {
-        float hw = safeZoneSize.x * 0.5f + spawnBorderWidth;
-        float hh = safeZoneSize.y * 0.5f + spawnBorderWidth;
-        float iw = safeZoneSize.x * 0.5f;
-        float ih = safeZoneSize.y * 0.5f;
+        Vector2 seed = spawnArea != null
+            ? SamplePolygon()
+            : (spawnPoints != null && spawnPoints.Length > 0 ? SamplePointList() : SampleRing());
 
-        float tbArea    = hw * 2f * spawnBorderWidth;
-        float lrArea    = ih * 2f * spawnBorderWidth;
-        float totalArea = 2f * tbArea + 2f * lrArea;
-        float roll      = UnityEngine.Random.value * totalArea;
+        // Try many random candidates and keep only positions that are not blocked.
+        for (int i = 0; i < spawnMaxAttempts; i++)
+        {
+            Vector2 candidate = spawnArea != null
+                ? SamplePolygon()
+                : (spawnPoints != null && spawnPoints.Length > 0 ? SamplePointList() : SampleRing());
 
-        Vector2 local;
-        if      (roll < tbArea)              local = new Vector2(UnityEngine.Random.Range(-hw, hw),  UnityEngine.Random.Range(ih,  ih  + spawnBorderWidth));
-        else if (roll < 2f * tbArea)         local = new Vector2(UnityEngine.Random.Range(-hw, hw),  UnityEngine.Random.Range(-ih - spawnBorderWidth, -ih));
-        else if (roll < 2f * tbArea + lrArea) local = new Vector2(UnityEngine.Random.Range(iw,  iw  + spawnBorderWidth), UnityEngine.Random.Range(-ih, ih));
-        else                                 local = new Vector2(UnityEngine.Random.Range(-iw - spawnBorderWidth, -iw), UnityEngine.Random.Range(-ih, ih));
+            if (IsSpawnCandidateValid(candidate))
+                return candidate;
+        }
 
-        return spawnCenter + local;
+        // Fallback: snap the seed to the nearest walkable grid node.
+        PathNode nearest = PathfindingGrid.Instance?.FindNearestWalkable(seed);
+        if (nearest != null)
+            return nearest.WorldPos;
+
+        return seed;
+    }
+
+    // ── PolygonCollider2D source ──────────────────────────────────────────────
+
+    private Vector2 SamplePolygon()
+    {
+        Bounds b = spawnArea.bounds;
+
+        for (int i = 0; i < spawnMaxAttempts; i++)
+        {
+            Vector2 candidate = new Vector2(
+                UnityEngine.Random.Range(b.min.x, b.max.x),
+                UnityEngine.Random.Range(b.min.y, b.max.y));
+
+            if (spawnArea.OverlapPoint(candidate))
+                return candidate;
+        }
+
+        // Polygon is very small or concave — return its center
+        return b.center;
+    }
+
+    // ── Transform list source ─────────────────────────────────────────────────
+
+    private Vector2 SamplePointList()
+    {
+        // Pick a random non-null transform from the list
+        int start = UnityEngine.Random.Range(0, spawnPoints.Length);
+        for (int i = 0; i < spawnPoints.Length; i++)
+        {
+            Transform t = spawnPoints[(start + i) % spawnPoints.Length];
+            if (t != null) return t.position;
+        }
+
+        return Vector2.zero;
+    }
+
+    // ── Rect fallback ─────────────────────────────────────────────────────────
+
+    private Vector2 SampleRing()
+    {
+        float hw = spawnAreaSize.x * 0.5f;
+        float hh = spawnAreaSize.y * 0.5f;
+
+        return spawnCenter + new Vector2(
+            UnityEngine.Random.Range(-hw, hw),
+            UnityEngine.Random.Range(-hh, hh));
+    }
+
+    private bool IsSpawnCandidateValid(Vector2 candidate)
+    {
+        // Reject overlap with wall/obstacle layers.
+        if (Physics2D.OverlapCircle(candidate, spawnOverlapRadius, obstacleLayer) != null)
+            return false;
+
+        // Also reject non-walkable grid cells when a pathfinding grid exists.
+        PathfindingGrid grid = PathfindingGrid.Instance;
+        if (grid == null) return true;
+
+        PathNode node = grid.NodeFromWorld(candidate);
+        return node != null && !node.IsWall && !node.IsBarricade;
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -350,16 +433,33 @@ public class GameManager : MonoBehaviour
 
     private void OnDrawGizmos()
     {
-        Gizmos.color = new Color(0f, 1f, 0f, 0.12f);
-        Gizmos.DrawCube(spawnCenter, safeZoneSize);
-        Gizmos.color = Color.green;
-        Gizmos.DrawWireCube(spawnCenter, safeZoneSize);
+        // Polygon spawn area bounds
+        if (spawnArea != null)
+        {
+            Gizmos.color = new Color(1f, 0.5f, 0f, 0.15f);
+            Gizmos.DrawCube(spawnArea.bounds.center, spawnArea.bounds.size);
+            Gizmos.color = new Color(1f, 0.5f, 0f, 0.9f);
+            Gizmos.DrawWireCube(spawnArea.bounds.center, spawnArea.bounds.size);
+            return; // polygon defined — skip ring gizmos
+        }
 
-        Vector2 outer = safeZoneSize + Vector2.one * (spawnBorderWidth * 2f);
-        Gizmos.color  = new Color(1f, 0f, 0f, 0.08f);
-        Gizmos.DrawCube(spawnCenter, outer);
-        Gizmos.color  = Color.red;
-        Gizmos.DrawWireCube(spawnCenter, outer);
+        // Spawn point markers
+        if (spawnPoints != null)
+        {
+            Gizmos.color = new Color(1f, 0.5f, 0f, 0.9f);
+            foreach (Transform t in spawnPoints)
+            {
+                if (t == null) continue;
+                Gizmos.DrawWireSphere(t.position, spawnOverlapRadius);
+            }
+            if (spawnPoints.Length > 0) return;
+        }
+
+        // Rect fallback
+        Gizmos.color = new Color(1f, 0.5f, 0f, 0.12f);
+        Gizmos.DrawCube(spawnCenter, spawnAreaSize);
+        Gizmos.color = new Color(1f, 0.5f, 0f, 0.9f);
+        Gizmos.DrawWireCube(spawnCenter, spawnAreaSize);
     }
 
     // ═════════════════════════════════════════════════════════════════════════

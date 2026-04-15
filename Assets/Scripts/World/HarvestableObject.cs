@@ -32,7 +32,15 @@ public class HarvestableObject : MonoBehaviour, IHoldInteractable
 
     // ── Unity lifecycle ───────────────────────────────────────────────────────
 
-    private void Awake() => BuildProgressBar();
+    private void Awake()
+    {
+        SpriteColliderAutoFit.Fit(gameObject);
+        BuildProgressBar();
+    }
+
+#if UNITY_EDITOR
+    private void OnValidate() => SpriteColliderAutoFit.Fit(gameObject);
+#endif
 
     // ── IHoldInteractable callbacks ───────────────────────────────────────────
 

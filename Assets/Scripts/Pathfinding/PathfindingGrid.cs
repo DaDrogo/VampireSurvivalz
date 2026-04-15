@@ -48,8 +48,9 @@ public class PathfindingGrid : MonoBehaviour
         Instance = this;
     }
 
-    // BuildGrid is called by GameManager.StartGame() after MapGenerator.Generate()
-    // has painted tiles, so the grid always reflects the current map layout.
+    // BuildGrid is also called by GameManager.StartGame() after every Generate()
+    // so the grid always reflects the current map on restart.
+    private void Start() => BuildGrid();
 
     // ═════════════════════════════════════════════════════════════════════════
     //  Grid construction
@@ -93,9 +94,11 @@ public class PathfindingGrid : MonoBehaviour
 
     private bool IsTileWall(Vector3Int cellPos)
     {
-        if (wallTiles == null || wallTiles.Length == 0) return false;
         TileBase tile = wallTilemap.GetTile(cellPos);
         if (tile == null) return false;
+        // If no specific wall tiles are configured, treat any tile in the wall
+        // tilemap as a wall — MapGenerator only ever places wall tiles there.
+        if (wallTiles == null || wallTiles.Length == 0) return true;
         foreach (TileBase wt in wallTiles)
             if (tile == wt) return true;
         return false;
@@ -129,6 +132,47 @@ public class PathfindingGrid : MonoBehaviour
     {
         TryGetNode(worldPos, out PathNode node);
         return node;
+    }
+
+    /// <summary>
+    /// Returns the nearest walkable (non-wall) node to <paramref name="worldPos"/>.
+    /// Searches outward in expanding rings up to 5 tiles. Returns null if the grid
+    /// is not built or no walkable node is found within that radius.
+    /// </summary>
+    public PathNode FindNearestWalkable(Vector2 worldPos)
+    {
+        if (_grid == null) return null;
+        if (!TryGetNode(worldPos, out PathNode centre)) return null;
+        if (!centre.IsWall) return centre;
+
+        for (int radius = 1; radius <= 5; radius++)
+        {
+            PathNode best     = null;
+            float    bestDist = float.MaxValue;
+
+            for (int dx = -radius; dx <= radius; dx++)
+            {
+                for (int dy = -radius; dy <= radius; dy++)
+                {
+                    // Only check the outer ring of this radius
+                    if (Mathf.Abs(dx) != radius && Mathf.Abs(dy) != radius) continue;
+
+                    int nx = centre.GridX + dx;
+                    int ny = centre.GridY + dy;
+                    if (nx < 0 || nx >= Width || ny < 0 || ny >= Height) continue;
+
+                    PathNode n = _grid[nx, ny];
+                    if (n == null || n.IsWall) continue;
+
+                    float d = Vector2.Distance(worldPos, n.WorldPos);
+                    if (d < bestDist) { bestDist = d; best = n; }
+                }
+            }
+
+            if (best != null) return best;
+        }
+
+        return null;
     }
 
     private bool TryGetNode(Vector2 worldPos, out PathNode node)

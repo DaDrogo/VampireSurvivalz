@@ -1,5 +1,8 @@
+using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Tilemaps;
+using Random = UnityEngine.Random;
 
 /// <summary>
 /// Procedural house layout using Binary Space Partitioning (BSP).
@@ -25,6 +28,7 @@ public class MapGenerator : MonoBehaviour
     [Header("Tiles")]
     [SerializeField] private TileBase floorTile;
     [SerializeField] private TileBase wallTile;
+    [SerializeField] private TileBase doorTile;
 
     [Header("Map Size")]
     [Tooltip("Total map width in tiles (includes the 1-tile perimeter wall on each side)")]
@@ -40,11 +44,38 @@ public class MapGenerator : MonoBehaviour
     [Tooltip("Recursion depth — 2 = up to 4 rooms, 3 = 8, 4 = 16")]
     [SerializeField] [Range(1, 5)]  private int splitDepth  = 3;
     [Tooltip("Width of the door opening cut in each dividing wall")]
-    [SerializeField] [Range(1, 3)]  private int doorWidth   = 2;
+    [SerializeField] [Range(1, 3)]  private int doorWidth        = 2;
+    [Tooltip("Minimum tiles between a door and the wall corner")]
+    [SerializeField] [Range(1, 4)]  private int doorCornerMargin = 2;
 
     [Header("Seed")]
     [SerializeField] private bool useRandomSeed = true;
     [SerializeField] private int  seed;
+
+    // ── BSP output (read by HouseManager after Generate) ─────────────────────
+
+    /// <summary>Carries all data HouseManager needs to create a Door GameObject.</summary>
+    public struct DoorInfo
+    {
+        /// <summary>Tile position of the first (lowest x or y) tile of the opening.</summary>
+        public Vector2Int TilePos;
+        /// <summary>Number of tiles in the opening.</summary>
+        public int Width;
+        /// <summary>True = wall runs horizontally (x varies); False = wall runs vertically (y varies).</summary>
+        public bool IsHorizontalWall;
+        /// <summary>Fixed-axis tile coordinate of the wall row/column.</summary>
+        public int WallCoord;
+    }
+
+    private readonly List<RectInt>  _leafRooms = new List<RectInt>();
+    private readonly List<DoorInfo> _doorInfos = new List<DoorInfo>();
+
+    /// <summary>BSP leaf rooms (floor tiles only, no walls). Populated after every Generate call.</summary>
+    public IReadOnlyList<RectInt>  LeafRooms => _leafRooms;
+    /// <summary>Door openings cut in dividing walls. Populated after every Generate call.</summary>
+    public IReadOnlyList<DoorInfo> DoorInfos  => _doorInfos;
+    /// <summary>Fired at the end of every Generate call (including on Awake).</summary>
+    public event Action OnGenerated;
 
     // ── Derived origin (computed each generate call) ──────────────────────────
 
@@ -70,8 +101,7 @@ public class MapGenerator : MonoBehaviour
     {
         if (useRandomSeed) seed = Random.Range(0, int.MaxValue);
         Random.InitState(seed);
-        // Generation is driven by GameManager.StartGame() so the map and grid
-        // are always built together in the correct order.
+        Generate();
     }
 
     // ── Generation entry point ────────────────────────────────────────────────
@@ -84,6 +114,9 @@ public class MapGenerator : MonoBehaviour
     public void Generate()
     {
         if (!ValidateReferences()) return;
+
+        _leafRooms.Clear();
+        _doorInfos.Clear();
 
         var origin = Origin;
 
@@ -111,7 +144,8 @@ public class MapGenerator : MonoBehaviour
         wallTilemap.CompressBounds();
         floorTilemap.CompressBounds();
 
-        Debug.Log($"[MapGenerator] {mapWidth}×{mapHeight}  centre={mapCenter}  seed={seed}  depth={splitDepth}");
+        Debug.Log($"[MapGenerator] {mapWidth}×{mapHeight}  centre={mapCenter}  seed={seed}  depth={splitDepth}  rooms={_leafRooms.Count}  doors={_doorInfos.Count}");
+        OnGenerated?.Invoke();
     }
 
     // ── Perimeter ─────────────────────────────────────────────────────────────
@@ -134,12 +168,12 @@ public class MapGenerator : MonoBehaviour
 
     private void SplitRoom(RectInt room, int depth)
     {
-        if (depth <= 0) return;
+        if (depth <= 0) { _leafRooms.Add(room); return; }
 
         bool canH = room.height >= minRoomSize * 2 + 1;
         bool canV = room.width  >= minRoomSize * 2 + 1;
 
-        if (!canH && !canV) return;
+        if (!canH && !canV) { _leafRooms.Add(room); return; }
 
         // Split along the longer axis; when equal alternate to avoid same-direction bias
         bool horizontal;
@@ -188,9 +222,9 @@ public class MapGenerator : MonoBehaviour
     /// <param name="isHorizontalWall">True = wall runs left-right (vary X); false = top-bottom (vary Y).</param>
     private void CutDoor(int rangeMin, int rangeMax, int wallCoord, bool isHorizontalWall)
     {
-        // Leave 1-tile margin at each end so doors never sit flush in a corner
-        int lo  = rangeMin + 1;
-        int hi  = rangeMax - doorWidth - 1;
+        // Keep doors away from corners by doorCornerMargin tiles on each side
+        int lo  = rangeMin + doorCornerMargin;
+        int hi  = rangeMax - doorWidth - doorCornerMargin;
 
         // Guard: if the room is too narrow the door goes in the middle
         if (hi <= lo) hi = lo + 1;
@@ -199,10 +233,41 @@ public class MapGenerator : MonoBehaviour
 
         for (int i = 0; i < doorWidth; i++)
         {
-            if (isHorizontalWall) ClearWall(pos + i, wallCoord);
-            else                  ClearWall(wallCoord, pos + i);
+            if (isHorizontalWall) PlaceDoorTile(pos + i, wallCoord);
+            else                  PlaceDoorTile(wallCoord, pos + i);
         }
+
+        // Record for HouseManager
+        _doorInfos.Add(new DoorInfo
+        {
+            TilePos          = isHorizontalWall ? new Vector2Int(pos, wallCoord) : new Vector2Int(wallCoord, pos),
+            Width            = doorWidth,
+            IsHorizontalWall = isHorizontalWall,
+            WallCoord        = wallCoord,
+        });
     }
+
+    // ── World-space conversion helpers (used by HouseManager) ────────────────
+
+    /// <summary>World-space centre of a single tile.</summary>
+    public Vector2 TileToWorldCenter(Vector2Int tile)
+    {
+        if (floorTilemap == null)
+            return new Vector2(tile.x + 0.5f, tile.y + 0.5f);
+        return (Vector2)floorTilemap.CellToWorld(new Vector3Int(tile.x, tile.y, 0))
+               + new Vector2(0.5f, 0.5f);
+    }
+
+    /// <summary>World-space centre of a tile rectangle (average of min/max tile centres).</summary>
+    public Vector2 TileRectWorldCenter(RectInt rect)
+    {
+        Vector2 minC = TileToWorldCenter(new Vector2Int(rect.xMin, rect.yMin));
+        Vector2 maxC = TileToWorldCenter(new Vector2Int(rect.xMax - 1, rect.yMax - 1));
+        return (minC + maxC) * 0.5f;
+    }
+
+    /// <summary>World-space size of a tile rectangle (1 tile = 1 world unit).</summary>
+    public Vector2 TileRectWorldSize(RectInt rect) => new Vector2(rect.width, rect.height);
 
     // ── Tile helpers ──────────────────────────────────────────────────────────
 
@@ -218,6 +283,13 @@ public class MapGenerator : MonoBehaviour
         var p = new Vector3Int(x, y, 0);
         wallTilemap.SetTile(p, null);
         floorTilemap.SetTile(p, floorTile);
+    }
+
+    private void PlaceDoorTile(int x, int y)
+    {
+        var p = new Vector3Int(x, y, 0);
+        wallTilemap.SetTile(p, null);
+        floorTilemap.SetTile(p, doorTile != null ? doorTile : floorTile);
     }
 
     // ── Validation ────────────────────────────────────────────────────────────

@@ -14,12 +14,17 @@ public class Projectile : MonoBehaviour
 
     private void Awake()
     {
+        SpriteColliderAutoFit.Fit(gameObject);
         _rb = GetComponent<Rigidbody2D>();
         _rb.gravityScale = 0f;
 
         // Trigger so the projectile passes through and we handle the hit manually
         GetComponent<Collider2D>().isTrigger = true;
     }
+
+#if UNITY_EDITOR
+    private void OnValidate() => SpriteColliderAutoFit.Fit(gameObject);
+#endif
 
     /// <summary>Called by Turret immediately after Instantiate.</summary>
     public void Initialize(Vector3 targetWorldPos)
