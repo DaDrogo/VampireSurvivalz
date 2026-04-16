@@ -94,6 +94,14 @@ public class Barricade : MonoBehaviour, IInteractable, IDamageable, IEnemyAttack
         TakeDamage(damage);
     }
 
+    /// <summary>Called by <see cref="PlacedBuilding.TryUpgrade"/> to scale max health.</summary>
+    public void ApplyUpgrade(float healthMult)
+    {
+        maxHealth     *= healthMult;
+        CurrentHealth  = maxHealth;
+        OnHealthChanged?.Invoke(CurrentHealth, maxHealth);
+    }
+
     // ── Internal ──────────────────────────────────────────────────────────────
 
     private void Build()

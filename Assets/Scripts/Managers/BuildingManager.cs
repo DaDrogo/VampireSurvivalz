@@ -3,6 +3,18 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
+/// <summary>One upgrade tier for a building. Assign in the Inspector on each BuildingDefinition.</summary>
+[Serializable]
+public class BuildingUpgradeTier
+{
+    public string label         = "Upgrade";
+    public int    woodCost;
+    public int    metalCost;
+    [Min(1f)] public float healthMult   = 1f;
+    [Min(1f)] public float fireRateMult = 1f;
+    [Min(1f)] public float rangeMult    = 1f;
+}
+
 /// <summary>
 /// Defines one placeable building type.
 /// Assign in the BuildingManager Inspector — index 0 = key 1, index 1 = key 2, etc.
@@ -16,6 +28,9 @@ public class BuildingDefinition
     public Vector2      footprint    = Vector2.one;
     public int          woodCost;
     public int          metalCost;
+    [TextArea(1, 2)]
+    public string       description;
+    public BuildingUpgradeTier[] upgrades;
 }
 
 /// <summary>
@@ -46,7 +61,12 @@ public class BuildingManager : MonoBehaviour
 
     public bool IsPlacing => _isPlacing;
 
+    public static event Action<int> OnSelectionChanged;
+    public int BuildingCount => buildings?.Length ?? 0;
+    public BuildingDefinition GetDefinition(int i) => buildings[i];
+
     private BuildingDefinition      _active;
+    private int                     _activeIndex = -1;
     private GameObject              _ghost;
     private SpriteRenderer          _ghostSR;
     private bool                    _isPlacing;
@@ -89,14 +109,20 @@ public class BuildingManager : MonoBehaviour
         for (int i = 0; i < Mathf.Min(buildings.Length, Hotkeys.Length); i++)
         {
             if (!Keyboard.current[Hotkeys[i]].wasPressedThisFrame) continue;
-
-            // Pressing the active key again cancels placement (toggle)
-            if (_isPlacing && _active == buildings[i])
-                CancelPlacement();
-            else
-                BeginPlacement(buildings[i]);
+            SelectBuilding(i);
             return;
         }
+    }
+
+    /// <summary>Enters placement mode for the building at <paramref name="index"/>.
+    /// Pressing the same index again cancels (toggle). Called by hotkeys and the UI hotbar.</summary>
+    public void SelectBuilding(int index)
+    {
+        if (index < 0 || index >= buildings.Length) return;
+        if (_isPlacing && _active == buildings[index])
+            CancelPlacement();
+        else
+            BeginPlacement(buildings[index]);
     }
 
     // ── Placement flow ────────────────────────────────────────────────────────
@@ -110,9 +136,11 @@ public class BuildingManager : MonoBehaviour
         }
 
         CancelPlacement();   // destroy any previous ghost first
-        _active    = def;
-        _isPlacing = true;
-        _ghost     = SpawnGhost(def);
+        _active      = def;
+        _activeIndex = System.Array.IndexOf(buildings, def);
+        _isPlacing   = true;
+        _ghost       = SpawnGhost(def);
+        OnSelectionChanged?.Invoke(_activeIndex);
     }
 
     private void TryPlace()
@@ -132,6 +160,12 @@ public class BuildingManager : MonoBehaviour
             return;
         }
 
+        if (IsOnWall(pos))
+        {
+            Debug.Log($"BuildingManager: placement on wall at {pos}.");
+            return;
+        }
+
         if (IsTileOccupied(pos))
         {
             Debug.Log($"BuildingManager: tile already occupied at {pos}.");
@@ -140,7 +174,7 @@ public class BuildingManager : MonoBehaviour
 
         Vector2Int tile   = WorldToTileCoord(pos);
         GameObject placed = Instantiate(_active.prefab, pos, Quaternion.identity);
-        placed.AddComponent<PlacedBuilding>().Init(tile);
+        placed.AddComponent<PlacedBuilding>().Init(tile, _active);
         _occupiedTiles.Add(tile);
 
         // Barricades start in Ghost state by default; build them immediately
@@ -155,9 +189,12 @@ public class BuildingManager : MonoBehaviour
     public void CancelPlacement()
     {
         if (_ghost != null) Destroy(_ghost);
-        _ghost     = null;
-        _ghostSR   = null;
-        _active    = null;
+        _ghost       = null;
+        _ghostSR     = null;
+        _active      = null;
+        _activeIndex = -1;
+        if (_isPlacing)
+            OnSelectionChanged?.Invoke(-1);
         _isPlacing = false;
     }
 
@@ -192,7 +229,10 @@ public class BuildingManager : MonoBehaviour
     private void UpdateGhostColor()
     {
         Vector2 pos   = SnappedMouseWorldPos();
-        bool    valid = CanAfford(_active) && IsAreaClear(pos, _active.footprint) && !IsTileOccupied(pos);
+        bool    valid = CanAfford(_active)
+                     && IsAreaClear(pos, _active.footprint)
+                     && !IsOnWall(pos)
+                     && !IsTileOccupied(pos);
         _ghostSR.color = valid ? validColor : invalidColor;
     }
 
@@ -214,6 +254,17 @@ public class BuildingManager : MonoBehaviour
     {
         Collider2D hit = Physics2D.OverlapBox(center, size * 0.9f, 0f, blockingLayers);
         return hit == null;
+    }
+
+    /// <summary>
+    /// Returns true when the snapped position lands on a wall tile according to
+    /// the pathfinding grid. Works independently of layer masks so it always
+    /// catches wall tiles even if they share a layer with walkable geometry.
+    /// </summary>
+    private static bool IsOnWall(Vector2 snappedPos)
+    {
+        PathNode node = PathfindingGrid.Instance?.NodeFromWorld(snappedPos);
+        return node != null && node.IsWall;
     }
 
     private static void SpendResources(BuildingDefinition def)
@@ -303,7 +354,8 @@ public class BuildingManager : MonoBehaviour
     {
         if (!_isPlacing || _active == null) return;
         Vector2 pos   = SnappedMouseWorldPos();
-        bool    valid = CanAfford(_active) && IsAreaClear(pos, _active.footprint);
+        bool    valid = CanAfford(_active) && IsAreaClear(pos, _active.footprint)
+                     && !IsOnWall(pos) && !IsTileOccupied(pos);
         Gizmos.color  = valid ? new Color(0f, 1f, 0f, 0.25f) : new Color(1f, 0f, 0f, 0.25f);
         Gizmos.DrawWireCube(pos, _active.footprint);
     }

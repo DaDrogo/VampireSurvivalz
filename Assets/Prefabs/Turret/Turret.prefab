@@ -158,7 +158,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0dc47e70f9ee6014aa1c4281ce3015eb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  barSize: {x: 1, y: 0.12}
+  barSize: {x: 0.12, y: 0.12}
   verticalOffset: {x: 0, y: 0.7, z: 0}
   fullColor: {r: 0.15, g: 0.85, b: 0.15, a: 1}
   emptyColor: {r: 0.85, g: 0.15, b: 0.15, a: 1}

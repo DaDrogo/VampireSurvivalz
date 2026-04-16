@@ -11,9 +11,11 @@ public class Turret : MonoBehaviour, IDamageable, IEnemyAttackable
 
     [Header("Detection")]
     [SerializeField] private float detectionRange = 8f;
+    public float DetectionRange => detectionRange;
 
     [Header("Firing")]
     [SerializeField] private float fireRate = 1f;          // shots per second
+    public float FireRate => fireRate;
     [SerializeField] private GameObject projectilePrefab;
     [SerializeField] private Transform firePoint;          // child empty at barrel tip
 
@@ -39,6 +41,16 @@ public class Turret : MonoBehaviour, IDamageable, IEnemyAttackable
     public void ReceiveEnemyAttack(float damage, float attackInterval)
     {
         TakeDamage(damage);
+    }
+
+    /// <summary>Called by <see cref="PlacedBuilding.TryUpgrade"/> to scale stats.</summary>
+    public void ApplyUpgrade(float healthMult, float fireRateMult, float rangeMult)
+    {
+        float prevMax  = maxHealth;
+        maxHealth      = Mathf.Max(1f,   maxHealth      * healthMult);
+        CurrentHealth  = Mathf.Min(CurrentHealth / prevMax * maxHealth, maxHealth);
+        fireRate       = Mathf.Max(0.1f, fireRate       * fireRateMult);
+        detectionRange = Mathf.Max(1f,   detectionRange * rangeMult);
     }
 
 #if UNITY_EDITOR
