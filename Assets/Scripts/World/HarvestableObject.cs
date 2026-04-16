@@ -4,13 +4,17 @@ using UnityEngine;
 /// A destructible world object (crate, furniture, etc.) that yields Wood or Metal
 /// when the player holds the interact button for <see cref="holdDuration"/> seconds.
 /// A world-space progress bar is created procedurally — no prefab setup required.
+/// Enemies can also destroy it after spending <see cref="enemyDestroyTime"/> seconds attacking it.
 /// </summary>
-public class HarvestableObject : MonoBehaviour, IHoldInteractable
+public class HarvestableObject : MonoBehaviour, IHoldInteractable, IEnemyAttackable
 {
     public enum ResourceType { Wood, Metal, Random }
 
     [Header("Harvesting")]
     [SerializeField] private float holdDuration = 2f;
+
+    [Header("Enemy Destruction")]
+    [SerializeField] private float enemyDestroyTime = 2f;
 
     [Header("Loot")]
     [SerializeField] private ResourceType resourceType = ResourceType.Wood;
@@ -24,17 +28,23 @@ public class HarvestableObject : MonoBehaviour, IHoldInteractable
     // ── IHoldInteractable ─────────────────────────────────────────────────────
 
     public float HoldDuration => holdDuration;
+    public float CurrentHealth => _enemyDestroyProgressRemaining;
+    public float MaxHealth => enemyDestroyTime;
+    public bool IsDestroyed => this == null || _isDestroyed;
 
     // ── Private bar state ─────────────────────────────────────────────────────
 
     private GameObject  _barRoot;       // background sprite + parent
     private Transform   _fillTransform;
+    private float _enemyDestroyProgressRemaining;
+    private bool _isDestroyed;
 
     // ── Unity lifecycle ───────────────────────────────────────────────────────
 
     private void Awake()
     {
         SpriteColliderAutoFit.Fit(gameObject);
+        _enemyDestroyProgressRemaining = Mathf.Max(0.01f, enemyDestroyTime);
         BuildProgressBar();
     }
 
@@ -60,9 +70,20 @@ public class HarvestableObject : MonoBehaviour, IHoldInteractable
 
     public void OnHoldCompleted()
     {
+        if (_isDestroyed) return;
+
         _barRoot.SetActive(false);
         GiveResource();
-        Destroy(gameObject);
+        DestroySelf();
+    }
+
+    public void ReceiveEnemyAttack(float damage, float attackInterval)
+    {
+        if (_isDestroyed) return;
+
+        _enemyDestroyProgressRemaining = Mathf.Max(0f, _enemyDestroyProgressRemaining - Mathf.Max(0.01f, attackInterval));
+        if (_enemyDestroyProgressRemaining <= 0f)
+            DestroySelf();
     }
 
     // ── Resource logic ────────────────────────────────────────────────────────
@@ -86,6 +107,16 @@ public class HarvestableObject : MonoBehaviour, IHoldInteractable
         int amount = Random.Range(minAmount, maxAmount + 1);
         ResourceManager.Instance.AddResource(type, amount);
         Debug.Log($"Harvested {amount} {type} from {name}.");
+    }
+
+    private void DestroySelf()
+    {
+        if (_isDestroyed) return;
+
+        _isDestroyed = true;
+        if (_barRoot != null)
+            _barRoot.SetActive(false);
+        Destroy(gameObject);
     }
 
     // ── Progress bar (procedural) ─────────────────────────────────────────────

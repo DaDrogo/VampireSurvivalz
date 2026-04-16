@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 5116610055848089174}
   - component: {fileID: 5627748856076104716}
   - component: {fileID: 6710654032271347214}
+  - component: {fileID: 5995712942476766601}
   m_Layer: 7
   m_Name: Enemy
   m_TagString: Enemy
@@ -142,13 +143,11 @@ MonoBehaviour:
   moveSpeed: 2.5
   attackDamage: 10
   attackInterval: 2
-  detectionRadius: 0.7
-  detectionOffset: 0.5
-  attackableLayers:
-    serializedVersion: 2
-    m_Bits: 520
+  attackRange: 1.5
+  enemyAnimator: {fileID: 0}
   contactDamage: 10
   contactCooldown: 1
+  resourceDestroyTime: 3
   pathRefreshInterval: 0.5
 --- !u!50 &6710654032271347214
 Rigidbody2D:
@@ -177,3 +176,22 @@ Rigidbody2D:
   m_SleepingMode: 1
   m_CollisionDetection: 0
   m_Constraints: 0
+--- !u!114 &5995712942476766601
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8368466745619319268}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0dc47e70f9ee6014aa1c4281ce3015eb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  barSize: {x: 1, y: 0.12}
+  verticalOffset: {x: 0, y: 0.7, z: 0}
+  fullColor: {r: 0.15, g: 0.85, b: 0.15, a: 1}
+  emptyColor: {r: 0.85, g: 0.15, b: 0.15, a: 1}
+  bgColor: {r: 0.1, g: 0.1, b: 0.1, a: 0.8}
+  hideWhenFull: 1
+  sortingOrder: 50

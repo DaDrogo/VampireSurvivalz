@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -30,6 +31,11 @@ public class BuildingManager : MonoBehaviour
     [Header("Buildings  (index 0 → key 1,  index 1 → key 2, …)")]
     [SerializeField] private BuildingDefinition[] buildings;
 
+    [Header("Grid Snapping")]
+    [Tooltip("Assign a GameObject with a Grid component to snap to its cell centres. " +
+             "Leave empty to use world-aligned 1×1 tile snapping.")]
+    [SerializeField] private Grid placementGrid;
+
     [Header("Placement")]
     [Tooltip("Layers that block placement — include your structure and wall layers")]
     [SerializeField] private LayerMask blockingLayers;
@@ -40,10 +46,13 @@ public class BuildingManager : MonoBehaviour
 
     public bool IsPlacing => _isPlacing;
 
-    private BuildingDefinition _active;
-    private GameObject         _ghost;
-    private SpriteRenderer     _ghostSR;
-    private bool               _isPlacing;
+    private BuildingDefinition      _active;
+    private GameObject              _ghost;
+    private SpriteRenderer          _ghostSR;
+    private bool                    _isPlacing;
+
+    // Tile-coordinate set — one entry per occupied 1×1 cell
+    private readonly HashSet<Vector2Int> _occupiedTiles = new();
 
     private static readonly Key[] Hotkeys =
         { Key.Digit1, Key.Digit2, Key.Digit3, Key.Digit4, Key.Digit5 };
@@ -108,7 +117,7 @@ public class BuildingManager : MonoBehaviour
 
     private void TryPlace()
     {
-        Vector2 pos = MouseWorldPos();
+        Vector2 pos = SnappedMouseWorldPos();
 
         if (!CanAfford(_active))
         {
@@ -123,7 +132,22 @@ public class BuildingManager : MonoBehaviour
             return;
         }
 
-        Instantiate(_active.prefab, pos, Quaternion.identity);
+        if (IsTileOccupied(pos))
+        {
+            Debug.Log($"BuildingManager: tile already occupied at {pos}.");
+            return;
+        }
+
+        Vector2Int tile   = WorldToTileCoord(pos);
+        GameObject placed = Instantiate(_active.prefab, pos, Quaternion.identity);
+        placed.AddComponent<PlacedBuilding>().Init(tile);
+        _occupiedTiles.Add(tile);
+
+        // Barricades start in Ghost state by default; build them immediately
+        // since the player already paid through BuildingManager.
+        if (placed.TryGetComponent(out Barricade barricade))
+            barricade.BuildImmediate();
+
         SpendResources(_active);
         // Intentionally stay in placement mode so the player can keep building.
     }
@@ -163,12 +187,12 @@ public class BuildingManager : MonoBehaviour
         return go;
     }
 
-    private void MoveGhost() => _ghost.transform.position = MouseWorldPos();
+    private void MoveGhost() => _ghost.transform.position = SnappedMouseWorldPos();
 
     private void UpdateGhostColor()
     {
-        Vector2 pos   = MouseWorldPos();
-        bool    valid = CanAfford(_active) && IsAreaClear(pos, _active.footprint);
+        Vector2 pos   = SnappedMouseWorldPos();
+        bool    valid = CanAfford(_active) && IsAreaClear(pos, _active.footprint) && !IsTileOccupied(pos);
         _ghostSR.color = valid ? validColor : invalidColor;
     }
 
@@ -198,14 +222,72 @@ public class BuildingManager : MonoBehaviour
         ResourceManager.Instance.AddResource("Metal", -def.metalCost);
     }
 
-    // ── Utilities ─────────────────────────────────────────────────────────────
+    // ── Grid snapping ─────────────────────────────────────────────────────────
 
-    private static Vector2 MouseWorldPos()
+    /// <summary>
+    /// Returns the centre of the 1×1 tile that contains <paramref name="worldPosition"/>.
+    /// Uses <see cref="placementGrid"/> when assigned; otherwise falls back to
+    /// world-aligned integer-grid snapping (floor + 0.5 on each axis).
+    /// </summary>
+    public Vector3 GetNearestTileCenter(Vector3 worldPosition)
+    {
+        if (placementGrid != null)
+        {
+            Vector3Int cell = placementGrid.WorldToCell(worldPosition);
+            return placementGrid.GetCellCenterWorld(cell);
+        }
+
+        // Manual fallback — snaps to centres of a 1×1 grid at world origin
+        return new Vector3(
+            Mathf.Floor(worldPosition.x) + 0.5f,
+            Mathf.Floor(worldPosition.y) + 0.5f,
+            0f);
+    }
+
+    /// <summary>Raw screen-to-world mouse position (z = 0).</summary>
+    private static Vector3 MouseWorldPos()
     {
         Vector3 p = Camera.main.ScreenToWorldPoint(Mouse.current.position.ReadValue());
         p.z = 0f;
         return p;
     }
+
+    /// <summary>Mouse world position snapped to the nearest tile centre.</summary>
+    private Vector2 SnappedMouseWorldPos() => GetNearestTileCenter(MouseWorldPos());
+
+    // ── Tile occupancy ────────────────────────────────────────────────────────
+
+    /// <summary>Converts a snapped world position to integer tile coordinates.</summary>
+    private Vector2Int WorldToTileCoord(Vector2 snappedWorldPos)
+    {
+        if (placementGrid != null)
+        {
+            Vector3Int cell = placementGrid.WorldToCell(snappedWorldPos);
+            return new Vector2Int(cell.x, cell.y);
+        }
+        return new Vector2Int(Mathf.FloorToInt(snappedWorldPos.x), Mathf.FloorToInt(snappedWorldPos.y));
+    }
+
+    private bool IsTileOccupied(Vector2 snappedWorldPos)
+        => _occupiedTiles.Contains(WorldToTileCoord(snappedWorldPos));
+
+    /// <summary>
+    /// Marks the tile at <paramref name="worldPos"/> as occupied and returns its
+    /// coordinate so the caller can pass it to <see cref="PlacedBuilding.Init"/>.
+    /// Use this to block building placement on spawned resources or other world objects.
+    /// </summary>
+    public Vector2Int RegisterTile(Vector2 worldPos)
+    {
+        Vector2Int tile = WorldToTileCoord(worldPos);
+        _occupiedTiles.Add(tile);
+        return tile;
+    }
+
+    /// <summary>
+    /// Called by <see cref="PlacedBuilding"/> when a building or occupant is destroyed,
+    /// freeing the tile for future placement.
+    /// </summary>
+    public void FreeTile(Vector2Int tile) => _occupiedTiles.Remove(tile);
 
     private static Sprite WhiteSquareSprite()
     {
@@ -220,7 +302,7 @@ public class BuildingManager : MonoBehaviour
     private void OnDrawGizmos()
     {
         if (!_isPlacing || _active == null) return;
-        Vector2 pos   = MouseWorldPos();
+        Vector2 pos   = SnappedMouseWorldPos();
         bool    valid = CanAfford(_active) && IsAreaClear(pos, _active.footprint);
         Gizmos.color  = valid ? new Color(0f, 1f, 0f, 0.25f) : new Color(1f, 0f, 0f, 0.25f);
         Gizmos.DrawWireCube(pos, _active.footprint);

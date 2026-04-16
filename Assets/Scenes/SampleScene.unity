@@ -17597,6 +17597,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1651630557}
+  - component: {fileID: 1651630558}
   m_Layer: 0
   m_Name: HouseManager
   m_TagString: Untagged
@@ -17619,6 +17620,19 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1651630558
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1651630556}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f4ea53af6c5f125448e993681e041db2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  mapGenerator: {fileID: 1656504981}
 --- !u!1 &1656504980
 GameObject:
   m_ObjectHideFlags: 0
@@ -17652,12 +17666,14 @@ MonoBehaviour:
   wallTilemap: {fileID: 993896336}
   floorTile: {fileID: 11400000, guid: 7019187befd247640be62aa9143086b7, type: 2}
   wallTile: {fileID: 11400000, guid: b9714f6278c602c4ba14a2a793756158, type: 2}
+  doorTile: {fileID: 11400000, guid: d6255b9a488dcc548b8ae9c1ad60df42, type: 2}
   mapWidth: 100
   mapHeight: 80
   mapCenter: {x: 0, y: 0}
   minRoomSize: 8
   splitDepth: 4
   doorWidth: 2
+  doorCornerMargin: 2
   useRandomSeed: 1
   seed: 0
 --- !u!4 &1656504982

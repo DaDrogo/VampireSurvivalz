@@ -3,7 +3,7 @@ using UnityEngine;
 
 [RequireComponent(typeof(BoxCollider2D))]
 [RequireComponent(typeof(SpriteRenderer))]
-public class Barricade : MonoBehaviour, IInteractable, IDamageable
+public class Barricade : MonoBehaviour, IInteractable, IDamageable, IEnemyAttackable
 {
     public enum BarricadeState { Ghost, Built }
 
@@ -65,6 +65,14 @@ public class Barricade : MonoBehaviour, IInteractable, IDamageable
         Build();
     }
 
+    // ── Placement ────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Called by <see cref="BuildingManager"/> after placement.
+    /// Skips the resource check — costs were already paid to BuildingManager.
+    /// </summary>
+    public void BuildImmediate() => Build();
+
     // ── Combat ────────────────────────────────────────────────────────────────
 
     /// <summary>Called by enemies to damage this barricade.</summary>
@@ -77,6 +85,13 @@ public class Barricade : MonoBehaviour, IInteractable, IDamageable
 
         if (CurrentHealth <= 0f)
             DestroyBarricade();
+    }
+
+    public bool IsDestroyed => this == null || CurrentHealth <= 0f;
+
+    public void ReceiveEnemyAttack(float damage, float attackInterval)
+    {
+        TakeDamage(damage);
     }
 
     // ── Internal ──────────────────────────────────────────────────────────────

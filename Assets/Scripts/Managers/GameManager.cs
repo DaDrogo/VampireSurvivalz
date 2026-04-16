@@ -60,6 +60,12 @@ public class GameManager : MonoBehaviour
     [SerializeField] private Vector2 spawnCenter  = Vector2.zero;
     [SerializeField] private Vector2 spawnAreaSize = new Vector2(20f, 20f);
 
+    [Header("Player Spawning")]
+    [Tooltip("Player prefab to instantiate at game start. Leave empty if the player is already placed in the scene.")]
+    [SerializeField] private GameObject playerPrefab;
+    [Tooltip("World-space fallback hint for player spawn when no room data is available yet.")]
+    [SerializeField] private Vector2 playerSpawnHint = Vector2.zero;
+
     [Header("Startup")]
     [Tooltip("If true, the game starts automatically on scene load. Disable when using a menu Start button.")]
     [SerializeField] private bool autoStartOnSceneLoad = true;
@@ -90,6 +96,7 @@ public class GameManager : MonoBehaviour
 
     private int _enemiesSpawned;
     private GameObject _gameOverScreen;
+    private GameObject _playerInstance;
 
     // ── Unity lifecycle ───────────────────────────────────────────────────────
 
@@ -136,7 +143,76 @@ public class GameManager : MonoBehaviour
             Debug.LogWarning("GameManager: MapGenerator not found. Starting game without map regeneration.");
         }
 
+        SpawnOrRepositionPlayer();
         EnterPreparation();
+    }
+
+    // ═════════════════════════════════════════════════════════════════════════
+    //  Player spawning
+    // ═════════════════════════════════════════════════════════════════════════
+
+    private void SpawnOrRepositionPlayer()
+    {
+        Vector2 spawnPos = FindPlayerSpawnPosition();
+
+        // Locate existing instance (could be scene-placed or previously instantiated)
+        if (_playerInstance == null)
+            _playerInstance = GameObject.FindGameObjectWithTag("Player");
+
+        if (_playerInstance != null)
+        {
+            // Teleport the player; zero velocity so no carry-over from before
+            if (_playerInstance.TryGetComponent(out Rigidbody2D rb))
+            {
+                rb.position        = spawnPos;
+                rb.linearVelocity  = Vector2.zero;
+            }
+            else
+            {
+                _playerInstance.transform.position = spawnPos;
+            }
+        }
+        else if (playerPrefab != null)
+        {
+            _playerInstance = Instantiate(playerPrefab, spawnPos, Quaternion.identity);
+        }
+        else
+        {
+            Debug.LogWarning("GameManager: No player found in scene and no playerPrefab assigned. " +
+                             "Assign a player prefab or place a tagged 'Player' object in the scene.");
+        }
+    }
+
+    /// <summary>
+    /// Picks a safe world position for the player to spawn.
+    /// Priority: centre of the largest room → snapped to nearest walkable tile.
+    /// Falls back to <see cref="playerSpawnHint"/> (snapped) if no room data is available.
+    /// </summary>
+    private Vector2 FindPlayerSpawnPosition()
+    {
+        HouseManager hm = HouseManager.Instance;
+        if (hm != null && hm.Rooms.Count > 0)
+        {
+            // Choose the largest room so the player has space to move on spawn
+            Room best     = null;
+            float bestArea = 0f;
+            foreach (Room room in hm.Rooms)
+            {
+                float area = room.WorldSize.x * room.WorldSize.y;
+                if (area > bestArea) { bestArea = area; best = room; }
+            }
+
+            if (best != null)
+            {
+                Vector2 center = best.WorldCenter;
+                PathNode node  = PathfindingGrid.Instance?.FindNearestWalkable(center);
+                return node != null ? node.WorldPos : center;
+            }
+        }
+
+        // No room data yet — snap the fallback hint to the nearest walkable node
+        PathNode fallback = PathfindingGrid.Instance?.FindNearestWalkable(playerSpawnHint);
+        return fallback != null ? fallback.WorldPos : playerSpawnHint;
     }
 
     // ═════════════════════════════════════════════════════════════════════════

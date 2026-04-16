@@ -13,18 +13,18 @@ public class Enemy : MonoBehaviour, IDamageable
     [Header("Attack")]
     [SerializeField] private float attackDamage   = 10f;
     [SerializeField] private float attackInterval = 1.5f;
+    [Tooltip("Maximum distance at which the enemy stops to attack a blocker.")]
+    [SerializeField] private float attackRange    = 1.2f;
 
-    [Header("Forward Detection")]
-    [Tooltip("Radius of the overlap circle in front of the enemy.")]
-    [SerializeField] private float detectionRadius = 0.7f;
-    [Tooltip("How far ahead to centre the detection circle.")]
-    [SerializeField] private float detectionOffset = 0.5f;
-    [Tooltip("Layers checked for IDamageable targets. Enemies are always excluded.")]
-    [SerializeField] private LayerMask attackableLayers = ~0;
+    [Header("Linecast Block")]
+    [Tooltip("Optional Animator — the bool 'IsAttacking' is set while the enemy is stopped attacking a blocker.")]
+    [SerializeField] private Animator enemyAnimator;
 
     [Header("Contact Damage")]
     [SerializeField] private float contactDamage   = 5f;
     [SerializeField] private float contactCooldown = 1f;
+    [Tooltip("Seconds the enemy must stay in contact with a resource before destroying it.")]
+    [SerializeField] private float resourceDestroyTime = 3f;
 
     [Header("Navigation")]
     [Tooltip("How often (seconds) the room-BFS navigation is re-evaluated.")]
@@ -38,8 +38,13 @@ public class Enemy : MonoBehaviour, IDamageable
     // ── Constants ─────────────────────────────────────────────────────────────
 
     private const float DOOR_REACH      = 0.8f;   // distance at which the enemy "crosses" a door
-    private const float STUCK_THRESHOLD = 1.5f;   // seconds before declaring stuck
-    private const float STUCK_MIN_MOVE  = 0.08f;  // minimum movement per check interval
+    // Tuning notes:
+    // When an enemy is wedged between a wall and a side barricade, it may still "jitter"
+    // a bit due to collision resolution. If STUCK_MIN_MOVE is too small, the timer keeps
+    // resetting and the side barricade never becomes an attack target.
+    private const float STUCK_THRESHOLD = 3f;      // seconds of no meaningful movement before acting
+    private const float STUCK_MIN_MOVE  = 0.20f;   // tolerance for position jitter while effectively stuck
+    private const float STUCK_ATTACK_RADIUS = 1.5f; // overlap radius when searching for a stuck blocker
 
     // ── Private ───────────────────────────────────────────────────────────────
 
@@ -49,8 +54,13 @@ public class Enemy : MonoBehaviour, IDamageable
     // Room-BFS navigation
     private Room    _myRoom;
     private Room    _playerRoom;
-    private Door    _nextDoor;     // door to walk toward; null = go straight to player
-    private Vector2 _navTarget;    // current movement destination
+    private Door    _nextDoor;          // door to walk toward; null = go straight to player
+    private Vector2 _navTarget;         // current movement destination
+
+    // Two-waypoint door traversal
+    private Vector2 _doorApproachPt;    // 1 tile before the door, on the approaching side
+    private Vector2 _doorExitPt;        // 1 tile past the door, on the far side
+    private bool    _approachingDoor;   // true = heading to approach pt; false = heading to exit pt
 
     private float   _navTimer;
     private Vector2 _lastMoveDir;
@@ -60,11 +70,23 @@ public class Enemy : MonoBehaviour, IDamageable
     private float   _stuckTimer;
 
     // Attack
-    private IDamageable   _attackTarget;
-    private MonoBehaviour _attackTargetMB;
-    private float         _attackTimer;
+    private IEnemyAttackable _attackTarget;
+    private MonoBehaviour    _attackTargetMB;
+    private float            _attackTimer;
 
     private float _contactTimer;
+
+    // Resource collision destruction
+    private GameObject _resourceContact;
+    private float      _resourceContactTimer;
+
+    // Wall-slide state (populated by OnCollisionStay2D, consumed at the start of FixedUpdate)
+    private bool    _wallContact;
+    private Vector2 _wallNormal;   // accumulated (un-normalized) contact normals from wall tiles
+
+    // Reusable physics buffers — avoid per-frame allocations
+    private readonly RaycastHit2D[] _castBuffer    = new RaycastHit2D[16];
+    private readonly Collider2D[]   _overlapBuffer = new Collider2D[8];
 
     // ── Unity lifecycle ───────────────────────────────────────────────────────
 
@@ -112,6 +134,15 @@ public class Enemy : MonoBehaviour, IDamageable
 
     private void FixedUpdate()
     {
+        // Capture wall-contact state from the previous physics step's collision callbacks,
+        // then clear so OnCollisionStay2D can repopulate for the next step.
+        bool    wallContact = _wallContact;
+        Vector2 wallNormal  = _wallNormal.sqrMagnitude > 0.001f
+            ? _wallNormal.normalized
+            : Vector2.zero;
+        _wallContact = false;
+        _wallNormal  = Vector2.zero;
+
         if (_contactTimer > 0f) _contactTimer -= Time.fixedDeltaTime;
 
         if (_player == null)
@@ -129,27 +160,42 @@ public class Enemy : MonoBehaviour, IDamageable
             UpdateNavigation();
         }
 
-        // ── If close to the current door, force an immediate nav update ───────
-        if (_nextDoor != null &&
-            Vector2.Distance(_rb.position, _nextDoor.WorldPosition) < DOOR_REACH)
+        // ── Two-phase door traversal ──────────────────────────────────────────
+        if (_nextDoor != null)
         {
-            UpdateNavigation();
+            if (_approachingDoor &&
+                Vector2.Distance(_rb.position, _doorApproachPt) < DOOR_REACH)
+            {
+                // Aligned in front of the door — drive straight through
+                _approachingDoor = false;
+                _navTarget       = _doorExitPt;
+            }
+            else if (!_approachingDoor &&
+                     Vector2.Distance(_rb.position, _doorExitPt) < DOOR_REACH)
+            {
+                // Fully through — re-evaluate next destination
+                UpdateNavigation();
+            }
         }
 
         // ── Active attack target ──────────────────────────────────────────────
         if (_attackTarget != null)
         {
-            if (_attackTargetMB == null || _attackTarget.CurrentHealth <= 0f)
+            // Target was destroyed — check for an adjacent blocker immediately.
+            // A plain linecast misses colliders whose interior contains the cast origin
+            // (e.g. a second barricade the enemy is already touching), so we use the
+            // overlap check here rather than waiting for the next linecast or the 5-s
+            // stuck timer.
+            if (_attackTargetMB == null || _attackTarget.IsDestroyed || _attackTarget.CurrentHealth <= 0f)
             {
                 ClearAttackTarget();
-                return;
+                if (TryAttackNearbyBlocker()) return;
+                // TryAttackNearbyBlocker missed it (e.g. second barricade is slightly
+                // further away) — fall through so CheckLinecastBlock() runs immediately
+                // and picks it up via linecast on the same frame.
             }
             _rb.linearVelocity = Vector2.zero;
-            bool justFired = TickAttack();
-            // After each hit, re-check whether the target is still in range.
-            // If it has moved away, resume movement immediately.
-            if (justFired && !IsAttackTargetInRange())
-                ClearAttackTarget();
+            TickAttack();
             return;
         }
 
@@ -164,17 +210,20 @@ public class Enemy : MonoBehaviour, IDamageable
             _stuckTimer += Time.fixedDeltaTime;
             if (_stuckTimer >= STUCK_THRESHOLD)
             {
-                // Bypass door routing for this cycle — head directly for the player
-                _nextDoor  = null;
-                _navTarget = _player.position;
                 _stuckTimer    = 0f;
                 _stuckCheckPos = _rb.position;
+
+                // Attack whatever is physically blocking us before trying to reposition.
+                if (TryAttackNearbyBlocker()) return;
+
+                // Nothing attackable — push 1 tile away from nearby walls and reroute.
+                PushAwayFromWalls();
             }
         }
 
-        // ── Move and scan ─────────────────────────────────────────────────────
-        Navigate();
-        CheckForwardDetection();
+        // ── Linecast block check then move ────────────────────────────────────
+        if (CheckLinecastBlock()) return;
+        Navigate(wallContact, wallNormal);
     }
 
     // ── Room-BFS navigation ───────────────────────────────────────────────────
@@ -211,11 +260,34 @@ public class Enemy : MonoBehaviour, IDamageable
         }
 
         // Different rooms: BFS to find the first door to step through
+        Door previousDoor = _nextDoor;
         _nextDoor = BFSNextDoor(_myRoom, _playerRoom);
 
-        _navTarget = _nextDoor != null
-            ? DoorPassThroughPoint(_nextDoor)   // aim past the door so we walk fully through
-            : (Vector2)_player.position;         // no path found — direct chase
+        if (_nextDoor != null)
+        {
+            if (_nextDoor != previousDoor)
+            {
+                // New door — compute fresh perpendicular waypoints and start approach phase.
+                // Direction is baked here from the current _myRoom so it never flips mid-crossing.
+                Vector2 through = DoorThroughDirection(_nextDoor);
+                _doorApproachPt  = _nextDoor.WorldPosition - through;
+                _doorExitPt      = _nextDoor.WorldPosition + through;
+                _approachingDoor = true;
+                _navTarget       = _doorApproachPt;
+            }
+            else
+            {
+                // Same door — the enemy is still in the middle of this traversal.
+                // Re-assert the correct target for the current phase without touching
+                // the baked waypoints or flipping the direction as _myRoom changes.
+                _navTarget = _approachingDoor ? _doorApproachPt : _doorExitPt;
+            }
+        }
+        else
+        {
+            _approachingDoor = false;
+            _navTarget       = _player.position;   // no path found — direct chase
+        }
     }
 
     /// <summary>
@@ -261,97 +333,281 @@ public class Enemy : MonoBehaviour, IDamageable
         return null; // rooms are disconnected
     }
 
-    // ── Door pass-through ─────────────────────────────────────────────────────
+    // ── Door traversal helpers ────────────────────────────────────────────────
 
     /// <summary>
-    /// Returns a point <c>PASS_OFFSET</c> units past the door centre on the far
-    /// side of the dividing wall.  Aiming beyond the door prevents the enemy from
-    /// stopping at the wall edge and getting wedged by the wall tiles.
+    /// Returns a cardinal unit vector pointing FROM the enemy's current room
+    /// THROUGH the door to the far room.
+    /// Always axis-aligned (never diagonal) so the approach and exit waypoints
+    /// land exactly 1 tile from the door centre with no lateral drift.
+    /// Uses <see cref="_myRoom"/> as the stable "came from" reference so the
+    /// sign can't flip once the enemy starts crossing.
     /// </summary>
-    private Vector2 DoorPassThroughPoint(Door door)
+    private Vector2 DoorThroughDirection(Door door)
     {
-        const float PASS_OFFSET = 1.5f;
-        Vector2 doorPos = door.WorldPosition;
-
-        // Use the room centre as the stable "came from" reference.
-        // Basing direction on _rb.position would flip the sign the moment the
-        // enemy crosses the door midpoint, causing it to reverse and stall.
-        if (_myRoom != null)
-        {
-            Vector2 dir = (doorPos - _myRoom.WorldCenter).normalized;
-            return doorPos + dir * PASS_OFFSET;
-        }
-
-        // Fallback (no room data yet)
         if (door.IsHorizontalWall)
-            return doorPos + new Vector2(0f, (_rb.position.y < doorPos.y ? 1f : -1f) * PASS_OFFSET);
+        {
+            // Wall runs horizontally → cross in Y
+            float fromY = _myRoom != null ? _myRoom.WorldCenter.y : _rb.position.y;
+            return new Vector2(0f, fromY < door.WorldPosition.y ? 1f : -1f);
+        }
         else
-            return doorPos + new Vector2((_rb.position.x < doorPos.x ? 1f : -1f) * PASS_OFFSET, 0f);
+        {
+            // Wall runs vertically → cross in X
+            float fromX = _myRoom != null ? _myRoom.WorldCenter.x : _rb.position.x;
+            return new Vector2(fromX < door.WorldPosition.x ? 1f : -1f, 0f);
+        }
     }
 
     // ── Movement ──────────────────────────────────────────────────────────────
 
-    private void Navigate()
+    /// <summary>
+    /// Moves the enemy toward <see cref="_navTarget"/>.
+    ///
+    /// Wall-contact behaviour has two modes:
+    ///
+    ///   APPROACH phase (<see cref="_approachingDoor"/> == true):
+    ///     The enemy is still outside the wall and needs to align with the door
+    ///     opening before it can cross.  Slide axis-aligned toward the door centre
+    ///     (X-axis for a horizontal dividing wall, Y-axis for a vertical one) so
+    ///     the enemy lines up cleanly with the gap.
+    ///
+    ///   All other contacts (crossing phase, same room, no door):
+    ///     Use generic wall-plane projection — remove the component of movement
+    ///     that pushes into the surface and keep the rest.  This correctly handles
+    ///     corner tiles at door edges: the enemy glides off the corner and continues
+    ///     through the opening instead of ping-ponging between the two edges.
+    /// </summary>
+    private void Navigate(bool wallContact = false, Vector2 wallNormal = default)
     {
         Vector2 dir = (_navTarget - _rb.position).normalized;
+
+        if (wallContact && wallNormal.sqrMagnitude > 0.001f)
+        {
+            // ── Approach-phase door slide ─────────────────────────────────────
+            // Only active while heading toward the approach waypoint (outside the wall).
+            // Slides the enemy along the wall to centre it on the door opening.
+            if (_nextDoor != null && _approachingDoor)
+            {
+                Vector2 slideDir;
+
+                if (_nextDoor.IsHorizontalWall)
+                {
+                    // Dividing wall runs left-right → align in X with door centre
+                    float dx = _nextDoor.WorldPosition.x - _rb.position.x;
+                    slideDir = Mathf.Abs(dx) > 0.05f
+                        ? new Vector2(Mathf.Sign(dx), 0f)
+                        : Vector2.zero;
+                }
+                else
+                {
+                    // Dividing wall runs top-bottom → align in Y with door centre
+                    float dy = _nextDoor.WorldPosition.y - _rb.position.y;
+                    slideDir = Mathf.Abs(dy) > 0.05f
+                        ? new Vector2(0f, Mathf.Sign(dy))
+                        : Vector2.zero;
+                }
+
+                if (slideDir.sqrMagnitude > 0.001f)
+                {
+                    _lastMoveDir       = slideDir;
+                    _rb.linearVelocity = slideDir * moveSpeed;
+                    return;
+                }
+                // Already aligned with the opening — fall through to normal movement.
+            }
+
+            // ── Generic wall-plane projection ─────────────────────────────────
+            // Used during the crossing phase and for any other wall contact.
+            // Removes the into-wall component so the enemy slides off corners
+            // rather than getting pinned between them.
+            Vector2 projected = dir - Vector2.Dot(dir, wallNormal) * wallNormal;
+            if (projected.sqrMagnitude > 0.001f)
+            {
+                _lastMoveDir       = projected.normalized;
+                _rb.linearVelocity = projected.normalized * moveSpeed;
+                return;
+            }
+        }
+
         _lastMoveDir       = dir;
         _rb.linearVelocity = dir * moveSpeed;
     }
 
-    // ── Forward detection ─────────────────────────────────────────────────────
+    // ── Wall push ─────────────────────────────────────────────────────────────
 
-    private void CheckForwardDetection()
+    /// <summary>
+    /// Called when the enemy has been stationary for <see cref="STUCK_THRESHOLD"/> seconds
+    /// and no attackable blocker was found.
+    /// Samples all solid (non-trigger) colliders within ~1.5 tiles, computes a push
+    /// direction away from them using <see cref="Collider2D.ClosestPoint"/> (works
+    /// correctly with tilemaps), and sets <see cref="_navTarget"/> to a tile-snapped
+    /// position 1 tile in that direction.  Falls back to a direct player chase if
+    /// no nearby wall is detected.
+    /// </summary>
+    private void PushAwayFromWalls()
     {
-        Vector2    origin = _rb.position + _lastMoveDir * detectionOffset;
-        Collider2D[] hits = Physics2D.OverlapCircleAll(origin, detectionRadius, attackableLayers);
+        int count = Physics2D.OverlapCircleNonAlloc(_rb.position, 1.5f, _overlapBuffer);
 
-        foreach (Collider2D hit in hits)
+        Vector2 pushDir   = Vector2.zero;
+        int     wallCount = 0;
+
+        for (int i = 0; i < count; i++)
         {
-            if (hit.gameObject == gameObject) continue;
-            if (hit.CompareTag("Enemy"))      continue;
+            Collider2D col = _overlapBuffer[i];
+            if (col.gameObject == gameObject) continue;
+            if (col.isTrigger)               continue;
+            if (col.CompareTag("Enemy"))      continue;
+            if (col.CompareTag("Player"))     continue;
 
-            if (!hit.TryGetComponent(out IDamageable damageable)) continue;
-            if (damageable.CurrentHealth <= 0f)                   continue;
+            // ClosestPoint handles composite / tilemap colliders correctly
+            Vector2 closest = col.ClosestPoint(_rb.position);
+            Vector2 away    = _rb.position - closest;
 
-            _attackTarget      = damageable;
-            _attackTargetMB    = damageable as MonoBehaviour;
+            if (away.sqrMagnitude < 0.0001f)
+                away = Random.insideUnitCircle;   // fallback when perfectly overlapping
+
+            pushDir += away.normalized;
+            wallCount++;
+        }
+
+        _nextDoor        = null;
+        _approachingDoor = false;
+
+        if (wallCount > 0)
+        {
+            pushDir = (pushDir / wallCount).normalized;
+
+            // Snap the target to the nearest tile centre so the enemy lands
+            // cleanly on the grid rather than at a partial-unit offset.
+            Vector2 raw    = _rb.position + pushDir;
+            _navTarget     = new Vector2(
+                Mathf.Floor(raw.x) + 0.5f,
+                Mathf.Floor(raw.y) + 0.5f);
+        }
+        else
+        {
+            // No walls nearby — just head straight for the player
+            _navTarget = _player.position;
+        }
+
+        // Force a full nav re-evaluation once the enemy reaches the push target
+        UpdateNavigation();
+    }
+
+    // ── Stuck-blocker attack ──────────────────────────────────────────────────
+
+    /// <summary>
+    /// Called when the stuck timer expires.  Searches for any <see cref="IEnemyAttackable"/>
+    /// within <see cref="STUCK_ATTACK_RADIUS"/> of the enemy and locks on to it.
+    /// Handles objects that the linecast misses because the enemy is already
+    /// pressed against them (cast origin inside the collider).
+    /// </summary>
+    /// <returns>True if a target was found and attack mode was entered.</returns>
+    private bool TryAttackNearbyBlocker()
+    {
+        // Exclude triggers (room bounds, etc.) so they can't fill the buffer and
+        // crowd out the barricades we actually want to find.
+        var filter = new ContactFilter2D();
+        filter.useTriggers = false;
+        int count = Physics2D.OverlapCircle(_rb.position, STUCK_ATTACK_RADIUS, filter, _overlapBuffer);
+
+        for (int i = 0; i < count; i++)
+        {
+            Collider2D col = _overlapBuffer[i];
+
+            if (col.gameObject == gameObject) continue;
+            if (col.CompareTag("Enemy"))       continue;
+            if (col.CompareTag("Player"))      continue;
+
+            if (!col.TryGetComponent(out IEnemyAttackable attackable)) continue;
+            if (attackable.IsDestroyed || attackable.CurrentHealth <= 0f) continue;
+
+            _attackTarget      = attackable;
+            _attackTargetMB    = attackable as MonoBehaviour;
             _attackTimer       = 0f;
             _rb.linearVelocity = Vector2.zero;
-            return;
+
+            if (enemyAnimator != null)
+                enemyAnimator.SetBool("IsAttacking", true);
+
+            return true;
         }
+
+        return false;
+    }
+
+    // ── Linecast block detection ──────────────────────────────────────────────
+
+    /// <summary>
+    /// Casts a line from the enemy toward the current nav target and walks
+    /// through every hit in order.  The first hit that is an <see cref="IEnemyAttackable"/>
+    /// (and is not an enemy or the player) becomes the attack target.
+    ///
+    /// Uses <see cref="ContactFilter2D"/> so that trigger colliders are also
+    /// detected — important because some structures use trigger volumes.
+    /// Results are written into a pre-allocated buffer to avoid per-frame GC.
+    /// </summary>
+    /// <returns>True when a blocker was found (caller should skip Navigate).</returns>
+    private bool CheckLinecastBlock()
+    {
+        // Build filter: exclude this enemy's own layer; include trigger colliders.
+        var filter = new ContactFilter2D();
+        filter.SetLayerMask(~(1 << gameObject.layer));
+        filter.useTriggers = true;
+
+        int count = Physics2D.Linecast(_rb.position, _navTarget, filter, _castBuffer);
+
+        for (int i = 0; i < count; i++)
+        {
+            RaycastHit2D rayHit = _castBuffer[i];
+
+            // Hits are sorted nearest-first; once beyond attack range there is no point continuing.
+            if (rayHit.distance > attackRange) break;
+
+            Collider2D col = rayHit.collider;
+
+            if (col.gameObject == gameObject)  continue;   // self
+            if (col.CompareTag("Enemy"))        continue;   // other enemies
+            if (col.CompareTag("Player"))       continue;   // player — handled by contact damage
+
+            if (!col.TryGetComponent(out IEnemyAttackable attackable)) continue;  // not a blocker
+            if (attackable.IsDestroyed || attackable.CurrentHealth <= 0f) continue;  // already dead
+
+            _attackTarget      = attackable;
+            _attackTargetMB    = attackable as MonoBehaviour;
+            _attackTimer       = 0f;
+            _rb.linearVelocity = Vector2.zero;
+
+            if (enemyAnimator != null)
+                enemyAnimator.SetBool("IsAttacking", true);
+
+            return true;
+        }
+
+        return false;
     }
 
     // ── Attack ────────────────────────────────────────────────────────────────
 
-    /// <returns>True the frame the attack actually fires.</returns>
-    private bool TickAttack()
+    /// <summary>Advances the attack cooldown; deals damage when it expires.</summary>
+    private void TickAttack()
     {
         _attackTimer -= Time.fixedDeltaTime;
-        if (_attackTimer > 0f) return false;
+        if (_attackTimer > 0f) return;
 
         _attackTimer = attackInterval;
-        _attackTarget.TakeDamage(attackDamage);
-        return true;
-    }
-
-    /// <summary>
-    /// Returns true if the current attack target is still inside the forward
-    /// detection circle (i.e. the enemy should keep standing still to attack).
-    /// </summary>
-    private bool IsAttackTargetInRange()
-    {
-        if (_attackTargetMB == null) return false;
-        Vector2    origin = _rb.position + _lastMoveDir * detectionOffset;
-        Collider2D[] hits = Physics2D.OverlapCircleAll(origin, detectionRadius, attackableLayers);
-        foreach (Collider2D hit in hits)
-            if (hit.gameObject == _attackTargetMB.gameObject) return true;
-        return false;
+        _attackTarget.ReceiveEnemyAttack(attackDamage, attackInterval);
     }
 
     private void ClearAttackTarget()
     {
         _attackTarget   = null;
         _attackTargetMB = null;
+
+        if (enemyAnimator != null)
+            enemyAnimator.SetBool("IsAttacking", false);
+
         UpdateNavigation();
     }
 
@@ -378,38 +634,123 @@ public class Enemy : MonoBehaviour, IDamageable
         Destroy(gameObject);
     }
 
-    // ── Contact damage ────────────────────────────────────────────────────────
+    // ── Contact damage & resource destruction ────────────────────────────────
+
+    private void OnCollisionEnter2D(Collision2D col)
+    {
+        // Start the destruction timer when we first touch a resource,
+        // but only if we are not already engaged with one.
+        if (_resourceContact != null)   return;
+        if (!IsResource(col.gameObject)) return;
+
+        _resourceContact      = col.gameObject;
+        _resourceContactTimer = 0f;
+    }
 
     private void OnCollisionStay2D(Collision2D col)
     {
-        if (_contactTimer > 0f)                   return;
-        if (!col.gameObject.CompareTag("Player")) return;
-        if (!col.gameObject.TryGetComponent(out IDamageable damageable)) return;
+        // ── Player contact damage ─────────────────────────────────────────────
+        if (_contactTimer <= 0f && col.gameObject.CompareTag("Player"))
+        {
+            if (col.gameObject.TryGetComponent(out IDamageable damageable))
+            {
+                damageable.TakeDamage(contactDamage);
+                _contactTimer = contactCooldown;
+            }
+        }
 
-        damageable.TakeDamage(contactDamage);
-        _contactTimer = contactCooldown;
+        // ── Resource destruction timer ────────────────────────────────────────
+        // Only accumulate while we are not already locked on to an attack target,
+        // so enemies that are attacking a barricade don't also erode nearby resources.
+        if (_resourceContact == col.gameObject && _attackTarget == null)
+        {
+            _resourceContactTimer += Time.fixedDeltaTime;
+            if (_resourceContactTimer >= resourceDestroyTime && _resourceContact != null)
+            {
+                Destroy(_resourceContact);
+                _resourceContact      = null;
+                _resourceContactTimer = 0f;
+            }
+        }
+
+        // ── Wall-slide normal accumulation ────────────────────────────────────
+        // Accumulate outward normals from wall tiles so Navigate() can slide the
+        // enemy along the surface toward the nearest door.
+        if (IsWallCollider(col.collider))
+        {
+            foreach (ContactPoint2D cp in col.contacts)
+                _wallNormal += cp.normal;
+            _wallContact = true;
+        }
+    }
+
+    private void OnCollisionExit2D(Collision2D col)
+    {
+        if (_resourceContact == col.gameObject)
+        {
+            _resourceContact      = null;
+            _resourceContactTimer = 0f;
+        }
+    }
+
+    /// <summary>
+    /// Returns true for objects that are interactable world props (resources) but
+    /// are NOT damageable structures.  Barricades and turrets implement
+    /// <see cref="IDamageable"/> and are excluded; resource nodes do not.
+    /// </summary>
+    private static bool IsResource(GameObject go)
+        => go.TryGetComponent<IInteractable>(out _) && !go.TryGetComponent<IDamageable>(out _);
+
+    /// <summary>
+    /// Returns true when <paramref name="col"/> is a solid, non-trigger geometry
+    /// collider (e.g. wall tilemap) that the enemy should slide along rather than
+    /// attack or interact with.
+    /// </summary>
+    private static bool IsWallCollider(Collider2D col)
+    {
+        if (col.isTrigger)                                return false;
+        if (col.CompareTag("Enemy"))                      return false;
+        if (col.CompareTag("Player"))                     return false;
+        if (col.TryGetComponent<IEnemyAttackable>(out _)) return false;
+        return true;
     }
 
     // ── Gizmos ────────────────────────────────────────────────────────────────
 
     private void OnDrawGizmosSelected()
     {
-        // Forward detection circle
-        Gizmos.color = _attackTarget != null ? Color.red : new Color(1f, 0.5f, 0f, 0.8f);
-        Gizmos.DrawWireSphere(
-            (Vector2)transform.position + _lastMoveDir * detectionOffset,
-            detectionRadius);
+        // Linecast toward nav target — red when blocked, white when clear
+        bool isBlocked = _attackTarget != null;
+        Gizmos.color = isBlocked ? Color.red : Color.white;
+        Gizmos.DrawLine(transform.position, _navTarget);
+
+        // Highlight the blocker position
+        if (isBlocked && _attackTargetMB != null)
+        {
+            Gizmos.color = new Color(1f, 0.2f, 0.2f, 0.8f);
+            Gizmos.DrawWireSphere(_attackTargetMB.transform.position, 0.4f);
+        }
 
         // Navigation target
         Gizmos.color = _nextDoor != null ? Color.yellow : Color.green;
-        Gizmos.DrawLine(transform.position, _navTarget);
         Gizmos.DrawWireSphere(_navTarget, 0.2f);
 
-        // Next door highlight
+        // Door traversal waypoints
         if (_nextDoor != null)
         {
+            // Door centre
             Gizmos.color = new Color(1f, 0.85f, 0f, 1f);
-            Gizmos.DrawWireSphere(_nextDoor.WorldPosition, DOOR_REACH);
+            Gizmos.DrawWireSphere(_nextDoor.WorldPosition, 0.25f);
+
+            // Approach point (cyan) — where the enemy aligns before crossing
+            Gizmos.color = _approachingDoor ? Color.cyan : new Color(0f, 1f, 1f, 0.35f);
+            Gizmos.DrawWireSphere(_doorApproachPt, 0.2f);
+            Gizmos.DrawLine(_doorApproachPt, _nextDoor.WorldPosition);
+
+            // Exit point (magenta) — where the enemy heads after crossing
+            Gizmos.color = !_approachingDoor ? Color.magenta : new Color(1f, 0f, 1f, 0.35f);
+            Gizmos.DrawWireSphere(_doorExitPt, 0.2f);
+            Gizmos.DrawLine(_nextDoor.WorldPosition, _doorExitPt);
         }
     }
 }

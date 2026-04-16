@@ -1,6 +1,7 @@
 using UnityEngine;
 
-public class Turret : MonoBehaviour, IDamageable
+[RequireComponent(typeof(BoxCollider2D))]
+public class Turret : MonoBehaviour, IDamageable, IEnemyAttackable
 {
     [Header("Health")]
     [SerializeField] private float maxHealth = 150f;
@@ -31,6 +32,13 @@ public class Turret : MonoBehaviour, IDamageable
     {
         CurrentHealth = Mathf.Max(0f, CurrentHealth - damage);
         if (CurrentHealth <= 0f) Destroy(gameObject);
+    }
+
+    public bool IsDestroyed => this == null || CurrentHealth <= 0f;
+
+    public void ReceiveEnemyAttack(float damage, float attackInterval)
+    {
+        TakeDamage(damage);
     }
 
 #if UNITY_EDITOR

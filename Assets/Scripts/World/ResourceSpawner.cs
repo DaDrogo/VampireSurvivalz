@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -31,6 +32,11 @@ public class SpawnEntry
 /// </summary>
 public class ResourceSpawner : MonoBehaviour
 {
+    [Header("Grid Snapping")]
+    [Tooltip("Assign the same Grid component used by BuildingManager. " +
+             "Leave empty to fall back to world-aligned 1×1 tile snapping.")]
+    [SerializeField] private Grid placementGrid;
+
     [Header("House Area")]
     [Tooltip("World-space centre of the rectangular spawn area")]
     [SerializeField] private Vector2 areaCenter = Vector2.zero;
@@ -61,6 +67,14 @@ public class ResourceSpawner : MonoBehaviour
     {
         if (spawnEntries == null || spawnEntries.Length == 0) return;
 
+        // Build the candidate tile list once; all entries share the same area.
+        List<Vector2> tiles = BuildTileCenterList();
+        if (tiles.Count == 0)
+        {
+            Debug.LogWarning("ResourceSpawner: no tile centers found inside the spawn area.");
+            return;
+        }
+
         foreach (SpawnEntry entry in spawnEntries)
         {
             if (entry.prefab == null)
@@ -74,9 +88,19 @@ public class ResourceSpawner : MonoBehaviour
             int spawned = 0;
             for (int i = 0; i < entry.count; i++)
             {
-                if (TryGetFreePosition(entry.overlapRadius, out Vector2 pos))
+                if (TryGetFreeTile(entry.overlapRadius, tiles, out Vector2 pos))
                 {
-                    Instantiate(entry.prefab, pos, Quaternion.identity);
+                    GameObject resource = Instantiate(entry.prefab, pos, Quaternion.identity);
+
+                    // Block the player from building on this tile.
+                    // PlacedBuilding.OnDestroy automatically frees the tile when the resource
+                    // is harvested or destroyed.
+                    if (BuildingManager.Instance != null)
+                    {
+                        Vector2Int tile = BuildingManager.Instance.RegisterTile(pos);
+                        resource.AddComponent<PlacedBuilding>().Init(tile);
+                    }
+
                     spawned++;
                 }
                 else
@@ -91,30 +115,73 @@ public class ResourceSpawner : MonoBehaviour
         }
     }
 
-    // ── Position sampling ─────────────────────────────────────────────────────
+    // ── Tile-centre sampling ──────────────────────────────────────────────────
 
     /// <summary>
-    /// Finds a random position inside the (margin-shrunk) area that is clear of obstacles.
-    /// Returns false if <see cref="maxAttemptsPerObject"/> trials all hit something.
+    /// Builds the list of all tile centres that fall inside the (margin-shrunk) area.
+    /// Uses <see cref="placementGrid"/> when assigned; otherwise snaps to the
+    /// nearest 1×1 world-aligned tile centre (same logic as BuildingManager).
     /// </summary>
-    private bool TryGetFreePosition(float radius, out Vector2 result)
+    private List<Vector2> BuildTileCenterList()
     {
         Vector2 halfExtents = areaSize * 0.5f - Vector2.one * edgeMargin;
 
-        // Guard: if margin ate the whole area, log once and bail out
         if (halfExtents.x <= 0f || halfExtents.y <= 0f)
         {
             Debug.LogError("ResourceSpawner: edgeMargin is larger than the area — nothing can spawn.");
-            result = areaCenter;
-            return false;
+            return new List<Vector2>();
         }
 
-        for (int attempt = 0; attempt < maxAttemptsPerObject; attempt++)
+        Vector2 min = (Vector2)areaCenter - halfExtents;
+        Vector2 max = (Vector2)areaCenter + halfExtents;
+
+        var tiles = new List<Vector2>();
+
+        if (placementGrid != null)
         {
-            Vector2 candidate = new Vector2(
-                areaCenter.x + Random.Range(-halfExtents.x, halfExtents.x),
-                areaCenter.y + Random.Range(-halfExtents.y, halfExtents.y)
-            );
+            // Use the Grid component for exact cell centres
+            Vector3Int cellMin = placementGrid.WorldToCell(min);
+            Vector3Int cellMax = placementGrid.WorldToCell(max);
+
+            for (int cx = cellMin.x; cx <= cellMax.x; cx++)
+            {
+                for (int cy = cellMin.y; cy <= cellMax.y; cy++)
+                {
+                    Vector2 centre = placementGrid.GetCellCenterWorld(new Vector3Int(cx, cy, 0));
+                    if (centre.x >= min.x && centre.x <= max.x &&
+                        centre.y >= min.y && centre.y <= max.y)
+                        tiles.Add(centre);
+                }
+            }
+        }
+        else
+        {
+            // Manual fallback: 1×1 world-aligned grid (floor + 0.5 on each axis)
+            float x0 = Mathf.Floor(min.x) + 0.5f;
+            if (x0 < min.x) x0 += 1f;
+
+            float y0 = Mathf.Floor(min.y) + 0.5f;
+            if (y0 < min.y) y0 += 1f;
+
+            for (float tx = x0; tx <= max.x + 0.001f; tx += 1f)
+                for (float ty = y0; ty <= max.y + 0.001f; ty += 1f)
+                    tiles.Add(new Vector2(tx, ty));
+        }
+
+        return tiles;
+    }
+
+    /// <summary>
+    /// Picks random tile centres from <paramref name="tiles"/> (with replacement)
+    /// until one is clear of obstacles, or <see cref="maxAttemptsPerObject"/> is reached.
+    /// </summary>
+    private bool TryGetFreeTile(float radius, List<Vector2> tiles, out Vector2 result)
+    {
+        int attempts = Mathf.Min(maxAttemptsPerObject, tiles.Count * 2);
+
+        for (int i = 0; i < attempts; i++)
+        {
+            Vector2 candidate = tiles[Random.Range(0, tiles.Count)];
 
             if (Physics2D.OverlapCircle(candidate, radius, obstacleMask) == null)
             {
@@ -156,6 +223,16 @@ public class ResourceSpawner : MonoBehaviour
         {
             Gizmos.color = new Color(1f, 1f, 0.3f, 0.5f);
             Gizmos.DrawWireCube(areaCenter, innerSize);
+        }
+
+        // Tile centres — shown as small crosses so you can verify grid alignment
+        Gizmos.color = new Color(0.4f, 1f, 0.4f, 0.6f);
+        List<Vector2> tiles = BuildTileCenterList();
+        foreach (Vector2 t in tiles)
+        {
+            const float s = 0.1f;
+            Gizmos.DrawLine(t + Vector2.left * s, t + Vector2.right * s);
+            Gizmos.DrawLine(t + Vector2.down * s, t + Vector2.up   * s);
         }
     }
 }
