@@ -11,6 +11,7 @@ using UnityEngine.UI;
 /// Replaces the old WaveManager — remove the WaveManager component from your scene.
 /// Enemy.Die() should call GameManager.Instance.OnEnemyDied().
 /// </summary>
+[DefaultExecutionOrder(5)]
 public class GameManager : MonoBehaviour
 {
     public static GameManager Instance { get; private set; }
@@ -97,9 +98,10 @@ public class GameManager : MonoBehaviour
 
     // ── Private ───────────────────────────────────────────────────────────────
 
-    private int _enemiesSpawned;
-    private GameObject _gameOverScreen;
-    private GameObject _playerInstance;
+    private int          _enemiesSpawned;
+    private GameObject   _gameOverScreen;
+    private GameObject   _playerInstance;
+    private MapGenerator _mapGenerator;
 
     // ── Unity lifecycle ───────────────────────────────────────────────────────
 
@@ -135,10 +137,12 @@ public class GameManager : MonoBehaviour
 
         ResourceManager.Instance?.ResetResources();
 
-        MapGenerator mapGenerator = FindAnyObjectByType<MapGenerator>();
-        if (mapGenerator != null)
+        if (_mapGenerator == null)
+            _mapGenerator = FindAnyObjectByType<MapGenerator>();
+
+        if (_mapGenerator != null)
         {
-            mapGenerator.Generate();
+            _mapGenerator.Generate();
             PathfindingGrid.Instance?.BuildGrid();
         }
         else
@@ -191,32 +195,17 @@ public class GameManager : MonoBehaviour
 
     /// <summary>
     /// Picks a safe world position for the player to spawn.
-    /// Priority: centre of the largest room → snapped to nearest walkable tile.
-    /// Falls back to <see cref="playerSpawnHint"/> (snapped) if no room data is available.
+    /// Uses the enemy room centre; falls back to <see cref="playerSpawnHint"/> if unavailable.
     /// </summary>
     private Vector2 FindPlayerSpawnPosition()
     {
-        HouseManager hm = HouseManager.Instance;
-        if (hm != null && hm.Rooms.Count > 0)
+        Room enemyRoom = HouseManager.Instance?.EnemyRoom;
+        if (enemyRoom != null)
         {
-            // Choose the largest room so the player has space to move on spawn
-            Room best     = null;
-            float bestArea = 0f;
-            foreach (Room room in hm.Rooms)
-            {
-                float area = room.WorldSize.x * room.WorldSize.y;
-                if (area > bestArea) { bestArea = area; best = room; }
-            }
-
-            if (best != null)
-            {
-                Vector2 center = best.WorldCenter;
-                PathNode node  = PathfindingGrid.Instance?.FindNearestWalkable(center);
-                return node != null ? node.WorldPos : center;
-            }
+            PathNode node = PathfindingGrid.Instance?.FindNearestWalkable(enemyRoom.WorldCenter);
+            return node != null ? node.WorldPos : enemyRoom.WorldCenter;
         }
 
-        // No room data yet — snap the fallback hint to the nearest walkable node
         PathNode fallback = PathfindingGrid.Instance?.FindNearestWalkable(playerSpawnHint);
         return fallback != null ? fallback.WorldPos : playerSpawnHint;
     }
@@ -338,11 +327,15 @@ public class GameManager : MonoBehaviour
 
     private Vector2 GetSpawnPosition()
     {
+        Room enemyRoom = HouseManager.Instance?.EnemyRoom;
+        if (enemyRoom != null && _mapGenerator != null)
+            return SampleEnemyRoom(enemyRoom);
+
+        // Legacy fallback (polygon / point list / rect)
         Vector2 seed = spawnArea != null
             ? SamplePolygon()
             : (spawnPoints != null && spawnPoints.Length > 0 ? SamplePointList() : SampleRing());
 
-        // Try many random candidates and keep only positions that are not blocked.
         for (int i = 0; i < spawnMaxAttempts; i++)
         {
             Vector2 candidate = spawnArea != null
@@ -353,12 +346,27 @@ public class GameManager : MonoBehaviour
                 return candidate;
         }
 
-        // Fallback: snap the seed to the nearest walkable grid node.
         PathNode nearest = PathfindingGrid.Instance?.FindNearestWalkable(seed);
-        if (nearest != null)
-            return nearest.WorldPos;
+        return nearest != null ? nearest.WorldPos : seed;
+    }
 
-        return seed;
+    private Vector2 SampleEnemyRoom(Room room)
+    {
+        RectInt bounds = room.TileBounds;
+
+        for (int i = 0; i < spawnMaxAttempts; i++)
+        {
+            int     x         = UnityEngine.Random.Range(bounds.xMin, bounds.xMax);
+            int     y         = UnityEngine.Random.Range(bounds.yMin, bounds.yMax);
+            Vector2 candidate = _mapGenerator.TileToWorldCenter(new Vector2Int(x, y));
+
+            if (IsSpawnCandidateValid(candidate))
+                return candidate;
+        }
+
+        // Fallback: room centre snapped to nearest walkable
+        PathNode node = PathfindingGrid.Instance?.FindNearestWalkable(room.WorldCenter);
+        return node != null ? node.WorldPos : room.WorldCenter;
     }
 
     // ── PolygonCollider2D source ──────────────────────────────────────────────

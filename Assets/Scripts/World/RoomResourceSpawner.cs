@@ -89,22 +89,27 @@ public class RoomResourceSpawner : MonoBehaviour
 
         if (_mapGenerator == null || HouseManager.Instance == null) return;
 
+        // Build once — tiles that touch a door opening (with 1-tile margin each side).
+        // Harvestables placed here would block the entrance.
+        HashSet<Vector2Int> doorBlocked = BuildDoorBlockedSet();
+
         foreach (Room room in HouseManager.Instance.Rooms)
         {
             // Shared occupancy set prevents both passes from placing on the same tile
             var occupied = new HashSet<Vector2Int>();
-            SpawnWallRing(room, occupied);
+            SpawnWallRing(room, occupied, doorBlocked);
             SpawnCluster(room, occupied);
         }
     }
 
     // ── Pass 1: wall-ring harvestables ────────────────────────────────────────
 
-    private void SpawnWallRing(Room room, HashSet<Vector2Int> occupied)
+    private void SpawnWallRing(Room room, HashSet<Vector2Int> occupied, HashSet<Vector2Int> doorBlocked)
     {
         if (harvestablePrefabs == null || harvestablePrefabs.Length == 0) return;
 
         List<Vector2Int> ring = GetWallRingTiles(room);
+        ring.RemoveAll(t => doorBlocked.Contains(t));
         Shuffle(ring);
 
         int target  = Mathf.Max(1, Mathf.RoundToInt(ring.Count * wallDensity));
@@ -177,6 +182,51 @@ public class RoomResourceSpawner : MonoBehaviour
 
         foreach (Vector2Int tile in cluster)
             Place(clusterPrefabs, tile);
+    }
+
+    // ── Door clearance ────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Returns all floor tile coords that touch a door opening, including a
+    /// 1-tile margin on each side of the door width. Harvestables are excluded
+    /// from these tiles so entrances are never blocked.
+    /// </summary>
+    private HashSet<Vector2Int> BuildDoorBlockedSet()
+    {
+        var blocked = new HashSet<Vector2Int>();
+        if (_mapGenerator == null) return blocked;
+
+        const int margin = 1;   // extra clearance tiles on each side of the opening
+
+        foreach (MapGenerator.DoorInfo door in _mapGenerator.DoorInfos)
+        {
+            if (door.IsHorizontalWall)
+            {
+                // Wall runs left-right at y = WallCoord.
+                // Block floor tiles immediately above and below the opening.
+                int xMin = door.TilePos.x - margin;
+                int xMax = door.TilePos.x + door.Width + margin;
+                for (int x = xMin; x < xMax; x++)
+                {
+                    blocked.Add(new Vector2Int(x, door.WallCoord - 1)); // room below
+                    blocked.Add(new Vector2Int(x, door.WallCoord + 1)); // room above
+                }
+            }
+            else
+            {
+                // Wall runs top-bottom at x = WallCoord.
+                // Block floor tiles immediately left and right of the opening.
+                int yMin = door.TilePos.y - margin;
+                int yMax = door.TilePos.y + door.Width + margin;
+                for (int y = yMin; y < yMax; y++)
+                {
+                    blocked.Add(new Vector2Int(door.WallCoord - 1, y)); // room left
+                    blocked.Add(new Vector2Int(door.WallCoord + 1, y)); // room right
+                }
+            }
+        }
+
+        return blocked;
     }
 
     // ── Tile helpers ──────────────────────────────────────────────────────────

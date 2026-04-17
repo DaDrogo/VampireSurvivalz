@@ -10,8 +10,11 @@ using UnityEngine;
 /// (e.g. on wave restart) it tears down and rebuilds them automatically.
 ///
 /// Setup: place this script on a persistent GameObject in the scene.
+/// Execution order -5 ensures this runs before GameManager (default 0) so
+/// EnemyRoom is always set before the player is positioned.
 /// No additional wiring is needed — it finds MapGenerator automatically.
 /// </summary>
+[DefaultExecutionOrder(-5)]
 public class HouseManager : MonoBehaviour
 {
     public static HouseManager Instance { get; private set; }
@@ -20,6 +23,9 @@ public class HouseManager : MonoBehaviour
 
     [Tooltip("Auto-found if left empty.")]
     [SerializeField] private MapGenerator mapGenerator;
+
+    [Tooltip("Floor tile tint applied to the randomly selected enemy room.")]
+    [SerializeField] private Color enemyRoomTileColor = new Color(0.9f, 0.45f, 0.45f, 1f);
 
     // ── Public state ──────────────────────────────────────────────────────────
 
@@ -42,6 +48,9 @@ public class HouseManager : MonoBehaviour
 
     /// <summary>Fired after all rooms and doors have been built (or rebuilt on regeneration).</summary>
     public event Action OnRoomsBuilt;
+
+    /// <summary>The room designated as the enemy spawn room for the current map.</summary>
+    public Room EnemyRoom { get; private set; }
 
     // ── Private ───────────────────────────────────────────────────────────────
 
@@ -96,6 +105,7 @@ public class HouseManager : MonoBehaviour
         _rooms.Clear();
         _doors.Clear();
         PlayerRoom = null;
+        EnemyRoom  = null;
     }
 
     // ── Construction ──────────────────────────────────────────────────────────
@@ -149,7 +159,17 @@ public class HouseManager : MonoBehaviour
         }
 
         Debug.Log($"[HouseManager] Built {_rooms.Count} rooms, {_doors.Count} doors.");
+
+        SelectEnemyRoom();
         OnRoomsBuilt?.Invoke();
+    }
+
+    private void SelectEnemyRoom()
+    {
+        EnemyRoom = _rooms.Count > 0 ? _rooms[UnityEngine.Random.Range(0, _rooms.Count)] : null;
+
+        if (EnemyRoom != null && mapGenerator != null)
+            mapGenerator.ColorRoomTiles(EnemyRoom.TileBounds, enemyRoomTileColor);
     }
 
     /// <summary>

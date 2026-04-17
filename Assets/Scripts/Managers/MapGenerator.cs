@@ -269,6 +269,26 @@ public class MapGenerator : MonoBehaviour
     /// <summary>World-space size of a tile rectangle (1 tile = 1 world unit).</summary>
     public Vector2 TileRectWorldSize(RectInt rect) => new Vector2(rect.width, rect.height);
 
+    /// <summary>
+    /// Tints every floor tile inside <paramref name="tileBounds"/> with <paramref name="color"/>.
+    /// Clears LockColor flags first so SetColor takes effect.
+    /// </summary>
+    public void ColorRoomTiles(RectInt tileBounds, Color color)
+    {
+        if (floorTilemap == null) return;
+
+        for (int x = tileBounds.xMin; x < tileBounds.xMax; x++)
+        {
+            for (int y = tileBounds.yMin; y < tileBounds.yMax; y++)
+            {
+                var pos = new Vector3Int(x, y, 0);
+                if (floorTilemap.GetTile(pos) == null) continue;
+                floorTilemap.SetTileFlags(pos, UnityEngine.Tilemaps.TileFlags.None);
+                floorTilemap.SetColor(pos, color);
+            }
+        }
+    }
+
     // ── Tile helpers ──────────────────────────────────────────────────────────
 
     private void SetWall(int x, int y)
