@@ -92,6 +92,9 @@ public class GameManager : MonoBehaviour
     /// <summary>Fired every time an enemy dies during a Wave.</summary>
     public event Action<int> OnEnemiesRemainingChanged;
 
+    /// <summary>Fired after the player is spawned or repositioned. UI should (re)bind HP here.</summary>
+    public event Action<PlayerController> OnPlayerSpawned;
+
     // ── Private ───────────────────────────────────────────────────────────────
 
     private int _enemiesSpawned;
@@ -181,6 +184,9 @@ public class GameManager : MonoBehaviour
             Debug.LogWarning("GameManager: No player found in scene and no playerPrefab assigned. " +
                              "Assign a player prefab or place a tagged 'Player' object in the scene.");
         }
+
+        if (_playerInstance != null && _playerInstance.TryGetComponent(out PlayerController pc))
+            OnPlayerSpawned?.Invoke(pc);
     }
 
     /// <summary>

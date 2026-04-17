@@ -40,6 +40,9 @@ public class HouseManager : MonoBehaviour
     /// </summary>
     public event Action<Room, Room> OnPlayerRoomChanged;
 
+    /// <summary>Fired after all rooms and doors have been built (or rebuilt on regeneration).</summary>
+    public event Action OnRoomsBuilt;
+
     // ── Private ───────────────────────────────────────────────────────────────
 
     private readonly List<Room> _rooms = new List<Room>();
@@ -146,6 +149,7 @@ public class HouseManager : MonoBehaviour
         }
 
         Debug.Log($"[HouseManager] Built {_rooms.Count} rooms, {_doors.Count} doors.");
+        OnRoomsBuilt?.Invoke();
     }
 
     /// <summary>

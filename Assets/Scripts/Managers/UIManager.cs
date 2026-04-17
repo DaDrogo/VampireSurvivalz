@@ -23,7 +23,6 @@ public class UIManager : MonoBehaviour
     private TextMeshProUGUI _stateText;
     private TextMeshProUGUI _timerText;
     private TextMeshProUGUI _hpText;
-    private Image            _healthBarFill;
 
     // ── Hotbar ────────────────────────────────────────────────────────────────
 
@@ -77,6 +76,7 @@ public class UIManager : MonoBehaviour
             GameManager.Instance.OnStateChanged            -= HandleStateChanged;
             GameManager.Instance.OnTimerChanged            -= HandleTimerChanged;
             GameManager.Instance.OnEnemiesRemainingChanged -= HandleEnemiesRemainingChanged;
+            GameManager.Instance.OnPlayerSpawned           -= BindHPLabel;
         }
         BuildingManager.OnSelectionChanged -= HandleHotbarSelectionChanged;
         PlacedBuilding.OnSelected          -= HandlePlacedBuildingSelected;
@@ -98,6 +98,7 @@ public class UIManager : MonoBehaviour
             GameManager.Instance.OnStateChanged            += HandleStateChanged;
             GameManager.Instance.OnTimerChanged            += HandleTimerChanged;
             GameManager.Instance.OnEnemiesRemainingChanged += HandleEnemiesRemainingChanged;
+            GameManager.Instance.OnPlayerSpawned           += BindHPLabel;
         }
         else Debug.LogWarning("UIManager: GameManager not found.");
 
@@ -120,7 +121,6 @@ public class UIManager : MonoBehaviour
             else if (GameManager.Instance.CurrentState == GameManager.GameState.Wave)
                 HandleEnemiesRemainingChanged(GameManager.Instance.EnemiesRemaining);
         }
-        BindHPLabel();
         RefreshHotbar();
         RefreshInfoPanel();
     }
@@ -196,26 +196,18 @@ public class UIManager : MonoBehaviour
 
     // ── Health bar ────────────────────────────────────────────────────────────
 
-    private void BindHPLabel()
+    private void BindHPLabel(PlayerController player)
     {
-        PlayerController player = FindAnyObjectByType<PlayerController>();
         if (player == null) return;
 
-        void UpdateHP(float current, float max)
-        {
-            _hpText?.SetText("{0:0} / {1:0}", current, max);
-            if (_healthBarFill == null) return;
-            float t = max > 0f ? current / max : 0f;
-            _healthBarFill.fillAmount = t;
-            // Green → yellow → red as HP drops
-            _healthBarFill.color = t > 0.5f
-                ? Color.Lerp(new Color(0.95f, 0.80f, 0.05f), new Color(0.10f, 0.88f, 0.10f), (t - 0.5f) * 2f)
-                : Color.Lerp(new Color(0.90f, 0.10f, 0.10f), new Color(0.95f, 0.80f, 0.05f), t * 2f);
-        }
-
-        UpdateHP(player.CurrentHealth, player.MaxHealth);
-        player.OnHealthChanged += UpdateHP;
+        // Remove any previous listener to avoid duplicate subscriptions on restart
+        player.OnHealthChanged -= UpdateHPText;
+        player.OnHealthChanged += UpdateHPText;
+        UpdateHPText(player.CurrentHealth, player.MaxHealth);
     }
+
+    private void UpdateHPText(float current, float max) =>
+        _hpText?.SetText("{0:0} / {1:0}", current, max);
 
     // ── Hotbar ────────────────────────────────────────────────────────────────
 
@@ -345,7 +337,6 @@ public class UIManager : MonoBehaviour
         canvasGO.AddComponent<GraphicRaycaster>();
 
         BuildTopBar(canvasGO.transform, font);
-        BuildHealthBar(canvasGO.transform, font);
         BuildHotbar(canvasGO.transform, font);
         BuildInfoPanel(canvasGO.transform, font);
     }
@@ -420,59 +411,6 @@ public class UIManager : MonoBehaviour
                   new Color(0.6f, 0.6f, 0.6f), TextAlignmentOptions.Right);
         _hpText = MakeLabel(rightGO.transform, "HPText", "--/--", font, 22f,
                             Color.white, TextAlignmentOptions.Right);
-    }
-
-    // ── HP bar strip ──────────────────────────────────────────────────────────
-
-    /// <summary>
-    /// Thin full-width bar anchored just below the top bar.
-    /// Fill is driven by <see cref="BindHPLabel"/> and changes colour green → yellow → red.
-    /// A small heart label is overlaid on the left for context.
-    /// </summary>
-    private void BuildHealthBar(Transform canvas, TMP_FontAsset font)
-    {
-        const float topBarH  = 68f;
-        const float barH     = 16f;
-
-        // Background
-        GameObject bg   = new GameObject("HPBar");
-        bg.transform.SetParent(canvas, false);
-
-        RectTransform bgRT   = bg.AddComponent<RectTransform>();
-        bgRT.anchorMin        = new Vector2(0f, 1f);
-        bgRT.anchorMax        = new Vector2(1f, 1f);
-        bgRT.pivot            = new Vector2(0.5f, 1f);
-        bgRT.anchoredPosition = new Vector2(0f, -topBarH);
-        bgRT.sizeDelta        = new Vector2(0f, barH);
-
-        bg.AddComponent<Image>().color = new Color(0.08f, 0.02f, 0.02f, 0.90f);
-
-        // Fill — uses Image.Filled so no child scaling needed
-        GameObject fillGO     = new GameObject("Fill");
-        fillGO.transform.SetParent(bg.transform, false);
-
-        RectTransform fillRT  = fillGO.AddComponent<RectTransform>();
-        fillRT.anchorMin       = Vector2.zero;
-        fillRT.anchorMax       = Vector2.one;
-        fillRT.offsetMin       = Vector2.zero;
-        fillRT.offsetMax       = Vector2.zero;
-
-        _healthBarFill             = fillGO.AddComponent<Image>();
-        _healthBarFill.type        = Image.Type.Filled;
-        _healthBarFill.fillMethod  = Image.FillMethod.Horizontal;
-        _healthBarFill.fillOrigin  = (int)Image.OriginHorizontal.Left;
-        _healthBarFill.fillAmount  = 1f;
-        _healthBarFill.color       = new Color(0.10f, 0.88f, 0.10f);
-
-        // "♥" label pinned to the left of the bar
-        TextMeshProUGUI heartLabel  = MakeLabel(bg.transform, "HeartIcon", "♥", font, 13f,
-                                                new Color(1f, 0.3f, 0.3f), TextAlignmentOptions.Left);
-        RectTransform heartRT       = heartLabel.GetComponent<RectTransform>();
-        heartRT.anchorMin           = new Vector2(0f, 0f);
-        heartRT.anchorMax           = new Vector2(0f, 1f);
-        heartRT.pivot               = new Vector2(0f, 0.5f);
-        heartRT.anchoredPosition    = new Vector2(4f, 0f);
-        heartRT.sizeDelta           = new Vector2(18f, 0f);
     }
 
     // ── Hotbar ────────────────────────────────────────────────────────────────
