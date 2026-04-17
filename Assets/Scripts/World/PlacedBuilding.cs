@@ -24,6 +24,7 @@ public class PlacedBuilding : MonoBehaviour
     public int Level { get; private set; }
 
     private Vector2Int _tile;
+    private bool       _skipFreeTile;
 
     // ── Init ──────────────────────────────────────────────────────────────────
 
@@ -75,8 +76,37 @@ public class PlacedBuilding : MonoBehaviour
         if (TryGetComponent(out Turret turret))
             turret.ApplyUpgrade(tier.healthMult, tier.fireRateMult, tier.rangeMult);
 
+        if (TryGetComponent(out ResourceProducer producer))
+            producer.ApplyUpgrade(tier.healthMult, tier.fireRateMult);
+
         Level++;
         OnSelected?.Invoke(this);   // refresh the info panel
+        return true;
+    }
+
+    // ── Choice upgrade ────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Transforms this building into the prefab specified by <paramref name="choice"/>.
+    /// Deducts resources, spawns the replacement, then destroys self.
+    /// Returns false when resources are insufficient or the choice has no prefab.
+    /// </summary>
+    public bool TryUpgradeToChoice(BuildingUpgradeChoice choice)
+    {
+        if (choice?.prefab == null) return false;
+        if (ResourceManager.Instance == null) return false;
+        if (ResourceManager.Instance.Wood  < choice.woodCost ||
+            ResourceManager.Instance.Metal < choice.metalCost) return false;
+
+        ResourceManager.Instance.AddResource("Wood",  -choice.woodCost);
+        ResourceManager.Instance.AddResource("Metal", -choice.metalCost);
+
+        // Close the panel before destroying so UI doesn't see a dangling reference
+        if (Current == this) { Current = null; OnSelected?.Invoke(null); }
+
+        _skipFreeTile = true;   // SwapBuilding re-registers the tile; don't free it on destroy
+        BuildingManager.Instance?.SwapBuilding(_tile, transform.position, choice);
+        Destroy(gameObject);
         return true;
     }
 
@@ -90,6 +120,7 @@ public class PlacedBuilding : MonoBehaviour
             OnSelected?.Invoke(null);   // tell UI to close the panel
         }
 
-        BuildingManager.Instance?.FreeTile(_tile);
+        if (!_skipFreeTile)
+            BuildingManager.Instance?.FreeTile(_tile);
     }
 }

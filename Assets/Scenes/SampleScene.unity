@@ -16011,8 +16011,31 @@ MonoBehaviour:
     footprint: {x: 1, y: 1}
     woodCost: 5
     metalCost: 0
-    description: 
+    description:
     upgrades: []
+  - buildingName: Resource Producer
+    prefab: {fileID: 1823645102394756890, guid: c8a7f9e2d5b31048b6e8c7f9d2a4b871, type: 3}
+    footprint: {x: 1, y: 1}
+    woodCost: 15
+    metalCost: 10
+    description: Produces Wood. Upgrade to specialise.
+    upgrades: []
+    upgradeChoices:
+    - label: Wood Mill
+      prefab: {fileID: 2823645102394756890, guid: d1b4f8a2c9e3057a6b7d8ef0c1a2b3c4, type: 3}
+      woodCost: 20
+      metalCost: 10
+      description: More Wood, faster cycles.
+    - label: Metal Smelter
+      prefab: {fileID: 3823645102394756890, guid: e2c5a9b3d0f4168b7c8e9f0a1b2c3d4e, type: 3}
+      woodCost: 10
+      metalCost: 20
+      description: Produces Metal each cycle.
+    - label: Trade Post
+      prefab: {fileID: 4823645102394756890, guid: f3d6b0c4e1a5279c8d9f0a1b2c3d4e5f, type: 3}
+      woodCost: 25
+      metalCost: 25
+      description: Produces both Wood and Metal.
   placementGrid: {fileID: 0}
   blockingLayers:
     serializedVersion: 2

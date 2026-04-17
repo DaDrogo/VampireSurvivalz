@@ -36,9 +36,19 @@ public class UIManager : MonoBehaviour
     private TextMeshProUGUI _infoBuildingName;
     private TextMeshProUGUI _infoDescription;
     private TextMeshProUGUI _infoStats;
+
+    // Standard tier-upgrade section
+    private GameObject      _upgradeSection;
     private TextMeshProUGUI _infoLevel;
     private Button          _upgradeButton;
     private TextMeshProUGUI _upgradeButtonText;
+
+    // Choice-upgrade section (up to 3 options)
+    private const int       MaxChoices = 3;
+    private GameObject      _choiceSection;
+    private Button[]        _choiceButtons    = new Button[MaxChoices];
+    private TextMeshProUGUI[] _choiceNameTexts  = new TextMeshProUGUI[MaxChoices];
+    private TextMeshProUGUI[] _choiceCostTexts  = new TextMeshProUGUI[MaxChoices];
 
     // ── Selection state ───────────────────────────────────────────────────────
 
@@ -274,36 +284,81 @@ public class UIManager : MonoBehaviour
                 sb.AppendLine($"Range:     {t.DetectionRange:0.0}");
                 sb.AppendLine($"Fire rate: {t.FireRate:0.00}/s");
             }
+            if (_selectedPlaced.TryGetComponent(out ResourceProducer rp))
+            {
+                sb.AppendLine($"HP:       {rp.CurrentHealth:0} / {rp.MaxHealth:0}");
+                sb.AppendLine($"Output:   {rp.OutputType}");
+                sb.AppendLine($"Amount:   {rp.AmountPerCycle} / cycle");
+                sb.AppendLine($"Interval: {rp.ProductionInterval:0.0}s");
+            }
         }
         _infoStats?.SetText(sb.ToString());
 
-        int maxLevel = def.upgrades?.Length ?? 0;
-        _infoLevel?.SetText($"Level {level} / {maxLevel}");
+        // Decide which upgrade section to show
+        bool hasChoices = showStats
+                       && def.upgradeChoices != null
+                       && def.upgradeChoices.Length > 0;
 
-        // Upgrade button
-        if (_upgradeButton != null)
+        if (_upgradeSection != null) _upgradeSection.SetActive(!hasChoices);
+        if (_choiceSection   != null) _choiceSection.SetActive(hasChoices);
+
+        if (hasChoices)
         {
-            if (!showStats)
+            // Populate choice buttons
+            for (int i = 0; i < MaxChoices; i++)
             {
-                _upgradeButton.gameObject.SetActive(false);
-            }
-            else if (level >= maxLevel)
-            {
-                _upgradeButton.gameObject.SetActive(true);
-                _upgradeButtonText?.SetText("MAX LEVEL");
-                _upgradeButton.interactable = false;
-            }
-            else
-            {
-                BuildingUpgradeTier tier = def.upgrades[level];
-                bool canAfford = ResourceManager.Instance != null
-                    && ResourceManager.Instance.Wood  >= tier.woodCost
-                    && ResourceManager.Instance.Metal >= tier.metalCost;
+                if (_choiceButtons[i] == null) continue;
 
-                _upgradeButton.gameObject.SetActive(true);
-                _upgradeButton.interactable = canAfford;
-                _upgradeButtonText?.SetText(
-                    $"Upgrade  [{tier.label}]\n{tier.woodCost}W / {tier.metalCost}M");
+                if (i < def.upgradeChoices.Length)
+                {
+                    BuildingUpgradeChoice ch = def.upgradeChoices[i];
+                    _choiceButtons[i].gameObject.SetActive(true);
+
+                    bool canAfford = ResourceManager.Instance != null
+                        && ResourceManager.Instance.Wood  >= ch.woodCost
+                        && ResourceManager.Instance.Metal >= ch.metalCost;
+                    _choiceButtons[i].interactable = canAfford;
+
+                    string desc = string.IsNullOrEmpty(ch.description) ? "" : $"\n<size=14><color=#aaaaaa>{ch.description}</color></size>";
+                    _choiceNameTexts[i]?.SetText($"{ch.label}{desc}");
+                    _choiceCostTexts[i]?.SetText($"{ch.woodCost}W / {ch.metalCost}M");
+                }
+                else
+                {
+                    _choiceButtons[i].gameObject.SetActive(false);
+                }
+            }
+        }
+        else
+        {
+            // Normal tier-upgrade section
+            int maxLevel = def.upgrades?.Length ?? 0;
+            _infoLevel?.SetText($"Level {level} / {maxLevel}");
+
+            if (_upgradeButton != null)
+            {
+                if (!showStats)
+                {
+                    _upgradeButton.gameObject.SetActive(false);
+                }
+                else if (level >= maxLevel)
+                {
+                    _upgradeButton.gameObject.SetActive(true);
+                    _upgradeButtonText?.SetText("MAX LEVEL");
+                    _upgradeButton.interactable = false;
+                }
+                else
+                {
+                    BuildingUpgradeTier tier = def.upgrades[level];
+                    bool canAfford = ResourceManager.Instance != null
+                        && ResourceManager.Instance.Wood  >= tier.woodCost
+                        && ResourceManager.Instance.Metal >= tier.metalCost;
+
+                    _upgradeButton.gameObject.SetActive(true);
+                    _upgradeButton.interactable = canAfford;
+                    _upgradeButtonText?.SetText(
+                        $"Upgrade  [{tier.label}]\n{tier.woodCost}W / {tier.metalCost}M");
+                }
             }
         }
     }
@@ -312,6 +367,15 @@ public class UIManager : MonoBehaviour
     {
         _selectedPlaced?.TryUpgrade();
         // TryUpgrade fires PlacedBuilding.OnSelected which calls HandlePlacedBuildingSelected → RefreshInfoPanel
+    }
+
+    private void OnChoiceClicked(int index)
+    {
+        if (_selectedPlaced == null) return;
+        BuildingUpgradeChoice[] choices = _selectedPlaced.Definition?.upgradeChoices;
+        if (choices == null || index >= choices.Length) return;
+        _selectedPlaced.TryUpgradeToChoice(choices[index]);
+        // TryUpgradeToChoice destroys the building → OnSelected(null) → panel closes
     }
 
     // ── HUD builder ───────────────────────────────────────────────────────────
@@ -494,7 +558,7 @@ public class UIManager : MonoBehaviour
         rt.anchorMax        = new Vector2(1f, 0.5f);
         rt.pivot            = new Vector2(1f, 0.5f);
         rt.anchoredPosition = new Vector2(-8f, 0f);
-        rt.sizeDelta        = new Vector2(280f, 380f);
+        rt.sizeDelta        = new Vector2(280f, 480f);
 
         panel.AddComponent<Image>().color = new Color(0.04f, 0.04f, 0.10f, 0.88f);
 
@@ -530,43 +594,98 @@ public class UIManager : MonoBehaviour
         _infoStats.enableWordWrapping = false;
         SetPrefHeight(_infoStats.gameObject, 100f);
 
-        // Level indicator
-        _infoLevel = MakeLabel(panel.transform, "InfoLevel", "", font, 18f,
-                               new Color(0.45f, 0.85f, 1f), TextAlignmentOptions.Center);
-        SetPrefHeight(_infoLevel.gameObject, 26f);
+        // ── Standard tier-upgrade section ─────────────────────────────────────
+        _upgradeSection = MakeGroup(panel.transform, "UpgradeSection");
+        {
+            VerticalLayoutGroup uVLG    = _upgradeSection.AddComponent<VerticalLayoutGroup>();
+            uVLG.spacing                = 6f;
+            uVLG.childAlignment         = TextAnchor.UpperCenter;
+            uVLG.childControlHeight     = false;
+            uVLG.childControlWidth      = true;
+            uVLG.childForceExpandHeight = false;
+            uVLG.childForceExpandWidth  = true;
+            SetPrefHeight(_upgradeSection, 88f);   // 26 + 6 + 56
 
-        // Upgrade button
-        GameObject btnGO  = new GameObject("UpgradeBtn");
-        btnGO.transform.SetParent(panel.transform, false);
+            _infoLevel = MakeLabel(_upgradeSection.transform, "InfoLevel", "", font, 18f,
+                                   new Color(0.45f, 0.85f, 1f), TextAlignmentOptions.Center);
+            SetPrefHeight(_infoLevel.gameObject, 26f);
 
-        Image btnImg      = btnGO.AddComponent<Image>();
-        btnImg.color      = new Color(0.12f, 0.55f, 0.12f, 1f);
+            GameObject btnGO = new GameObject("UpgradeBtn");
+            btnGO.transform.SetParent(_upgradeSection.transform, false);
+            Image btnImg         = btnGO.AddComponent<Image>();
+            btnImg.color         = new Color(0.12f, 0.55f, 0.12f, 1f);
+            _upgradeButton       = btnGO.AddComponent<Button>();
+            _upgradeButton.targetGraphic = btnImg;
+            _upgradeButton.onClick.AddListener(OnUpgradeClicked);
+            ColorBlock upgCB     = _upgradeButton.colors;
+            upgCB.disabledColor  = new Color(0.35f, 0.35f, 0.35f);
+            _upgradeButton.colors = upgCB;
+            btnGO.AddComponent<LayoutElement>().preferredHeight = 56f;
 
-        _upgradeButton    = btnGO.AddComponent<Button>();
-        _upgradeButton.targetGraphic = btnImg;
-        _upgradeButton.onClick.AddListener(OnUpgradeClicked);
+            GameObject btnTextGO    = new GameObject("BtnText");
+            btnTextGO.transform.SetParent(btnGO.transform, false);
+            RectTransform btnTextRT = btnTextGO.AddComponent<RectTransform>();
+            btnTextRT.anchorMin     = Vector2.zero;
+            btnTextRT.anchorMax     = Vector2.one;
+            btnTextRT.offsetMin     = Vector2.zero;
+            btnTextRT.offsetMax     = Vector2.zero;
+            _upgradeButtonText      = btnTextGO.AddComponent<TextMeshProUGUI>();
+            _upgradeButtonText.text = "Upgrade";
+            _upgradeButtonText.fontSize   = 19f;
+            _upgradeButtonText.alignment  = TextAlignmentOptions.Center;
+            _upgradeButtonText.color      = Color.white;
+            if (font != null) _upgradeButtonText.font = font;
+        }
 
-        ColorBlock upgCB  = _upgradeButton.colors;
-        upgCB.disabledColor = new Color(0.35f, 0.35f, 0.35f);
-        _upgradeButton.colors = upgCB;
+        // ── Choice-upgrade section ────────────────────────────────────────────
+        _choiceSection = MakeGroup(panel.transform, "ChoiceSection");
+        {
+            VerticalLayoutGroup cVLG    = _choiceSection.AddComponent<VerticalLayoutGroup>();
+            cVLG.spacing                = 5f;
+            cVLG.childAlignment         = TextAnchor.UpperCenter;
+            cVLG.childControlHeight     = false;
+            cVLG.childControlWidth      = true;
+            cVLG.childForceExpandHeight = false;
+            cVLG.childForceExpandWidth  = true;
+            SetPrefHeight(_choiceSection, 24f + MaxChoices * (62f + 5f));
 
-        btnGO.AddComponent<LayoutElement>().preferredHeight = 56f;
+            MakeLabel(_choiceSection.transform, "ChoiceHeader", "Upgrade to:", font, 16f,
+                      new Color(0.6f, 0.6f, 0.6f), TextAlignmentOptions.Center);
 
-        // Text inside the button — fills the button's rect
-        GameObject btnTextGO       = new GameObject("BtnText");
-        btnTextGO.transform.SetParent(btnGO.transform, false);
-        RectTransform btnTextRT    = btnTextGO.AddComponent<RectTransform>();
-        btnTextRT.anchorMin        = Vector2.zero;
-        btnTextRT.anchorMax        = Vector2.one;
-        btnTextRT.offsetMin        = Vector2.zero;
-        btnTextRT.offsetMax        = Vector2.zero;
+            for (int i = 0; i < MaxChoices; i++)
+            {
+                int idx = i;   // capture for lambda
 
-        _upgradeButtonText         = btnTextGO.AddComponent<TextMeshProUGUI>();
-        _upgradeButtonText.text    = "Upgrade";
-        _upgradeButtonText.fontSize = 19f;
-        _upgradeButtonText.alignment = TextAlignmentOptions.Center;
-        _upgradeButtonText.color   = Color.white;
-        if (font != null) _upgradeButtonText.font = font;
+                GameObject cBtn   = new GameObject($"ChoiceBtn_{i}");
+                cBtn.transform.SetParent(_choiceSection.transform, false);
+                Image cImg        = cBtn.AddComponent<Image>();
+                cImg.color        = new Color(0.12f, 0.38f, 0.55f, 1f);
+                Button btn        = cBtn.AddComponent<Button>();
+                btn.targetGraphic = cImg;
+                btn.onClick.AddListener(() => OnChoiceClicked(idx));
+                ColorBlock cb     = btn.colors;
+                cb.disabledColor  = new Color(0.25f, 0.25f, 0.25f);
+                btn.colors        = cb;
+                cBtn.AddComponent<LayoutElement>().preferredHeight = 62f;
+                _choiceButtons[i] = btn;
+
+                VerticalLayoutGroup bVLG    = cBtn.AddComponent<VerticalLayoutGroup>();
+                bVLG.padding                = new RectOffset(8, 8, 6, 6);
+                bVLG.spacing                = 2f;
+                bVLG.childAlignment         = TextAnchor.MiddleLeft;
+                bVLG.childControlHeight     = true;
+                bVLG.childControlWidth      = true;
+                bVLG.childForceExpandHeight = true;
+                bVLG.childForceExpandWidth  = true;
+
+                _choiceNameTexts[i] = MakeLabel(cBtn.transform, "ChoiceName", "", font, 16f,
+                                                Color.white, TextAlignmentOptions.Left);
+                _choiceNameTexts[i].enableWordWrapping = true;
+
+                _choiceCostTexts[i] = MakeLabel(cBtn.transform, "ChoiceCost", "", font, 14f,
+                                                new Color(0.8f, 0.9f, 0.55f), TextAlignmentOptions.Left);
+            }
+        }
 
         panel.SetActive(false);
     }

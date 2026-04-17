@@ -16,6 +16,21 @@ public class BuildingUpgradeTier
 }
 
 /// <summary>
+/// One option shown in the upgrade-choice panel.
+/// Replaces the placed building with a new prefab when selected.
+/// </summary>
+[Serializable]
+public class BuildingUpgradeChoice
+{
+    public string     label;
+    public GameObject prefab;
+    public int        woodCost;
+    public int        metalCost;
+    [TextArea(1, 2)]
+    public string     description;
+}
+
+/// <summary>
 /// Defines one placeable building type.
 /// Assign in the BuildingManager Inspector — index 0 = key 1, index 1 = key 2, etc.
 /// </summary>
@@ -30,7 +45,10 @@ public class BuildingDefinition
     public int          metalCost;
     [TextArea(1, 2)]
     public string       description;
+    [Tooltip("Stat-based upgrade tiers (Barricade / Turret style).")]
     public BuildingUpgradeTier[] upgrades;
+    [Tooltip("If set, the upgrade button is replaced with a choice panel — pick one to transform this building.")]
+    public BuildingUpgradeChoice[] upgradeChoices;
 }
 
 /// <summary>
@@ -339,6 +357,20 @@ public class BuildingManager : MonoBehaviour
     /// freeing the tile for future placement.
     /// </summary>
     public void FreeTile(Vector2Int tile) => _occupiedTiles.Remove(tile);
+
+    /// <summary>
+    /// Spawns a replacement building at <paramref name="worldPos"/> on the same tile.
+    /// The tile stays occupied (the old building's OnDestroy will call FreeTile, but
+    /// we add the tile back here so it is never truly free between the two buildings).
+    /// </summary>
+    public void SwapBuilding(Vector2Int tile, Vector3 worldPos, BuildingUpgradeChoice choice)
+    {
+        if (choice?.prefab == null) return;
+
+        GameObject placed = Instantiate(choice.prefab, worldPos, Quaternion.identity);
+        placed.AddComponent<PlacedBuilding>().Init(tile, null);   // null = fully-upgraded, no further choices
+        _occupiedTiles.Add(tile);   // re-register so FreeTile from old building doesn't leave it open
+    }
 
     private static Sprite WhiteSquareSprite()
     {
