@@ -11,10 +11,10 @@ using UnityEngine;
 public class WorldHealthBar : MonoBehaviour
 {
     [Header("Layout")]
-    [Tooltip("Width and height of the bar in world units.")]
-    [SerializeField] private Vector2 barSize = new(1f, 0.12f);
-    [Tooltip("Offset from the object's pivot, in local space.")]
-    [SerializeField] private Vector3 verticalOffset = new(0f, 0.7f, 0f);
+    [Tooltip("Width and height of the bar in WORLD units — independent of the object's scale.")]
+    [SerializeField] private Vector2 barSize = new(1f, 0.04f);
+    [Tooltip("Offset from the object's pivot in WORLD units — independent of scale.")]
+    [SerializeField] private Vector3 verticalOffset = new(0f, 0.6f, 0f);
 
     [Header("Colours")]
     [SerializeField] private Color fullColor  = new(0.15f, 0.85f, 0.15f, 1f);   // green
@@ -29,11 +29,15 @@ public class WorldHealthBar : MonoBehaviour
 
     // ── Runtime refs ──────────────────────────────────────────────────────────
 
-    private IDamageable   _target;
-    private Transform     _barRoot;
-    private Transform     _fill;
+    private IDamageable    _target;
+    private Transform      _barRoot;
+    private Transform      _fill;
     private SpriteRenderer _fillSR;
     private float          _lastFraction = -1f;
+
+    // Effective sizes in local space after compensating for parent world scale
+    private Vector2 _localSize;
+    private Vector3 _localOffset;
 
     // ── Unity lifecycle ───────────────────────────────────────────────────────
 
@@ -66,46 +70,50 @@ public class WorldHealthBar : MonoBehaviour
 
     private void BuildBar()
     {
-        // Root — fixed local offset above the object
+        // Convert world-space inspector values to local space by dividing by the
+        // parent's lossy (world) scale. This makes barSize and verticalOffset
+        // scale-independent: a building at scale 20 gets the same sized bar as
+        // one at scale 1.
+        Vector3 ws = transform.lossyScale;
+        _localSize   = new Vector2(
+            barSize.x / Mathf.Max(0.0001f, Mathf.Abs(ws.x)),
+            barSize.y / Mathf.Max(0.0001f, Mathf.Abs(ws.y)));
+        _localOffset = new Vector3(
+            verticalOffset.x / Mathf.Max(0.0001f, Mathf.Abs(ws.x)),
+            verticalOffset.y / Mathf.Max(0.0001f, Mathf.Abs(ws.y)),
+            verticalOffset.z);
+
         var root = new GameObject("HealthBar");
         root.transform.SetParent(transform);
-        root.transform.localPosition = verticalOffset;
+        root.transform.localPosition = _localOffset;
         root.transform.localRotation = Quaternion.identity;
         root.transform.localScale    = Vector3.one;
         _barRoot = root.transform;
 
-        // Background
-        CreateQuad("BG", bgColor, sortingOrder, barSize)
+        CreateQuad("BG", bgColor, sortingOrder, _localSize)
             .SetParent(_barRoot, false);
 
-        // Fill — same size initially; width is driven in RefreshBar
-        var fillGO = CreateQuad("Fill", fullColor, sortingOrder + 1, barSize);
+        var fillGO = CreateQuad("Fill", fullColor, sortingOrder + 1, _localSize);
         fillGO.SetParent(_barRoot, false);
         _fill   = fillGO;
         _fillSR = fillGO.GetComponent<SpriteRenderer>();
 
-        RefreshBar(1f);   // start at full
+        RefreshBar(1f);
     }
 
     // ── Per-frame update ──────────────────────────────────────────────────────
 
     private void RefreshBar(float fraction)
     {
-        // Lerp colour from red → green
         _fillSR.color = Color.Lerp(emptyColor, fullColor, fraction);
 
-        // Scale fill width; keep its left edge fixed to the bar's left edge.
-        //   Center of fill (pivot = 0.5) must sit at:
-        //   x = leftEdge + fillWidth * 0.5
-        //     = -barSize.x * 0.5 + barSize.x * fraction * 0.5
-        float fillWidth = barSize.x * fraction;
+        float fillWidth = _localSize.x * fraction;
         _fill.localPosition = new Vector3(
-            -barSize.x * 0.5f + fillWidth * 0.5f,
+            -_localSize.x * 0.5f + fillWidth * 0.5f,
             0f,
-            -0.01f);   // z slightly in front of background
-        _fill.localScale = new Vector3(fillWidth, barSize.y, 1f);
+            -0.01f);
+        _fill.localScale = new Vector3(fillWidth, _localSize.y, 1f);
 
-        // Hide when full (if configured) or when there is no health at all
         bool show = fraction > 0f && !(hideWhenFull && fraction >= 1f);
         _barRoot.gameObject.SetActive(show);
     }
