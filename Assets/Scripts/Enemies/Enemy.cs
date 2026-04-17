@@ -84,6 +84,9 @@ public class Enemy : MonoBehaviour, IDamageable
     private bool    _wallContact;
     private Vector2 _wallNormal;   // accumulated (un-normalized) contact normals from wall tiles
 
+    // Status effects (component added on demand by Projectile)
+    private StatusEffectHandler _statusEffects;
+
     // Reusable physics buffers — avoid per-frame allocations
     private readonly RaycastHit2D[] _castBuffer    = new RaycastHit2D[16];
     private readonly Collider2D[]   _overlapBuffer = new Collider2D[8];
@@ -126,6 +129,8 @@ public class Enemy : MonoBehaviour, IDamageable
             : Vector2.down;
         _stuckCheckPos = _rb.position;
         _navTarget     = _player != null ? (Vector2)_player.position : _rb.position;
+
+        _statusEffects = GetComponent<StatusEffectHandler>();
 
         // Stagger so spawned enemies don't all recalculate on the same frame
         _navTimer = Random.Range(0f, pathRefreshInterval);
@@ -190,13 +195,15 @@ public class Enemy : MonoBehaviour, IDamageable
             {
                 ClearAttackTarget();
                 if (TryAttackNearbyBlocker()) return;
-                // TryAttackNearbyBlocker missed it (e.g. second barricade is slightly
-                // further away) — fall through so CheckLinecastBlock() runs immediately
-                // and picks it up via linecast on the same frame.
+                // Target gone and no adjacent blocker — fall through to
+                // CheckLinecastBlock / Navigate so movement resumes this frame.
             }
-            _rb.linearVelocity = Vector2.zero;
-            TickAttack();
-            return;
+            else
+            {
+                _rb.linearVelocity = Vector2.zero;
+                TickAttack();
+                return;
+            }
         }
 
         // ── Stuck detection ───────────────────────────────────────────────────
@@ -219,6 +226,20 @@ public class Enemy : MonoBehaviour, IDamageable
                 // Nothing attackable — push 1 tile away from nearby walls and reroute.
                 PushAwayFromWalls();
             }
+        }
+
+        // ── Status-effect movement overrides ─────────────────────────────────
+        // Lazy-init in case the handler was added by a projectile after Start().
+        if (_statusEffects == null)
+            _statusEffects = GetComponent<StatusEffectHandler>();
+
+        if (_statusEffects != null && _statusEffects.IsStunned)
+        {
+            _rb.linearVelocity = Vector2.zero;
+            // Reset stuck detection so the stun itself doesn't trigger a push.
+            _stuckTimer    = 0f;
+            _stuckCheckPos = _rb.position;
+            return;
         }
 
         // ── Linecast block check then move ────────────────────────────────────
@@ -364,30 +385,31 @@ public class Enemy : MonoBehaviour, IDamageable
     /// <summary>
     /// Moves the enemy toward <see cref="_navTarget"/>.
     ///
-    /// Wall-contact behaviour has two modes:
+    /// Wall-contact behaviour:
     ///
-    ///   APPROACH phase (<see cref="_approachingDoor"/> == true):
-    ///     The enemy is still outside the wall and needs to align with the door
-    ///     opening before it can cross.  Slide axis-aligned toward the door centre
-    ///     (X-axis for a horizontal dividing wall, Y-axis for a vertical one) so
-    ///     the enemy lines up cleanly with the gap.
+    ///   Door target present (approach OR crossing phase):
+    ///     Slide axis-aligned toward the door centre so the enemy lines up with
+    ///     the gap.  Active in BOTH phases — without this, an enemy that switches
+    ///     to the crossing phase while slightly off-centre will move directly into
+    ///     the wall, making the generic projection zero out its velocity entirely
+    ///     (dot product cancellation when movement and wall normal are antiparallel).
     ///
-    ///   All other contacts (crossing phase, same room, no door):
-    ///     Use generic wall-plane projection — remove the component of movement
-    ///     that pushes into the surface and keep the rest.  This correctly handles
-    ///     corner tiles at door edges: the enemy glides off the corner and continues
-    ///     through the opening instead of ping-ponging between the two edges.
+    ///   No door target (same room as player, or generic wall contact):
+    ///     Use wall-plane projection — remove the into-wall component so the enemy
+    ///     glides off corner tiles rather than getting pinned.
     /// </summary>
     private void Navigate(bool wallContact = false, Vector2 wallNormal = default)
     {
-        Vector2 dir = (_navTarget - _rb.position).normalized;
+        float   speed = moveSpeed * (_statusEffects != null ? _statusEffects.SpeedMultiplier : 1f);
+        Vector2 dir   = (_navTarget - _rb.position).normalized;
 
         if (wallContact && wallNormal.sqrMagnitude > 0.001f)
         {
-            // ── Approach-phase door slide ─────────────────────────────────────
-            // Only active while heading toward the approach waypoint (outside the wall).
-            // Slides the enemy along the wall to centre it on the door opening.
-            if (_nextDoor != null && _approachingDoor)
+            // ── Door-alignment slide ──────────────────────────────────────────
+            // Active whenever a door is the current target, regardless of phase.
+            // Slides the enemy along the wall toward the door centre so it can
+            // pass through the opening cleanly.
+            if (_nextDoor != null)
             {
                 Vector2 slideDir;
 
@@ -411,27 +433,26 @@ public class Enemy : MonoBehaviour, IDamageable
                 if (slideDir.sqrMagnitude > 0.001f)
                 {
                     _lastMoveDir       = slideDir;
-                    _rb.linearVelocity = slideDir * moveSpeed;
+                    _rb.linearVelocity = slideDir * speed;
                     return;
                 }
-                // Already aligned with the opening — fall through to normal movement.
+                // Already aligned — fall through to generic projection.
             }
 
             // ── Generic wall-plane projection ─────────────────────────────────
-            // Used during the crossing phase and for any other wall contact.
-            // Removes the into-wall component so the enemy slides off corners
-            // rather than getting pinned between them.
+            // Used when no door target exists or when already aligned with the gap.
+            // Removes the into-wall component so the enemy slides off corner tiles.
             Vector2 projected = dir - Vector2.Dot(dir, wallNormal) * wallNormal;
             if (projected.sqrMagnitude > 0.001f)
             {
                 _lastMoveDir       = projected.normalized;
-                _rb.linearVelocity = projected.normalized * moveSpeed;
+                _rb.linearVelocity = projected.normalized * speed;
                 return;
             }
         }
 
         _lastMoveDir       = dir;
-        _rb.linearVelocity = dir * moveSpeed;
+        _rb.linearVelocity = dir * speed;
     }
 
     // ── Wall push ─────────────────────────────────────────────────────────────
