@@ -41,6 +41,10 @@ public class PlayerController : MonoBehaviour, IDamageable
     private Transform         _holdTargetTransform;
     private float             _holdTimer;
 
+    // Hold progress bar (world-space, shown above the player while harvesting)
+    private GameObject _holdBarRoot;
+    private Transform  _holdBarFill;
+
     // ── Unity lifecycle ───────────────────────────────────────────────────────
 
     private void Awake()
@@ -52,6 +56,7 @@ public class PlayerController : MonoBehaviour, IDamageable
 
         CurrentHealth   = maxHealth;
         _interactAction = GetComponent<PlayerInput>().actions.FindAction("Interact");
+        BuildHoldBar();
     }
 
 #if UNITY_EDITOR
@@ -74,6 +79,8 @@ public class PlayerController : MonoBehaviour, IDamageable
             _holdTarget          = holdTarget;
             _holdTargetTransform = hit.transform;
             _holdTimer           = 0f;
+            _holdBarRoot.SetActive(true);
+            SetHoldBarFill(0f);
             _holdTarget.OnHoldStart();
         }
         else if (hit.TryGetComponent(out IInteractable interactable))
@@ -103,11 +110,13 @@ public class PlayerController : MonoBehaviour, IDamageable
         _holdTimer += Time.deltaTime;
         float progress = Mathf.Clamp01(_holdTimer / _holdTarget.HoldDuration);
         _holdTarget.OnHoldTick(progress);
+        SetHoldBarFill(progress);
 
         if (progress >= 1f)
         {
             IHoldInteractable completed = _holdTarget;
             _holdTarget = null; _holdTargetTransform = null; _holdTimer = 0f;
+            _holdBarRoot.SetActive(false);
             completed.OnHoldCompleted();
         }
     }
@@ -116,6 +125,7 @@ public class PlayerController : MonoBehaviour, IDamageable
     {
         _holdTarget?.OnHoldCancelled();
         _holdTarget = null; _holdTargetTransform = null; _holdTimer = 0f;
+        _holdBarRoot.SetActive(false);
     }
 
     // ── Physics ───────────────────────────────────────────────────────────────
@@ -139,6 +149,46 @@ public class PlayerController : MonoBehaviour, IDamageable
     {
         OnDied?.Invoke();
         GameManager.Instance?.TriggerGameOver();
+    }
+
+    // ── Hold progress bar ─────────────────────────────────────────────────────
+
+    private void BuildHoldBar()
+    {
+        Texture2D tex = new Texture2D(1, 1);
+        tex.SetPixel(0, 0, Color.white);
+        tex.Apply();
+        Sprite white = Sprite.Create(tex, new Rect(0, 0, 1, 1), new Vector2(0.5f, 0.5f), 1f);
+
+        _holdBarRoot = new GameObject("HoldProgressBar");
+        _holdBarRoot.transform.SetParent(transform);
+        _holdBarRoot.transform.localPosition = new Vector3(0f, -0.2f, 0f);
+        _holdBarRoot.transform.localScale    = new Vector3(0.5f, 0.05f, 1f);
+
+        SpriteRenderer bg = _holdBarRoot.AddComponent<SpriteRenderer>();
+        bg.sprite       = white;
+        bg.color        = new Color(0.15f, 0.15f, 0.15f, 0.85f);
+        bg.sortingOrder = 10;
+
+        GameObject fillGO = new GameObject("Fill");
+        fillGO.transform.SetParent(_holdBarRoot.transform);
+        fillGO.transform.localPosition = new Vector3(-0.5f, 0f, 0f);
+        fillGO.transform.localScale    = new Vector3(0f, 1f, 1f);
+        _holdBarFill = fillGO.transform;
+
+        SpriteRenderer fill = fillGO.AddComponent<SpriteRenderer>();
+        fill.sprite       = white;
+        fill.color        = new Color(0.2f, 0.85f, 0.3f, 1f);
+        fill.sortingOrder = 11;
+
+        _holdBarRoot.SetActive(false);
+    }
+
+    private void SetHoldBarFill(float t)
+    {
+        t = Mathf.Clamp01(t);
+        _holdBarFill.localPosition = new Vector3(-0.5f + t * 0.5f, 0f, 0f);
+        _holdBarFill.localScale    = new Vector3(t, 1f, 1f);
     }
 
     // ── Gizmos ────────────────────────────────────────────────────────────────

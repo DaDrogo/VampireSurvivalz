@@ -5,7 +5,6 @@ using UnityEngine;
 /// each time the player completes a hold interaction.
 /// Each harvest takes <see cref="amountPerHarvest"/> from a finite pool
 /// (<see cref="totalAmount"/>); the object is destroyed when the pool runs out.
-/// A world-space resource bar shows the remaining pool at all times.
 /// Enemies can also destroy it after spending <see cref="enemyDestroyTime"/> seconds attacking it.
 /// </summary>
 public class HarvestableObject : MonoBehaviour, IHoldInteractable, IEnemyAttackable
@@ -29,8 +28,8 @@ public class HarvestableObject : MonoBehaviour, IHoldInteractable, IEnemyAttacka
 
     public float HoldDuration => holdDuration;
     public float CurrentHealth => _enemyDestroyProgressRemaining;
-    public float MaxHealth => enemyDestroyTime;
-    public bool IsDestroyed => this == null || _isDestroyed;
+    public float MaxHealth     => enemyDestroyTime;
+    public bool  IsDestroyed   => this == null || _isDestroyed;
 
     // ── Private state ─────────────────────────────────────────────────────────
 
@@ -95,10 +94,8 @@ public class HarvestableObject : MonoBehaviour, IHoldInteractable, IEnemyAttacka
             _                   => "Wood"
         };
 
-        // Give exactly amountPerHarvest, clamped so we never overpay on the last hit
         int actual = Mathf.Min(amountPerHarvest, _remainingAmount);
         ResourceManager.Instance.AddResource(type, actual);
-        Debug.Log($"Harvested {actual} {type} from {name}. ({Mathf.Max(0, _remainingAmount - actual)} remaining)");
     }
 
     private void DestroySelf()

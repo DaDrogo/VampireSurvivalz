@@ -133,7 +133,7 @@ BoxCollider2D:
     drawMode: 0
     adaptiveTiling: 0
   m_AutoTiling: 0
-  m_Size: {x: 1, y: 1}
+  m_Size: {x: 0.14, y: 0.16}
   m_EdgeRadius: 0
 --- !u!114 &5365295956878115245
 MonoBehaviour:
@@ -148,7 +148,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   holdDuration: 2
+  enemyDestroyTime: 2
   resourceType: 0
-  minAmount: 5
-  maxAmount: 15
-  barOffset: {x: 0, y: 0.7, z: 0}
+  totalAmount: 30
+  amountPerHarvest: 10
