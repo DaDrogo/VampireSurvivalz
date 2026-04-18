@@ -248,6 +248,9 @@ public class GameManager : MonoBehaviour
         CurrentState   = GameState.GameOver;
         Time.timeScale = 0f;
 
+        PersistentDataManager.Instance?.RecordGameOver(WaveNumber);
+        PersistentDataManager.Instance?.SaveKills();
+
         OnStateChanged?.Invoke(CurrentState);
         ShowGameOverScreen();
     }
@@ -258,18 +261,25 @@ public class GameManager : MonoBehaviour
     {
         EnemiesRemaining = Mathf.Max(0, EnemiesRemaining - 1);
         OnEnemiesRemainingChanged?.Invoke(EnemiesRemaining);
+        PersistentDataManager.Instance?.AddKills(1);
 
         // Only end the wave after every enemy has been spawned AND killed
         if (_enemiesSpawned >= EnemiesThisWave && EnemiesRemaining <= 0)
             EnterPreparation();
     }
 
-    // ── Restart ───────────────────────────────────────────────────────────────
+    // ── Restart / Return to Menu ──────────────────────────────────────────────
 
     public void RestartGame()
     {
         Time.timeScale = 1f;
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+    }
+
+    public void ReturnToMainMenu()
+    {
+        Time.timeScale = 1f;
+        SceneTransitionManager.Instance?.LoadScene("MainMenuScene");
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -475,7 +485,7 @@ public class GameManager : MonoBehaviour
         panelRect.anchorMin         = new Vector2(0.5f, 0.5f);
         panelRect.anchorMax         = new Vector2(0.5f, 0.5f);
         panelRect.pivot             = new Vector2(0.5f, 0.5f);
-        panelRect.sizeDelta         = new Vector2(420f, 280f);
+        panelRect.sizeDelta         = new Vector2(420f, 340f);
         panel.AddComponent<Image>().color = new Color(0.08f, 0.08f, 0.08f, 0.96f);
 
         VerticalLayoutGroup layout  = panel.AddComponent<VerticalLayoutGroup>();
@@ -515,6 +525,27 @@ public class GameManager : MonoBehaviour
         btnLabelRect.anchorMax  = Vector2.one;
         btnLabelRect.offsetMin  = Vector2.zero;
         btnLabelRect.offsetMax  = Vector2.zero;
+
+        // Main Menu button
+        GameObject menuBtnGO    = new GameObject("MainMenuButton");
+        menuBtnGO.transform.SetParent(panel.transform, false);
+        menuBtnGO.AddComponent<RectTransform>();
+        menuBtnGO.AddComponent<Image>().color = new Color(0.15f, 0.32f, 0.62f);
+
+        Button menuBtn              = menuBtnGO.AddComponent<Button>();
+        ColorBlock menuCols         = menuBtn.colors;
+        menuCols.normalColor        = new Color(0.15f, 0.32f, 0.62f);
+        menuCols.highlightedColor   = new Color(0.22f, 0.45f, 0.82f);
+        menuCols.pressedColor       = new Color(0.08f, 0.20f, 0.42f);
+        menuBtn.colors              = menuCols;
+        menuBtn.onClick.AddListener(ReturnToMainMenu);
+
+        var menuLabel               = MakeLabel(menuBtnGO.transform, "Label", "Main Menu", font, 32f);
+        var menuLabelRect           = menuLabel.GetComponent<RectTransform>();
+        menuLabelRect.anchorMin     = Vector2.zero;
+        menuLabelRect.anchorMax     = Vector2.one;
+        menuLabelRect.offsetMin     = Vector2.zero;
+        menuLabelRect.offsetMax     = Vector2.zero;
     }
 
     // ═════════════════════════════════════════════════════════════════════════

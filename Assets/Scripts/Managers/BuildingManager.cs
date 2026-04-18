@@ -57,6 +57,7 @@ public class BuildingDefinition
 /// Left-click to place, Right-click or Escape to cancel.
 /// Stays in placement mode after placing so you can build multiple in a row.
 /// </summary>
+[DefaultExecutionOrder(-5)]   // Start() before UIManager (0) so hotbar sees filtered buildings
 public class BuildingManager : MonoBehaviour
 {
     public static BuildingManager Instance { get; private set; }
@@ -101,6 +102,30 @@ public class BuildingManager : MonoBehaviour
     {
         if (Instance != null) { Destroy(gameObject); return; }
         Instance = this;
+    }
+
+    private void Start()
+    {
+        ApplyLoadout();
+    }
+
+    /// <summary>
+    /// Re-orders and trims the buildings array to match the player's selected loadout
+    /// from PersistentDataManager. Called once at scene start, before UIManager.Start().
+    /// </summary>
+    private void ApplyLoadout()
+    {
+        if (PersistentDataManager.Instance == null) return;
+        int[] selected = PersistentDataManager.Instance.SelectedBuildingIndices;
+        if (selected == null || selected.Length == 0) return;
+
+        var filtered = new System.Collections.Generic.List<BuildingDefinition>();
+        foreach (int idx in selected)
+            if (idx >= 0 && idx < buildings.Length && buildings[idx] != null)
+                filtered.Add(buildings[idx]);
+
+        if (filtered.Count > 0)
+            buildings = filtered.ToArray();
     }
 
     private void Update()
@@ -201,6 +226,7 @@ public class BuildingManager : MonoBehaviour
             barricade.BuildImmediate();
 
         SpendResources(_active);
+        PersistentDataManager.Instance?.AddBuilding();
         // Intentionally stay in placement mode so the player can keep building.
     }
 

@@ -24,8 +24,9 @@ public class PlayerController : MonoBehaviour, IDamageable
 
     // ── IDamageable ───────────────────────────────────────────────────────────
 
-    public float CurrentHealth { get; private set; }
-    public float MaxHealth     => maxHealth;
+    public float CurrentHealth     { get; private set; }
+    public float MaxHealth         => maxHealth;
+    public float DamageMultiplier  { get; private set; } = 1f;
 
     public event Action<float, float> OnHealthChanged;
     public event Action               OnDied;
@@ -321,6 +322,22 @@ public class PlayerController : MonoBehaviour, IDamageable
         _holdTimer           = 0f;
         _autoHolding         = false;
         _holdBarRoot.SetActive(false);
+    }
+
+    // ── Character stats ───────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Called by CharacterSelectScreen after the player spawns.
+    /// Applies multipliers from the chosen CharacterDefinition.
+    /// </summary>
+    public void ApplyCharacter(CharacterDefinition def)
+    {
+        if (def == null) return;
+        maxHealth         = maxHealth * def.healthMultiplier;
+        moveSpeed         = moveSpeed * def.speedMultiplier;
+        DamageMultiplier  = def.damageMultiplier;
+        CurrentHealth     = maxHealth;
+        OnHealthChanged?.Invoke(CurrentHealth, maxHealth);
     }
 
     // ── IDamageable ───────────────────────────────────────────────────────────

@@ -1,0 +1,20 @@
+using UnityEngine;
+
+/// <summary>
+/// Lightweight ScriptableObject used by SetupManager to display a building/turret in the
+/// loadout picker. The index of this asset in SetupManager's buildingCards[] array must match
+/// the corresponding entry in BuildingManager's buildings[] array.
+/// </summary>
+[CreateAssetMenu(menuName = "VampireSurvivalz/Building Card", fileName = "NewBuildingCard")]
+public class BuildingCard : ScriptableObject
+{
+    public string displayName = "Building";
+    [TextArea(1, 2)]
+    public string description;
+    public Color  color       = Color.white;
+    public int    woodCost;
+    public int    metalCost;
+    [Tooltip("Short stats string shown on the card, e.g. \"HP: 120  Range: 9  Fire: 2.5/s\"")]
+    [TextArea(1, 2)]
+    public string statsSummary;
+}

@@ -230,7 +230,7 @@ public class UIManager : MonoBehaviour
     }
 
     /// <summary>Fills hotbar slot names and costs from BuildingManager (called in Start).</summary>
-    private void RefreshHotbarContent()
+    public void RefreshHotbarContent()
     {
         if (_hotbarNames == null || BuildingManager.Instance == null) return;
         for (int i = 0; i < _hotbarNames.Length; i++)
@@ -475,6 +475,35 @@ public class UIManager : MonoBehaviour
                   new Color(0.6f, 0.6f, 0.6f), TextAlignmentOptions.Right);
         _hpText = MakeLabel(rightGO.transform, "HPText", "--/--", font, 22f,
                             Color.white, TextAlignmentOptions.Right);
+
+        // Pause button — fixed-width slot at the right end of the top bar
+        GameObject pauseBtnGO = new GameObject("PauseButton");
+        pauseBtnGO.transform.SetParent(bar.transform, false);
+
+        LayoutElement pauseLE   = pauseBtnGO.AddComponent<LayoutElement>();
+        pauseLE.minWidth        = 68f;
+        pauseLE.preferredWidth  = 68f;
+        pauseLE.flexibleWidth   = 0f;
+
+        Image pauseImg          = pauseBtnGO.AddComponent<Image>();
+        pauseImg.color          = new Color(0.18f, 0.18f, 0.22f, 0.85f);
+
+        Button pauseBtn         = pauseBtnGO.AddComponent<Button>();
+        pauseBtn.targetGraphic  = pauseImg;
+        ColorBlock pauseCB      = pauseBtn.colors;
+        pauseCB.normalColor     = Color.white;
+        pauseCB.highlightedColor = new Color(0.7f, 0.85f, 1f);
+        pauseCB.pressedColor    = new Color(0.45f, 0.55f, 0.7f);
+        pauseBtn.colors         = pauseCB;
+        pauseBtn.onClick.AddListener(() => PauseMenuManager.Instance?.Pause());
+
+        var pauseLabel          = MakeLabel(pauseBtnGO.transform, "Label", "⏸", font, 28f,
+                                           Color.white, TextAlignmentOptions.Center);
+        var pauseLabelRT        = pauseLabel.GetComponent<RectTransform>();
+        pauseLabelRT.anchorMin  = Vector2.zero;
+        pauseLabelRT.anchorMax  = Vector2.one;
+        pauseLabelRT.offsetMin  = Vector2.zero;
+        pauseLabelRT.offsetMax  = Vector2.zero;
     }
 
     // ── Hotbar ────────────────────────────────────────────────────────────────
