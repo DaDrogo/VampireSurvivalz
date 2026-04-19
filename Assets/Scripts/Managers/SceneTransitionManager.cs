@@ -18,7 +18,7 @@ public class SceneTransitionManager : MonoBehaviour
 
     private void Awake()
     {
-        if (Instance != null) { Destroy(gameObject); return; }
+        if (Instance != null) { Destroy(this); return; }
         Instance = this;
         DontDestroyOnLoad(gameObject);
         BuildFadeOverlay();
