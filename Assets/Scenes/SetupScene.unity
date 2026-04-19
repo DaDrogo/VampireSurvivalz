@@ -150,7 +150,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   characters:
   - {fileID: 11400000, guid: b8863e24240b27a438e9e5f47350d651, type: 2}
-  buildingCards: []
+  - {fileID: 11400000, guid: b8863e24240b27a438e9e5f47350d651, type: 2}
+  - {fileID: 11400000, guid: b8863e24240b27a438e9e5f47350d651, type: 2}
+  - {fileID: 11400000, guid: b8863e24240b27a438e9e5f47350d651, type: 2}
+  buildingCards:
+  - {fileID: 11400000, guid: b737c8e1cc9457546b76e626357500a1, type: 2}
+  - {fileID: 11400000, guid: 518ea1ab5727a244db8c51ad75b9175c, type: 2}
+  - {fileID: 11400000, guid: 21b49d9a38072a94f81b4cc26975e443, type: 2}
+  - {fileID: 11400000, guid: 8a7d71c9e0043ba48a0251ea4c762be4, type: 2}
+  - {fileID: 0}
   maxLoadoutSize: 5
   levels:
   - {fileID: 11400000, guid: 83e8d898a28124a4d9fa2205d18d934c, type: 2}

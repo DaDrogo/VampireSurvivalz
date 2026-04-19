@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 81f3fb6210267524f866196ac5d13f3d, type: 3}
+  m_Name: warehouse
+  m_EditorClassIdentifier:
+  displayName: Warehouse
+  description: Stores surplus materials and generates a steady trickle of Wood and Metal each wave.
+  color: {r: 0.76, g: 0.56, b: 0.28, a: 1}
+  woodCost: 25
+  metalCost: 5
+  isBasic: 0
+  isCitadel: 0
+  statsSummary: HP: 120  Yield: +20W +10M per wave  Cost: 25W 5M

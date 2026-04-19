@@ -15,7 +15,7 @@ GameObject:
   - component: {fileID: -2111650354146056165}
   - component: {fileID: 3336610104337386526}
   m_Layer: 10
-  m_Name: Turret
+  m_Name: Watchtower
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

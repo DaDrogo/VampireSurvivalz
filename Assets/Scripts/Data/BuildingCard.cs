@@ -15,6 +15,12 @@ public class BuildingCard : ScriptableObject, ILexikonSource
     public Color  color       = Color.white;
     public int    woodCost;
     public int    metalCost;
+
+    [Header("Roster Flags")]
+    [Tooltip("Always included in the loadout — player cannot deselect it.")]
+    public bool isBasic    = false;
+    [Tooltip("The Citadel — always pre-equipped in slot 1, cannot be removed.")]
+    public bool isCitadel  = false;
     [Tooltip("Short stats string shown on the card, e.g. \"HP: 120  Range: 9  Fire: 2.5/s\"")]
     [TextArea(1, 2)]
     public string statsSummary;

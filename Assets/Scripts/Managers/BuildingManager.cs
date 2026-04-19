@@ -45,6 +45,10 @@ public class BuildingDefinition
     public int          metalCost;
     [TextArea(1, 2)]
     public string       description;
+    [Tooltip("Always included in every loadout — player cannot remove it in setup.")]
+    public bool         isBasic      = false;
+    [Tooltip("The Citadel building — always slot 1, auto-spawned by GameManager.")]
+    public bool         isCitadel    = false;
     [Tooltip("Stat-based upgrade tiers (Barricade / Turret style).")]
     public BuildingUpgradeTier[] upgrades;
     [Tooltip("If set, the upgrade button is replaced with a choice panel — pick one to transform this building.")]
@@ -122,17 +126,44 @@ public class BuildingManager : MonoBehaviour
     /// </summary>
     private void ApplyLoadout()
     {
-        if (PersistentDataManager.Instance == null) return;
-        int[] selected = PersistentDataManager.Instance.SelectedBuildingIndices;
-        if (selected == null || selected.Length == 0) return;
+        if (buildings == null || buildings.Length == 0) return;
 
-        var filtered = new System.Collections.Generic.List<BuildingDefinition>();
-        foreach (int idx in selected)
-            if (idx >= 0 && idx < buildings.Length && buildings[idx] != null)
-                filtered.Add(buildings[idx]);
+        string[] names = PersistentDataManager.Instance?.SelectedBuildingNames;
 
-        if (filtered.Count > 0)
-            buildings = filtered.ToArray();
+        // Name-based matching: preserves order citadel → basic → selected
+        if (names != null && names.Length > 0)
+        {
+            var nameSet = new HashSet<string>(names, System.StringComparer.OrdinalIgnoreCase);
+            var result  = new List<BuildingDefinition>();
+
+            // Citadel first
+            foreach (var b in buildings)
+                if (b != null && b.isCitadel && nameSet.Contains(b.buildingName)) result.Add(b);
+
+            // Basic (non-citadel)
+            foreach (var b in buildings)
+                if (b != null && b.isBasic && !b.isCitadel && nameSet.Contains(b.buildingName)) result.Add(b);
+
+            // Selected non-fixed, in the order the player chose them
+            foreach (string n in names)
+            {
+                foreach (var b in buildings)
+                {
+                    if (b != null && !b.isCitadel && !b.isBasic
+                        && string.Equals(b.buildingName, n, System.StringComparison.OrdinalIgnoreCase))
+                    { result.Add(b); break; }
+                }
+            }
+
+            if (result.Count > 0) { buildings = result.ToArray(); return; }
+        }
+
+        // Fallback: include all buildings (no setup data yet)
+        var fallback = new List<BuildingDefinition>();
+        foreach (var b in buildings) if (b != null && b.isCitadel)             fallback.Add(b);
+        foreach (var b in buildings) if (b != null && b.isBasic && !b.isCitadel) fallback.Add(b);
+        foreach (var b in buildings) if (b != null && !b.isCitadel && !b.isBasic) fallback.Add(b);
+        if (fallback.Count > 0) buildings = fallback.ToArray();
     }
 
     private void Update()

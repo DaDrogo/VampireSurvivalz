@@ -18,7 +18,8 @@ public class PersistentDataManager : MonoBehaviour
     // ── Selections ────────────────────────────────────────────────────────────
     public int   SelectedCharacterIndex   { get; private set; } = 0;
     public int   SelectedLevelIndex       { get; private set; } = 0;
-    public int[] SelectedBuildingIndices  { get; private set; } = new int[] { 0, 1, 2, 3, 4 };
+    public int[]    SelectedBuildingIndices { get; private set; } = new int[0];
+    public string[] SelectedBuildingNames   { get; private set; } = new string[0];
 
     // ── Milestone counters ────────────────────────────────────────────────────
     public int BestWave           { get; private set; } = 0;
@@ -82,6 +83,13 @@ public class PersistentDataManager : MonoBehaviour
     {
         SelectedBuildingIndices = indices ?? new int[0];
         PlayerPrefs.SetString("BuildingLoadout", string.Join(",", SelectedBuildingIndices));
+        PlayerPrefs.Save();
+    }
+
+    public void SetBuildingLoadoutNames(string[] names)
+    {
+        SelectedBuildingNames = names ?? new string[0];
+        PlayerPrefs.SetString("BuildingLoadoutNames", string.Join("|", SelectedBuildingNames));
         PlayerPrefs.Save();
     }
 
@@ -214,7 +222,11 @@ public class PersistentDataManager : MonoBehaviour
         TotalBuildings         = PlayerPrefs.GetInt("TotalBuildings",      0);
         TotalGamesPlayed       = PlayerPrefs.GetInt("TotalGamesPlayed",    0);
 
-        string loadoutStr      = PlayerPrefs.GetString("BuildingLoadout",  "0,1,2,3,4");
+        string namesStr        = PlayerPrefs.GetString("BuildingLoadoutNames", "");
+        if (!string.IsNullOrEmpty(namesStr))
+            SelectedBuildingNames = namesStr.Split('|');
+
+        string loadoutStr      = PlayerPrefs.GetString("BuildingLoadout",  "");
         try
         {
             string[] parts = loadoutStr.Split(',');

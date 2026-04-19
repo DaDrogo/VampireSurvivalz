@@ -154,7 +154,7 @@ TextureImporter:
   maxTextureSize: 2048
   textureSettings:
     serializedVersion: 2
-    filterMode: 1
+    filterMode: 0
     aniso: 1
     mipBias: 0
     wrapU: 1
@@ -168,7 +168,7 @@ TextureImporter:
   spriteMeshType: 1
   alignment: 0
   spritePivot: {x: 0.5, y: 0.5}
-  spritePixelsToUnits: 100
+  spritePixelsToUnits: 16
   spriteBorder: {x: 0, y: 0, z: 0, w: 0}
   spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
@@ -220,10 +220,10 @@ TextureImporter:
       name: MageTemplate_0
       rect:
         serializedVersion: 2
-        x: 2
-        y: 113
-        width: 12
-        height: 14
+        x: 0
+        y: 112
+        width: 16
+        height: 16
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -242,10 +242,10 @@ TextureImporter:
       name: MageTemplate_1
       rect:
         serializedVersion: 2
-        x: 18
-        y: 113
-        width: 12
-        height: 15
+        x: 16
+        y: 112
+        width: 16
+        height: 16
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -264,10 +264,10 @@ TextureImporter:
       name: MageTemplate_2
       rect:
         serializedVersion: 2
-        x: 34
+        x: 32
         y: 112
-        width: 12
-        height: 15
+        width: 16
+        height: 16
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -286,10 +286,10 @@ TextureImporter:
       name: MageTemplate_3
       rect:
         serializedVersion: 2
-        x: 50
+        x: 48
         y: 112
-        width: 12
-        height: 15
+        width: 16
+        height: 16
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -308,10 +308,10 @@ TextureImporter:
       name: MageTemplate_4
       rect:
         serializedVersion: 2
-        x: 2
-        y: 97
-        width: 12
-        height: 14
+        x: 0
+        y: 96
+        width: 16
+        height: 16
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -330,10 +330,10 @@ TextureImporter:
       name: MageTemplate_5
       rect:
         serializedVersion: 2
-        x: 18
-        y: 97
-        width: 12
-        height: 15
+        x: 16
+        y: 96
+        width: 16
+        height: 16
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -352,10 +352,10 @@ TextureImporter:
       name: MageTemplate_6
       rect:
         serializedVersion: 2
-        x: 34
+        x: 32
         y: 96
-        width: 12
-        height: 15
+        width: 16
+        height: 16
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -374,10 +374,10 @@ TextureImporter:
       name: MageTemplate_7
       rect:
         serializedVersion: 2
-        x: 50
+        x: 48
         y: 96
-        width: 12
-        height: 15
+        width: 16
+        height: 16
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -396,10 +396,10 @@ TextureImporter:
       name: MageTemplate_8
       rect:
         serializedVersion: 2
-        x: 2
-        y: 81
-        width: 11
-        height: 14
+        x: 0
+        y: 80
+        width: 16
+        height: 16
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -418,10 +418,10 @@ TextureImporter:
       name: MageTemplate_9
       rect:
         serializedVersion: 2
-        x: 18
-        y: 81
-        width: 11
-        height: 15
+        x: 16
+        y: 80
+        width: 16
+        height: 16
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -440,10 +440,10 @@ TextureImporter:
       name: MageTemplate_10
       rect:
         serializedVersion: 2
-        x: 34
+        x: 32
         y: 80
-        width: 11
-        height: 15
+        width: 16
+        height: 16
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -462,10 +462,10 @@ TextureImporter:
       name: MageTemplate_11
       rect:
         serializedVersion: 2
-        x: 50
+        x: 48
         y: 80
-        width: 11
-        height: 15
+        width: 16
+        height: 16
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -484,10 +484,10 @@ TextureImporter:
       name: MageTemplate_12
       rect:
         serializedVersion: 2
-        x: 3
-        y: 65
-        width: 11
-        height: 14
+        x: 0
+        y: 64
+        width: 16
+        height: 16
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -506,10 +506,10 @@ TextureImporter:
       name: MageTemplate_13
       rect:
         serializedVersion: 2
-        x: 19
-        y: 65
-        width: 11
-        height: 15
+        x: 16
+        y: 64
+        width: 16
+        height: 16
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -528,10 +528,10 @@ TextureImporter:
       name: MageTemplate_14
       rect:
         serializedVersion: 2
-        x: 35
+        x: 32
         y: 64
-        width: 11
-        height: 15
+        width: 16
+        height: 16
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -550,10 +550,10 @@ TextureImporter:
       name: MageTemplate_15
       rect:
         serializedVersion: 2
-        x: 51
+        x: 48
         y: 64
-        width: 11
-        height: 15
+        width: 16
+        height: 16
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -572,10 +572,10 @@ TextureImporter:
       name: MageTemplate_16
       rect:
         serializedVersion: 2
-        x: 1
-        y: 49
-        width: 14
-        height: 14
+        x: 0
+        y: 48
+        width: 16
+        height: 16
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -594,10 +594,10 @@ TextureImporter:
       name: MageTemplate_17
       rect:
         serializedVersion: 2
-        x: 17
-        y: 49
-        width: 14
-        height: 15
+        x: 16
+        y: 48
+        width: 16
+        height: 16
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -616,10 +616,10 @@ TextureImporter:
       name: MageTemplate_18
       rect:
         serializedVersion: 2
-        x: 33
-        y: 49
-        width: 14
-        height: 15
+        x: 32
+        y: 48
+        width: 16
+        height: 16
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -638,10 +638,10 @@ TextureImporter:
       name: MageTemplate_19
       rect:
         serializedVersion: 2
-        x: 49
-        y: 49
-        width: 14
-        height: 14
+        x: 48
+        y: 48
+        width: 16
+        height: 16
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -660,10 +660,10 @@ TextureImporter:
       name: MageTemplate_20
       rect:
         serializedVersion: 2
-        x: 66
-        y: 49
-        width: 12
-        height: 13
+        x: 64
+        y: 48
+        width: 16
+        height: 16
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -682,10 +682,10 @@ TextureImporter:
       name: MageTemplate_21
       rect:
         serializedVersion: 2
-        x: 82
-        y: 49
-        width: 12
-        height: 14
+        x: 80
+        y: 48
+        width: 16
+        height: 16
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -704,10 +704,10 @@ TextureImporter:
       name: MageTemplate_22
       rect:
         serializedVersion: 2
-        x: 1
-        y: 33
-        width: 14
-        height: 14
+        x: 0
+        y: 32
+        width: 16
+        height: 16
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -726,10 +726,10 @@ TextureImporter:
       name: MageTemplate_23
       rect:
         serializedVersion: 2
-        x: 17
-        y: 33
-        width: 14
-        height: 15
+        x: 16
+        y: 32
+        width: 16
+        height: 16
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -748,10 +748,10 @@ TextureImporter:
       name: MageTemplate_24
       rect:
         serializedVersion: 2
-        x: 33
-        y: 33
-        width: 14
-        height: 15
+        x: 32
+        y: 32
+        width: 16
+        height: 16
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -770,10 +770,10 @@ TextureImporter:
       name: MageTemplate_25
       rect:
         serializedVersion: 2
-        x: 49
-        y: 33
-        width: 14
-        height: 14
+        x: 48
+        y: 32
+        width: 16
+        height: 16
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -792,10 +792,10 @@ TextureImporter:
       name: MageTemplate_26
       rect:
         serializedVersion: 2
-        x: 66
-        y: 33
-        width: 12
-        height: 13
+        x: 64
+        y: 32
+        width: 16
+        height: 16
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -814,10 +814,10 @@ TextureImporter:
       name: MageTemplate_27
       rect:
         serializedVersion: 2
-        x: 82
-        y: 33
-        width: 12
-        height: 14
+        x: 80
+        y: 32
+        width: 16
+        height: 16
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -836,10 +836,10 @@ TextureImporter:
       name: MageTemplate_28
       rect:
         serializedVersion: 2
-        x: 3
-        y: 17
-        width: 11
-        height: 14
+        x: 0
+        y: 16
+        width: 16
+        height: 16
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -858,10 +858,10 @@ TextureImporter:
       name: MageTemplate_29
       rect:
         serializedVersion: 2
-        x: 19
-        y: 17
-        width: 11
-        height: 15
+        x: 16
+        y: 16
+        width: 16
+        height: 16
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -880,10 +880,10 @@ TextureImporter:
       name: MageTemplate_30
       rect:
         serializedVersion: 2
-        x: 35
-        y: 17
-        width: 11
-        height: 15
+        x: 32
+        y: 16
+        width: 16
+        height: 16
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -902,10 +902,10 @@ TextureImporter:
       name: MageTemplate_31
       rect:
         serializedVersion: 2
-        x: 50
-        y: 17
-        width: 12
-        height: 14
+        x: 48
+        y: 16
+        width: 16
+        height: 16
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -924,10 +924,10 @@ TextureImporter:
       name: MageTemplate_32
       rect:
         serializedVersion: 2
-        x: 66
-        y: 17
-        width: 12
-        height: 14
+        x: 64
+        y: 16
+        width: 16
+        height: 16
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -946,10 +946,10 @@ TextureImporter:
       name: MageTemplate_33
       rect:
         serializedVersion: 2
-        x: 82
-        y: 17
-        width: 11
-        height: 14
+        x: 80
+        y: 16
+        width: 16
+        height: 16
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -968,10 +968,10 @@ TextureImporter:
       name: MageTemplate_34
       rect:
         serializedVersion: 2
-        x: 2
-        y: 1
-        width: 11
-        height: 14
+        x: 0
+        y: 0
+        width: 16
+        height: 16
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -990,10 +990,10 @@ TextureImporter:
       name: MageTemplate_35
       rect:
         serializedVersion: 2
-        x: 18
-        y: 1
-        width: 11
-        height: 15
+        x: 16
+        y: 0
+        width: 16
+        height: 16
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1012,10 +1012,10 @@ TextureImporter:
       name: MageTemplate_36
       rect:
         serializedVersion: 2
-        x: 34
-        y: 1
-        width: 11
-        height: 15
+        x: 32
+        y: 0
+        width: 16
+        height: 16
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1034,10 +1034,10 @@ TextureImporter:
       name: MageTemplate_37
       rect:
         serializedVersion: 2
-        x: 50
-        y: 1
-        width: 12
-        height: 14
+        x: 48
+        y: 0
+        width: 16
+        height: 16
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1056,10 +1056,10 @@ TextureImporter:
       name: MageTemplate_38
       rect:
         serializedVersion: 2
-        x: 66
-        y: 1
-        width: 12
-        height: 14
+        x: 64
+        y: 0
+        width: 16
+        height: 16
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1078,10 +1078,10 @@ TextureImporter:
       name: MageTemplate_39
       rect:
         serializedVersion: 2
-        x: 83
-        y: 1
-        width: 11
-        height: 14
+        x: 80
+        y: 0
+        width: 16
+        height: 16
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1100,7 +1100,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 
+    spriteID: 3435185bca1c91147a0c91ebc2e59281
     internalID: 0
     vertices: []
     indices: 

@@ -15943,6 +15943,11 @@ MonoBehaviour:
   speedScalePerWave: 0.1
   damageScalePerWave: 0.1
   enemyPrefab: {fileID: 8368466745619319268, guid: 8df70025dbfafde4d8dff617b7a640a6, type: 3}
+  vampireCoffinPrefab: {fileID: 6456108297847423121, guid: 981fbee82114e894e965ad7b49724ff0, type: 3}
+  citadelPrefab: {fileID: 0}
+  siegeEnemyPrefab: {fileID: 0}
+  siegeEnemyStartWave: 3
+  siegeEnemiesPerWave: 1
   spawnArea: {fileID: 0}
   spawnPoints: []
   obstacleLayer:
@@ -16025,6 +16030,8 @@ MonoBehaviour:
     woodCost: 10
     metalCost: 5
     description: 
+    isBasic: 0
+    isCitadel: 0
     upgrades: []
     upgradeChoices: []
   - buildingName: 1
@@ -16033,6 +16040,8 @@ MonoBehaviour:
     woodCost: 5
     metalCost: 0
     description: 
+    isBasic: 0
+    isCitadel: 0
     upgrades: []
     upgradeChoices: []
   - buildingName: Resource Producer
@@ -16041,6 +16050,8 @@ MonoBehaviour:
     woodCost: 15
     metalCost: 10
     description: Produces Wood. Upgrade to specialise.
+    isBasic: 0
+    isCitadel: 0
     upgrades: []
     upgradeChoices:
     - label: Wood Mill
@@ -16298,6 +16309,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1614971543}
+  - component: {fileID: 1614971544}
   m_Layer: 0
   m_Name: PoolManager
   m_TagString: Untagged
@@ -16320,6 +16332,20 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1614971544
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1614971542}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3267f5c21c7c50c43af75d58ce0d76d2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  defaultCapacity: 20
+  maxSize: 200
 --- !u!1 &1651630556
 GameObject:
   m_ObjectHideFlags: 0
