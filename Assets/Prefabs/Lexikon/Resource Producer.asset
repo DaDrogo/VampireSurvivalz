@@ -11,11 +11,15 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 79ac5e9534fb9c64e8d024bd4dab5b6d, type: 3}
   m_Name: Resource Producer
-  m_EditorClassIdentifier:
+  m_EditorClassIdentifier: 
   entryName: Resource Producer
   category: 1
   color: {r: 0.22, g: 0.8, b: 0.4, a: 1}
-  description: A basic resource producer. Can be upgraded into a Wood Mill, Metal Smelter, or Trade Post.
-  stats: 'HP: 100  Output: 10 Wood/10s  Cost: 15W 10M  Upgradeable'
+  sprite: {fileID: 0}
+  description: A basic resource producer. Can be upgraded into a Wood Mill, Metal
+    Smelter, or Trade Post.
+  linkedPrefab: {fileID: 1823645102394756890, guid: c8a7f9e2d5b31048b6e8c7f9d2a4b871, type: 3}
+  linkedBuildingCard: {fileID: 0}
+  linkedCharacter: {fileID: 0}
   isUnlockedByDefault: 1
   unlockCost: 50

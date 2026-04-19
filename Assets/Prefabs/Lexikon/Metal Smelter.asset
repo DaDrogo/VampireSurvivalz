@@ -11,11 +11,15 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 79ac5e9534fb9c64e8d024bd4dab5b6d, type: 3}
   m_Name: Metal Smelter
-  m_EditorClassIdentifier:
+  m_EditorClassIdentifier: 
   entryName: Metal Smelter
   category: 1
   color: {r: 0.7, g: 0.7, b: 0.82, a: 1}
-  description: Upgrade of the Resource Producer. Smelts ore into metal, producing Metal each cycle.
-  stats: 'HP: 200  Output: 5 Metal/10s  Upgrade from: Resource Producer'
+  sprite: {fileID: 0}
+  description: Upgrade of the Resource Producer. Smelts ore into metal, producing
+    Metal each cycle.
+  linkedPrefab: {fileID: 1823645102394756890, guid: 66670b63f6f65784d8cb603561bd01fc, type: 3}
+  linkedBuildingCard: {fileID: 0}
+  linkedCharacter: {fileID: 0}
   isUnlockedByDefault: 1
   unlockCost: 50

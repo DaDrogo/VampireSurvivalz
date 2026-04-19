@@ -11,11 +11,15 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 79ac5e9534fb9c64e8d024bd4dab5b6d, type: 3}
   m_Name: Barricade
-  m_EditorClassIdentifier:
+  m_EditorClassIdentifier: 
   entryName: Barricade
   category: 1
   color: {r: 0.7, g: 0.42, b: 0.12, a: 1}
-  description: A wooden barrier that blocks enemy movement. Cheap to build, essential for directing enemy paths.
-  stats: 'HP: 100  Cost: 5W  Blocks: Enemy movement'
+  sprite: {fileID: 0}
+  description: A wooden barrier that blocks enemy movement. Cheap to build, essential
+    for directing enemy paths.
+  linkedPrefab: {fileID: 5080038164091897146, guid: ea33fb6a9282979478b604fff1a24a74, type: 3}
+  linkedBuildingCard: {fileID: 0}
+  linkedCharacter: {fileID: 0}
   isUnlockedByDefault: 1
   unlockCost: 50

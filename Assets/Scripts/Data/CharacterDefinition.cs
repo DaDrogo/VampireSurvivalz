@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 [Serializable]
@@ -10,7 +11,7 @@ public class PassiveEffect
 }
 
 [CreateAssetMenu(menuName = "VampireSurvivalz/Character Definition", fileName = "NewCharacter")]
-public class CharacterDefinition : ScriptableObject
+public class CharacterDefinition : ScriptableObject, ILexikonSource
 {
     public string characterName = "Character";
     [TextArea(1, 3)]
@@ -28,4 +29,21 @@ public class CharacterDefinition : ScriptableObject
 
     [Header("Passive Effects")]
     public PassiveEffect[] passiveEffects;
+
+    public List<StatLine> GetLexikonStats()
+    {
+        var lines = new List<StatLine>
+        {
+            new("HP",     $"×{healthMultiplier:F1}"),
+            new("Speed",  $"×{speedMultiplier:F1}"),
+            new("Damage", $"×{damageMultiplier:F1}"),
+        };
+        if (startingWood  > 0) lines.Add(new("Wood",  startingWood.ToString()));
+        if (startingMetal > 0) lines.Add(new("Metal", startingMetal.ToString()));
+        if (passiveEffects != null)
+            foreach (var p in passiveEffects)
+                if (!string.IsNullOrEmpty(p.effectName))
+                    lines.Add(new("Passive", p.effectName));
+        return lines;
+    }
 }

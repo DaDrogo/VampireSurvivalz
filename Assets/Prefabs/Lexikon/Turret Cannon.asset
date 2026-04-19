@@ -11,11 +11,15 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 79ac5e9534fb9c64e8d024bd4dab5b6d, type: 3}
   m_Name: Turret Cannon
-  m_EditorClassIdentifier:
+  m_EditorClassIdentifier: 
   entryName: Turret Cannon
   category: 0
   color: {r: 0.5, g: 0.5, b: 0.62, a: 1}
-  description: Slow but devastating. Fires explosive cannonballs that deal massive damage per hit.
-  stats: 'HP: 220  Range: 10  Fire: 0.4/s  DMG: 50'
+  sprite: {fileID: 0}
+  description: Slow but devastating. Fires explosive cannonballs that deal massive
+    damage per hit.
+  linkedPrefab: {fileID: 2221100000000001, guid: df563e9a30fbf564f87a879ef968e32f, type: 3}
+  linkedBuildingCard: {fileID: 0}
+  linkedCharacter: {fileID: 0}
   isUnlockedByDefault: 0
   unlockCost: 100

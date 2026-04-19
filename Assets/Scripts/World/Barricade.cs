@@ -1,9 +1,10 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 [RequireComponent(typeof(BoxCollider2D))]
 [RequireComponent(typeof(SpriteRenderer))]
-public class Barricade : MonoBehaviour, IInteractable, IDamageable, IEnemyAttackable
+public class Barricade : MonoBehaviour, IInteractable, IDamageable, IEnemyAttackable, ILexikonSource
 {
     public enum BarricadeState { Ghost, Built }
 
@@ -42,6 +43,11 @@ public class Barricade : MonoBehaviour, IInteractable, IDamageable, IEnemyAttack
 #if UNITY_EDITOR
     private void OnValidate() => SpriteColliderAutoFit.Fit(gameObject);
 #endif
+
+    public List<StatLine> GetLexikonStats() => new()
+    {
+        new("HP", maxHealth.ToString("F0")),
+    };
 
     // ── IInteractable ─────────────────────────────────────────────────────────
 

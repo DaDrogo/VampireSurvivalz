@@ -1,7 +1,8 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 [RequireComponent(typeof(BoxCollider2D))]
-public class Turret : MonoBehaviour, IDamageable, IEnemyAttackable
+public class Turret : MonoBehaviour, IDamageable, IEnemyAttackable, ILexikonSource
 {
     [Header("Health")]
     [SerializeField] private float maxHealth = 150f;
@@ -29,6 +30,13 @@ public class Turret : MonoBehaviour, IDamageable, IEnemyAttackable
         SpriteColliderAutoFit.Fit(gameObject);
         CurrentHealth = maxHealth;
     }
+
+    public List<StatLine> GetLexikonStats() => new()
+    {
+        new("HP",    maxHealth.ToString("F0")),
+        new("Range", detectionRange.ToString("F1")),
+        new("Rate",  fireRate.ToString("F1") + "/s"),
+    };
 
     public void TakeDamage(float damage)
     {

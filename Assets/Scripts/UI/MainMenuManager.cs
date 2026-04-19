@@ -13,15 +13,11 @@ using UnityEngine.UI;
 public class MainMenuManager : MonoBehaviour
 {
     [Header("Content — assign ScriptableObject arrays in Inspector")]
-    [SerializeField] private CharacterDefinition[] characters;
-    [SerializeField] private LevelDefinition[]     levels;
     [SerializeField] private LexikonEntry[]        lexikonEntries;
     [SerializeField] private MilestoneDefinition[] milestones;
 
     // ── Panels ────────────────────────────────────────────────────────────────
     private GameObject _homePanel;
-    private GameObject _characterPanel;
-    private GameObject _levelPanel;
     private GameObject _lexikonPanel;
     private GameObject _milestonesPanel;
     private GameObject _settingsPanel;
@@ -31,9 +27,6 @@ public class MainMenuManager : MonoBehaviour
     private TextMeshProUGUI _lexikonCurrencyLabel;
     private TextMeshProUGUI _homeCurrencyLabel;
 
-    // ── Selection state ───────────────────────────────────────────────────────
-    private int _selectedCharIndex;
-
     // ── Colours ───────────────────────────────────────────────────────────────
     private static readonly Color BgColor        = new Color(0.06f, 0.06f, 0.08f);
     private static readonly Color SidebarColor   = new Color(0.08f, 0.08f, 0.10f);
@@ -41,17 +34,11 @@ public class MainMenuManager : MonoBehaviour
     private static readonly Color NavNormal      = new Color(0.12f, 0.12f, 0.15f);
     private static readonly Color NavHover       = new Color(0.18f, 0.22f, 0.30f);
     private static readonly Color CardNormal     = new Color(0.12f, 0.12f, 0.15f);
-    private static readonly Color CardSelected   = new Color(0.18f, 0.35f, 0.65f);
     private static readonly Color AccentRed      = new Color(0.85f, 0.14f, 0.14f);
 
     private TMP_FontAsset _font;
 
     // ── Unity lifecycle ───────────────────────────────────────────────────────
-
-    private void Awake()
-    {
-        _selectedCharIndex = PersistentDataManager.Instance?.SelectedCharacterIndex ?? 0;
-    }
 
     private void Start()
     {
@@ -66,11 +53,11 @@ public class MainMenuManager : MonoBehaviour
     private static LexikonEntry[] CreateDefaultLexikonEntries()
     {
         LexikonEntry E(string name, LexikonCategory cat, Color col,
-                       string desc, string stats, bool def = true, int cost = 0)
+                       string desc, bool def = true, int cost = 0)
         {
             var e = ScriptableObject.CreateInstance<LexikonEntry>();
             e.entryName = name; e.category = cat; e.color = col;
-            e.description = desc; e.stats = stats;
+            e.description = desc;
             e.isUnlockedByDefault = def; e.unlockCost = cost;
             return e;
         }
@@ -78,19 +65,19 @@ public class MainMenuManager : MonoBehaviour
         var B = LexikonCategory.Building;
         return new[]
         {
-            E("Turret Arrow",    T, new Color(0.76f,0.87f,0.55f), "Basic ranged turret. Fires arrows at the nearest enemy.",                         "HP: 100  DMG: 10  Range: 10  Rate: 1/s"),
-            E("Turret Cannon",   T, new Color(0.85f,0.42f,0.18f), "Heavy turret. Slower but deals high damage per shot.",                             "HP: 150  DMG: 40  Range: 8  Rate: 0.4/s", false, 100),
-            E("Turret Chain",    T, new Color(0.40f,0.72f,0.95f), "Chains lightning between nearby enemies after the first hit.",                     "HP: 120  DMG: 15  Range: 9  Rate: 0.8/s", false, 80),
-            E("Turret Frost",    T, new Color(0.55f,0.80f,1.00f), "Slows enemies in range. Great for crowd control.",                                 "HP: 100  DMG: 8   Range: 7  Rate: 1.2/s", false, 80),
-            E("Turret Stun",     T, new Color(0.95f,0.90f,0.30f), "Occasionally stuns enemies, leaving them unable to move.",                         "HP: 110  DMG: 12  Range: 8  Rate: 0.9/s", false, 60),
-            E("Turret Poison",   T, new Color(0.42f,0.80f,0.32f), "Applies a damage-over-time poison effect on hit.",                                 "HP: 90   DMG: 6+DoT  Range: 9  Rate: 1/s", false, 70),
-            E("Turret Fire",     T, new Color(1.00f,0.45f,0.10f), "Launches fireballs that deal splash damage on impact.",                            "HP: 130  DMG: 30  Range: 7  Rate: 0.5/s  AoE: 2m", false, 90),
-            E("Barricade",       B, new Color(0.60f,0.42f,0.22f), "A sturdy wall that blocks enemy movement. Can be damaged.",                        "HP: 100  No output"),
-            E("Turret (Base)",   B, new Color(0.52f,0.60f,0.70f), "Foundation platform for placing any turret.",                                      "HP: 80   No output"),
-            E("Resource Producer",B,new Color(0.44f,0.72f,0.44f), "Generates Wood or Metal over time. Core economy building.",                        "HP: 150  Output: 3 Wood/10s"),
-            E("Wood Mill",       B, new Color(0.72f,0.54f,0.28f), "Upgrade of the Resource Producer. Produces Wood at an increased rate.",             "HP: 175  Output: 5 Wood/10s"),
-            E("Metal Smelter",   B, new Color(0.70f,0.70f,0.82f), "Upgrade of the Resource Producer. Smelts ore into metal.",                         "HP: 200  Output: 5 Metal/10s"),
-            E("Trade Post",      B, new Color(0.92f,0.76f,0.10f), "Premium upgrade. Produces both Wood and Metal. Expensive but versatile.",           "HP: 175  Output: 4W+4M/12s", false, 50),
+            E("Turret Arrow",     T, new Color(0.76f,0.87f,0.55f), "Basic ranged turret. Fires arrows at the nearest enemy."),
+            E("Turret Cannon",    T, new Color(0.85f,0.42f,0.18f), "Heavy turret. Slower but deals high damage per shot.",          false, 100),
+            E("Turret Chain",     T, new Color(0.40f,0.72f,0.95f), "Chains lightning between nearby enemies after the first hit.",  false, 80),
+            E("Turret Frost",     T, new Color(0.55f,0.80f,1.00f), "Slows enemies in range. Great for crowd control.",              false, 80),
+            E("Turret Stun",      T, new Color(0.95f,0.90f,0.30f), "Occasionally stuns enemies, leaving them unable to move.",      false, 60),
+            E("Turret Poison",    T, new Color(0.42f,0.80f,0.32f), "Applies a damage-over-time poison effect on hit.",              false, 70),
+            E("Turret Fire",      T, new Color(1.00f,0.45f,0.10f), "Launches fireballs that deal splash damage on impact.",         false, 90),
+            E("Barricade",        B, new Color(0.60f,0.42f,0.22f), "A sturdy wall that blocks enemy movement. Can be damaged."),
+            E("Turret (Base)",    B, new Color(0.52f,0.60f,0.70f), "Foundation platform for placing any turret."),
+            E("Resource Producer",B, new Color(0.44f,0.72f,0.44f), "Generates Wood or Metal over time. Core economy building."),
+            E("Wood Mill",        B, new Color(0.72f,0.54f,0.28f), "Upgrade of the Resource Producer. Produces Wood at an increased rate."),
+            E("Metal Smelter",    B, new Color(0.70f,0.70f,0.82f), "Upgrade of the Resource Producer. Smelts ore into metal."),
+            E("Trade Post",       B, new Color(0.92f,0.76f,0.10f), "Premium upgrade. Produces both Wood and Metal. Expensive but versatile.", false, 50),
         };
     }
 
@@ -140,8 +127,6 @@ public class MainMenuManager : MonoBehaviour
 
         // Nav buttons
         AddNavButton(sidebar.transform, "PLAY",        OnPlayClicked, new Color(0.14f, 0.42f, 0.14f), new Color(0.18f, 0.55f, 0.18f));
-        AddNavButton(sidebar.transform, "Characters", () => ShowPanel(_characterPanel));
-        AddNavButton(sidebar.transform, "Levels",     () => ShowPanel(_levelPanel));
         AddNavButton(sidebar.transform, "Lexikon",    () => ShowPanel(_lexikonPanel));
         AddNavButton(sidebar.transform, "Milestones", () => ShowPanel(_milestonesPanel));
         AddNavButton(sidebar.transform, "Settings",   () => ShowPanel(_settingsPanel));
@@ -166,8 +151,6 @@ public class MainMenuManager : MonoBehaviour
 
         // Build all panels (hidden by default — ShowPanel activates one)
         _homePanel       = BuildHomePanel(content.transform);
-        _characterPanel  = BuildCharacterPanel(content.transform);
-        _levelPanel      = BuildLevelPanel(content.transform);
         _lexikonPanel    = BuildLexikonPanel(content.transform);
         _milestonesPanel = BuildMilestonesPanel(content.transform);
         _settingsPanel   = BuildSettingsPanel(content.transform);
@@ -235,185 +218,6 @@ public class MainMenuManager : MonoBehaviour
 #else
         Application.Quit();
 #endif
-    }
-
-    // ═════════════════════════════════════════════════════════════════════════
-    //  Panel: Characters
-    // ═════════════════════════════════════════════════════════════════════════
-
-    private GameObject BuildCharacterPanel(Transform parent)
-    {
-        GameObject panel = MakeTitledScrollPanel(parent, "CharacterPanel",
-                           "SELECT CHARACTER", out GameObject content, horizontal: true);
-
-        if (characters == null || characters.Length == 0)
-        {
-            AddEmptyState(content.transform, "No characters defined.\nCreate CharacterDefinition assets and assign them here.");
-            return panel;
-        }
-
-        HorizontalLayoutGroup hl = content.AddComponent<HorizontalLayoutGroup>();
-        hl.spacing               = 20f;
-        hl.padding               = new RectOffset(20, 20, 20, 20);
-        hl.childControlHeight    = false;
-        hl.childControlWidth     = false;
-        content.AddComponent<ContentSizeFitter>().horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
-
-        for (int i = 0; i < characters.Length; i++)
-        {
-            if (characters[i] == null) continue;
-            int captured = i;
-            BuildCharacterCard(content.transform, characters[i], i == _selectedCharIndex,
-                               () => SelectCharacter(captured));
-        }
-        return panel;
-    }
-
-    private void BuildCharacterCard(Transform parent, CharacterDefinition def,
-                                     bool selected, Action onClick)
-    {
-        GameObject card  = new GameObject($"Card_{def.characterName}");
-        card.transform.SetParent(parent, false);
-        SetSizeDelta(card, 200f, 290f);
-        Image img        = card.AddComponent<Image>();
-        img.color        = selected ? CardSelected : CardNormal;
-
-        Button btn       = card.AddComponent<Button>();
-        btn.targetGraphic = img;
-        btn.onClick.AddListener(() => onClick());
-
-        VerticalLayoutGroup vl = card.AddComponent<VerticalLayoutGroup>();
-        vl.padding             = new RectOffset(12, 12, 14, 14);
-        vl.spacing             = 8f;
-        vl.childControlWidth   = true;
-        vl.childForceExpandWidth = true;
-
-        // Colour swatch
-        GameObject sw    = new GameObject("Swatch");
-        sw.transform.SetParent(card.transform, false);
-        sw.AddComponent<RectTransform>().sizeDelta = new Vector2(0f, 70f);
-        sw.AddComponent<Image>().color = def.color;
-
-        var name         = MakeLabel(card.transform, "Name", def.characterName, 20f);
-        name.color       = Color.white;
-        name.fontStyle   = FontStyles.Bold;
-        name.alignment   = TextAlignmentOptions.Center;
-        SetSizeDelta(name, 0f, 28f);
-
-        var desc         = MakeLabel(card.transform, "Desc", def.description, 15f);
-        desc.color       = new Color(0.66f, 0.66f, 0.66f);
-        desc.enableWordWrapping = true;
-        SetSizeDelta(desc, 0f, 72f);
-
-        var stats        = MakeLabel(card.transform, "Stats",
-            $"HP ×{def.healthMultiplier:F1}   SPD ×{def.speedMultiplier:F1}", 14f);
-        stats.color      = new Color(0.55f, 0.88f, 0.55f);
-        SetSizeDelta(stats, 0f, 22f);
-    }
-
-    private void SelectCharacter(int index)
-    {
-        _selectedCharIndex = index;
-        PersistentDataManager.Instance?.SelectCharacter(index);
-
-        // Update card colours in-place — no rebuild needed
-        var content = _characterPanel.transform.Find("ScrollView/Viewport/Content");
-        if (content == null) return;
-        int cardIndex = 0;
-        for (int i = 0; i < content.childCount; i++)
-        {
-            Image img = content.GetChild(i).GetComponent<Image>();
-            if (img == null) continue;
-            img.color = cardIndex == index ? CardSelected : CardNormal;
-            cardIndex++;
-        }
-    }
-
-    // ═════════════════════════════════════════════════════════════════════════
-    //  Panel: Levels
-    // ═════════════════════════════════════════════════════════════════════════
-
-    private GameObject BuildLevelPanel(Transform parent)
-    {
-        GameObject panel = MakeTitledScrollPanel(parent, "LevelPanel",
-                           "SELECT LEVEL", out GameObject content, horizontal: true);
-
-        if (levels == null || levels.Length == 0)
-        {
-            AddEmptyState(content.transform, "No levels defined.\nCreate LevelDefinition assets and assign them here.");
-            return panel;
-        }
-
-        HorizontalLayoutGroup hl = content.AddComponent<HorizontalLayoutGroup>();
-        hl.spacing               = 20f;
-        hl.padding               = new RectOffset(20, 20, 20, 20);
-        hl.childControlHeight    = false;
-        hl.childControlWidth     = false;
-        content.AddComponent<ContentSizeFitter>().horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
-
-        int bestWave = PersistentDataManager.Instance?.BestWave ?? 0;
-
-        for (int i = 0; i < levels.Length; i++)
-        {
-            if (levels[i] == null) continue;
-            LevelDefinition lvl  = levels[i];
-            bool unlocked        = lvl.isUnlockedByDefault || bestWave >= lvl.unlockAtBestWave;
-            int  captured        = i;
-            BuildLevelCard(content.transform, lvl, unlocked,
-                () => { if (unlocked) SceneTransitionManager.Instance?.LoadScene(lvl.sceneName); });
-        }
-        return panel;
-    }
-
-    private void BuildLevelCard(Transform parent, LevelDefinition lvl,
-                                 bool unlocked, Action onClick)
-    {
-        GameObject card  = new GameObject($"LvlCard_{lvl.levelName}");
-        card.transform.SetParent(parent, false);
-        SetSizeDelta(card, 220f, 300f);
-        Image img        = card.AddComponent<Image>();
-        img.color        = unlocked ? CardNormal : new Color(0.08f, 0.08f, 0.09f);
-
-        Button btn       = card.AddComponent<Button>();
-        btn.targetGraphic = img;
-        btn.interactable  = unlocked;
-        if (unlocked) btn.onClick.AddListener(() => onClick());
-
-        VerticalLayoutGroup vl = card.AddComponent<VerticalLayoutGroup>();
-        vl.padding             = new RectOffset(12, 12, 14, 14);
-        vl.spacing             = 8f;
-        vl.childControlWidth   = true;
-        vl.childForceExpandWidth = true;
-
-        // Preview swatch
-        GameObject sw    = new GameObject("Swatch");
-        sw.transform.SetParent(card.transform, false);
-        sw.AddComponent<RectTransform>().sizeDelta = new Vector2(0f, 100f);
-        sw.AddComponent<Image>().color = unlocked ? lvl.previewColor : new Color(0.14f, 0.14f, 0.14f);
-
-        if (!unlocked)
-        {
-            var lockLbl  = MakeLabel(sw.transform, "Lock", "LOCKED", 22f);
-            lockLbl.color = new Color(0.5f, 0.5f, 0.5f);
-            Stretch(lockLbl.gameObject, Vector2.zero, Vector2.one);
-        }
-
-        var name         = MakeLabel(card.transform, "Name", lvl.levelName, 22f);
-        name.color       = unlocked ? Color.white : new Color(0.38f, 0.38f, 0.38f);
-        name.fontStyle   = FontStyles.Bold;
-        SetSizeDelta(name, 0f, 30f);
-
-        var desc         = MakeLabel(card.transform, "Desc", lvl.description, 15f);
-        desc.color       = new Color(0.58f, 0.58f, 0.58f);
-        desc.enableWordWrapping = true;
-        SetSizeDelta(desc, 0f, 80f);
-
-        if (!unlocked)
-        {
-            var req      = MakeLabel(card.transform, "Req", $"Reach wave {lvl.unlockAtBestWave}", 14f);
-            req.color    = new Color(0.82f, 0.66f, 0.18f);
-            SetSizeDelta(req, 0f, 24f);
-        }
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -517,10 +321,11 @@ public class MainMenuManager : MonoBehaviour
         if (lexikonEntries == null || lexikonEntries.Length == 0)
         {
             AddEmptyState(panel.transform, "No lexikon entries defined.\nCreate LexikonEntry assets and assign them here.");
-            MakeFilterButton(filterRow.transform, "All",       new Color(0.22f, 0.22f, 0.26f), () => {});
-            MakeFilterButton(filterRow.transform, "Turrets",   new Color(0.28f, 0.14f, 0.44f), () => {});
-            MakeFilterButton(filterRow.transform, "Buildings", new Color(0.14f, 0.32f, 0.18f), () => {});
-            MakeFilterButton(filterRow.transform, "Enemies",   new Color(0.48f, 0.12f, 0.12f), () => {});
+            MakeFilterButton(filterRow.transform, "All",        new Color(0.22f, 0.22f, 0.26f), () => {});
+            MakeFilterButton(filterRow.transform, "Turrets",    new Color(0.28f, 0.14f, 0.44f), () => {});
+            MakeFilterButton(filterRow.transform, "Buildings",  new Color(0.14f, 0.32f, 0.18f), () => {});
+            MakeFilterButton(filterRow.transform, "Enemies",    new Color(0.48f, 0.12f, 0.12f), () => {});
+            MakeFilterButton(filterRow.transform, "Characters", new Color(0.14f, 0.28f, 0.48f), () => {});
             return panel;
         }
 
@@ -551,22 +356,46 @@ public class MainMenuManager : MonoBehaviour
             }
         }
 
-        MakeFilterButton(filterRow.transform, "All",       new Color(0.22f, 0.22f, 0.26f), () => SetFilter(null));
-        MakeFilterButton(filterRow.transform, "Turrets",   new Color(0.28f, 0.14f, 0.44f), () => SetFilter(LexikonCategory.Turret));
-        MakeFilterButton(filterRow.transform, "Buildings", new Color(0.14f, 0.32f, 0.18f), () => SetFilter(LexikonCategory.Building));
-        MakeFilterButton(filterRow.transform, "Enemies",   new Color(0.48f, 0.12f, 0.12f), () => SetFilter(LexikonCategory.Enemy));
+        MakeFilterButton(filterRow.transform, "All",        new Color(0.22f, 0.22f, 0.26f), () => SetFilter(null));
+        MakeFilterButton(filterRow.transform, "Turrets",    new Color(0.28f, 0.14f, 0.44f), () => SetFilter(LexikonCategory.Turret));
+        MakeFilterButton(filterRow.transform, "Buildings",  new Color(0.14f, 0.32f, 0.18f), () => SetFilter(LexikonCategory.Building));
+        MakeFilterButton(filterRow.transform, "Enemies",    new Color(0.48f, 0.12f, 0.12f), () => SetFilter(LexikonCategory.Enemy));
+        MakeFilterButton(filterRow.transform, "Characters", new Color(0.14f, 0.28f, 0.48f), () => SetFilter(LexikonCategory.Character));
 
         return panel;
     }
 
+    private static string GetLiveStats(LexikonEntry entry)
+    {
+        var lines = new List<StatLine>();
+        if (entry.linkedPrefab != null)
+            foreach (var src in entry.linkedPrefab.GetComponents<ILexikonSource>())
+                lines.AddRange(src.GetLexikonStats());
+        if (entry.linkedBuildingCard != null)
+            lines.AddRange(entry.linkedBuildingCard.GetLexikonStats());
+        if (entry.linkedCharacter != null)
+            lines.AddRange(entry.linkedCharacter.GetLexikonStats());
+
+        if (lines.Count == 0) return string.Empty;
+
+        var sb = new System.Text.StringBuilder();
+        for (int i = 0; i < lines.Count; i++)
+        {
+            if (i > 0) sb.Append("  ");
+            sb.Append(lines[i].label).Append(": ").Append(lines[i].value);
+        }
+        return sb.ToString();
+    }
+
     private GameObject BuildLexikonRow(Transform parent, LexikonEntry entry)
     {
-        var pdm          = PersistentDataManager.Instance;
-        bool unlocked    = pdm?.IsUnlocked(entry) ?? entry.isUnlockedByDefault;
+        var pdm       = PersistentDataManager.Instance;
+        bool unlocked = pdm?.IsUnlocked(entry) ?? entry.isUnlockedByDefault;
+        string stats  = unlocked ? GetLiveStats(entry) : string.Empty;
 
-        GameObject row   = new GameObject($"Row_{entry.entryName}");
+        GameObject row = new GameObject($"Row_{entry.entryName}");
         row.transform.SetParent(parent, false);
-        row.AddComponent<RectTransform>().sizeDelta = new Vector2(0f, 78f);
+        row.AddComponent<RectTransform>().sizeDelta = new Vector2(0f, 84f);
         row.AddComponent<Image>().color = unlocked
             ? new Color(0.12f, 0.12f, 0.15f)
             : new Color(0.08f, 0.08f, 0.10f);
@@ -576,94 +405,110 @@ public class MainMenuManager : MonoBehaviour
 
         HorizontalLayoutGroup hl = row.AddComponent<HorizontalLayoutGroup>();
         hl.padding               = new RectOffset(0, 14, 8, 8);
-        hl.spacing               = 14f;
+        hl.spacing               = 10f;
         hl.childControlHeight    = true;
 
         // Colour badge
-        GameObject badge    = new GameObject("Badge");
+        GameObject badge = new GameObject("Badge");
         badge.transform.SetParent(row.transform, false);
         badge.AddComponent<RectTransform>().sizeDelta = new Vector2(8f, 0f);
         badge.AddComponent<Image>().color = unlocked ? entry.color : new Color(0.25f, 0.25f, 0.25f);
         badge.AddComponent<LayoutElement>().preferredWidth = 8f;
 
+        // Sprite image
+        GameObject sprGO = new GameObject("Sprite");
+        sprGO.transform.SetParent(row.transform, false);
+        LayoutElement sprLE       = sprGO.AddComponent<LayoutElement>();
+        sprLE.preferredWidth      = 68f;
+        sprLE.flexibleHeight      = 1f;
+        Image sprImg              = sprGO.AddComponent<Image>();
+        sprImg.preserveAspect     = true;
+        if (unlocked && entry.sprite != null)
+        {
+            sprImg.sprite = entry.sprite;
+            sprImg.color  = Color.white;
+        }
+        else
+        {
+            sprImg.color = unlocked
+                ? new Color(0.20f, 0.20f, 0.22f)
+                : new Color(0.13f, 0.13f, 0.15f);
+        }
+
         // Text block
-        GameObject txt      = new GameObject("Text");
+        GameObject txt = new GameObject("Text");
         txt.transform.SetParent(row.transform, false);
         txt.AddComponent<RectTransform>();
         txt.AddComponent<LayoutElement>().flexibleWidth = 1f;
-        VerticalLayoutGroup tvl  = txt.AddComponent<VerticalLayoutGroup>();
-        tvl.childControlHeight   = false;
-        tvl.childControlWidth    = true;
+        VerticalLayoutGroup tvl   = txt.AddComponent<VerticalLayoutGroup>();
+        tvl.childControlHeight    = false;
+        tvl.childControlWidth     = true;
         tvl.childForceExpandWidth = true;
-        tvl.padding              = new RectOffset(0, 0, 4, 4);
+        tvl.padding               = new RectOffset(0, 0, 4, 4);
 
-        var entryName    = MakeLabel(txt.transform, "Name",
+        var nameLbl     = MakeLabel(txt.transform, "Name",
             unlocked ? entry.entryName : $"??? ({entry.category})", 20f);
-        entryName.color  = unlocked ? Color.white : new Color(0.40f, 0.40f, 0.40f);
-        entryName.fontStyle = FontStyles.Bold;
-        entryName.alignment = TextAlignmentOptions.Left;
-        SetSizeDelta(entryName, 0f, 26f);
+        nameLbl.color   = unlocked ? Color.white : new Color(0.40f, 0.40f, 0.40f);
+        nameLbl.fontStyle  = FontStyles.Bold;
+        nameLbl.alignment  = TextAlignmentOptions.Left;
+        SetSizeDelta(nameLbl, 0f, 26f);
 
-        var desc         = MakeLabel(txt.transform, "Desc",
+        var descLbl     = MakeLabel(txt.transform, "Desc",
             unlocked ? entry.description : "Unlock to reveal this entry.", 15f);
-        desc.color       = new Color(0.60f, 0.60f, 0.60f);
-        desc.alignment   = TextAlignmentOptions.Left;
-        SetSizeDelta(desc, 0f, 22f);
+        descLbl.color   = new Color(0.60f, 0.60f, 0.60f);
+        descLbl.alignment = TextAlignmentOptions.Left;
+        SetSizeDelta(descLbl, 0f, 22f);
 
-        if (unlocked && !string.IsNullOrEmpty(entry.stats))
-        {
-            var stats    = MakeLabel(txt.transform, "Stats", entry.stats, 14f);
-            stats.color  = new Color(0.50f, 0.86f, 0.50f);
-            stats.alignment = TextAlignmentOptions.Left;
-            SetSizeDelta(stats, 0f, 18f);
-        }
+        // Stats label — always created; hidden when locked or empty
+        var statsLbl    = MakeLabel(txt.transform, "Stats", stats, 13f);
+        statsLbl.color  = new Color(0.50f, 0.86f, 0.50f);
+        statsLbl.alignment = TextAlignmentOptions.Left;
+        statsLbl.enableWordWrapping = true;
+        SetSizeDelta(statsLbl, 0f, 18f);
+        statsLbl.gameObject.SetActive(unlocked && !string.IsNullOrEmpty(stats));
 
         // Right column: unlock button / unlocked badge / category label
         if (!entry.isUnlockedByDefault && !unlocked)
         {
-            // Unlock button
-            GameObject btnGO    = new GameObject("UnlockBtn");
+            GameObject btnGO  = new GameObject("UnlockBtn");
             btnGO.transform.SetParent(row.transform, false);
             btnGO.AddComponent<LayoutElement>().preferredWidth = 130f;
-            Image btnImg    = btnGO.AddComponent<Image>();
-            btnImg.color    = new Color(0.62f, 0.50f, 0.06f);
-            Button btn      = btnGO.AddComponent<Button>();
+            Image btnImg      = btnGO.AddComponent<Image>();
+            btnImg.color      = new Color(0.62f, 0.50f, 0.06f);
+            Button btn        = btnGO.AddComponent<Button>();
             btn.targetGraphic = btnImg;
 
-            var btnLbl  = MakeLabel(btnGO.transform, "BtnLbl",
+            var btnLbl = MakeLabel(btnGO.transform, "BtnLbl",
                 $"Unlock\n{entry.unlockCost} coins", 14f);
             btnLbl.alignment = TextAlignmentOptions.Center;
             btnLbl.color     = Color.white;
             Stretch(btnLbl.gameObject, Vector2.zero, Vector2.one);
 
-            // Pre-create unlocked badge (hidden)
-            GameObject badge2   = new GameObject("UnlockedBadge");
+            GameObject badge2 = new GameObject("UnlockedBadge");
             badge2.transform.SetParent(row.transform, false);
             badge2.AddComponent<RectTransform>();
             badge2.AddComponent<LayoutElement>().preferredWidth = 130f;
-            var badge2Lbl       = MakeLabel(badge2.transform, "Lbl", "✓ UNLOCKED", 16f);
-            badge2Lbl.color     = new Color(0.20f, 0.88f, 0.20f);
+            var badge2Lbl      = MakeLabel(badge2.transform, "Lbl", "✓ UNLOCKED", 16f);
+            badge2Lbl.color    = new Color(0.20f, 0.88f, 0.20f);
             badge2Lbl.fontStyle = FontStyles.Bold;
             badge2Lbl.alignment = TextAlignmentOptions.Center;
             Stretch(badge2Lbl.gameObject, Vector2.zero, Vector2.one);
             badge2.SetActive(false);
 
-            btn.onClick.AddListener(() => OnUnlockClicked(entry, row, btnGO, badge2, badge));
+            btn.onClick.AddListener(() => OnUnlockClicked(entry, row, btnGO, badge2, badge, sprGO));
         }
         else if (!entry.isUnlockedByDefault)
         {
-            // Was locked, now unlocked — show green badge
-            var unlockBadge     = MakeLabel(row.transform, "UnlockedBadge", "✓ UNLOCKED", 16f);
-            unlockBadge.color   = new Color(0.20f, 0.88f, 0.20f);
+            var unlockBadge      = MakeLabel(row.transform, "UnlockedBadge", "✓ UNLOCKED", 16f);
+            unlockBadge.color    = new Color(0.20f, 0.88f, 0.20f);
             unlockBadge.fontStyle = FontStyles.Bold;
             unlockBadge.alignment = TextAlignmentOptions.Center;
             unlockBadge.gameObject.AddComponent<LayoutElement>().preferredWidth = 130f;
         }
         else
         {
-            // Always-unlocked: show category label
-            var catLbl       = MakeLabel(row.transform, "Cat", entry.category.ToString(), 14f);
-            catLbl.color     = new Color(0.45f, 0.45f, 0.50f);
+            var catLbl  = MakeLabel(row.transform, "Cat", entry.category.ToString(), 14f);
+            catLbl.color = new Color(0.45f, 0.45f, 0.50f);
             catLbl.gameObject.AddComponent<LayoutElement>().preferredWidth = 88f;
         }
 
@@ -672,30 +517,50 @@ public class MainMenuManager : MonoBehaviour
 
     private void OnUnlockClicked(LexikonEntry entry, GameObject row,
                                   GameObject unlockBtn, GameObject unlockedBadge,
-                                  GameObject colorBadge)
+                                  GameObject colorBadge, GameObject spriteGO)
     {
         if (PersistentDataManager.Instance == null) return;
 
         bool success = PersistentDataManager.Instance.UnlockItem(entry);
-        if (!success) return; // insufficient coins — button stays visible
+        if (!success) return;
 
-        // Update row visuals in-place
         unlockBtn.SetActive(false);
         unlockedBadge.SetActive(true);
 
-        // Restore colour badge
         colorBadge.GetComponent<Image>().color = entry.color;
 
-        // Update name & description
         var nameLabel = row.transform.Find("Text/Name")?.GetComponent<TextMeshProUGUI>();
         if (nameLabel != null) { nameLabel.text = entry.entryName; nameLabel.color = Color.white; }
 
         var descLabel = row.transform.Find("Text/Desc")?.GetComponent<TextMeshProUGUI>();
         if (descLabel != null) descLabel.text = entry.description;
 
+        // Reveal stats
+        string liveStats = GetLiveStats(entry);
+        var statsLabel   = row.transform.Find("Text/Stats")?.GetComponent<TextMeshProUGUI>();
+        if (statsLabel != null && !string.IsNullOrEmpty(liveStats))
+        {
+            statsLabel.text = liveStats;
+            statsLabel.gameObject.SetActive(true);
+        }
+
+        // Reveal sprite
+        if (spriteGO != null)
+        {
+            Image sprImg = spriteGO.GetComponent<Image>();
+            if (entry.sprite != null)
+            {
+                sprImg.sprite = entry.sprite;
+                sprImg.color  = Color.white;
+            }
+            else
+            {
+                sprImg.color = new Color(0.20f, 0.20f, 0.22f);
+            }
+        }
+
         row.GetComponent<Image>().color = new Color(0.12f, 0.12f, 0.15f);
 
-        // Refresh coin counters
         int coins = PersistentDataManager.Instance.TotalCurrency;
         if (_lexikonCurrencyLabel != null) _lexikonCurrencyLabel.text = $"Coins: {coins}";
         if (_homeCurrencyLabel    != null) _homeCurrencyLabel.text    = $"Coins:  {coins}";
@@ -1398,7 +1263,8 @@ public class MainMenuManager : MonoBehaviour
     private static void Stretch(GameObject go, Vector2 anchorMin, Vector2 anchorMax,
                                   Vector2 offsetMin = default, Vector2 offsetMax = default)
     {
-        RectTransform rt = go.GetComponent<RectTransform>() ?? go.AddComponent<RectTransform>();
+        RectTransform rt = go.GetComponent<RectTransform>();
+        if (rt == null) rt = go.AddComponent<RectTransform>();
         rt.anchorMin = anchorMin;
         rt.anchorMax = anchorMax;
         rt.offsetMin = offsetMin;

@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [RequireComponent(typeof(Rigidbody2D))]
-public class Enemy : MonoBehaviour, IDamageable
+public class Enemy : MonoBehaviour, IDamageable, ILexikonSource
 {
     // ── Inspector ─────────────────────────────────────────────────────────────
 
@@ -639,6 +639,15 @@ public class Enemy : MonoBehaviour, IDamageable
         CurrentHealth = Mathf.Max(0f, CurrentHealth - damage);
         if (CurrentHealth <= 0f) Die();
     }
+
+    public List<StatLine> GetLexikonStats() => new()
+    {
+        new("HP",           maxHealth.ToString("F0")),
+        new("Speed",        moveSpeed.ToString("F1")),
+        new("Atk Dmg",      attackDamage.ToString("F0")),
+        new("Atk Rate",     (1f / attackInterval).ToString("F1") + "/s"),
+        new("Contact Dmg",  contactDamage.ToString("F0")),
+    };
 
     public void ApplyWaveScaling(float healthMult, float speedMult, float damageMult)
     {

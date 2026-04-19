@@ -11,11 +11,15 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 79ac5e9534fb9c64e8d024bd4dab5b6d, type: 3}
   m_Name: Turret
-  m_EditorClassIdentifier:
+  m_EditorClassIdentifier: 
   entryName: Turret
   category: 1
   color: {r: 0.55, g: 0.55, b: 0.62, a: 1}
-  description: A basic defensive turret. Automatically targets and fires at the nearest enemy within range.
-  stats: 'HP: 120  Range: 9  Fire: 2.5/s  Cost: 10W 5M'
+  sprite: {fileID: 0}
+  description: A basic defensive turret. Automatically targets and fires at the nearest
+    enemy within range.
+  linkedPrefab: {fileID: 1235989768153408661, guid: 3879803ff30ac3743887e12103ec009e, type: 3}
+  linkedBuildingCard: {fileID: 0}
+  linkedCharacter: {fileID: 0}
   isUnlockedByDefault: 1
   unlockCost: 50

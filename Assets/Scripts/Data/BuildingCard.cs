@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -6,7 +7,7 @@ using UnityEngine;
 /// the corresponding entry in BuildingManager's buildings[] array.
 /// </summary>
 [CreateAssetMenu(menuName = "VampireSurvivalz/Building Card", fileName = "NewBuildingCard")]
-public class BuildingCard : ScriptableObject
+public class BuildingCard : ScriptableObject, ILexikonSource
 {
     public string displayName = "Building";
     [TextArea(1, 2)]
@@ -17,4 +18,12 @@ public class BuildingCard : ScriptableObject
     [Tooltip("Short stats string shown on the card, e.g. \"HP: 120  Range: 9  Fire: 2.5/s\"")]
     [TextArea(1, 2)]
     public string statsSummary;
+
+    public List<StatLine> GetLexikonStats()
+    {
+        var lines = new List<StatLine>();
+        if (woodCost  > 0) lines.Add(new("Wood",  woodCost.ToString()));
+        if (metalCost > 0) lines.Add(new("Metal", metalCost.ToString()));
+        return lines;
+    }
 }
