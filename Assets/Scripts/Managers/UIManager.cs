@@ -16,6 +16,16 @@ public class UIManager : MonoBehaviour
 {
     public static UIManager Instance { get; private set; }
 
+    // ── Boss health bar ───────────────────────────────────────────────────────
+
+    private GameObject      _bossPanel;
+    private Image           _bossHealthFill;
+    private TextMeshProUGUI _bossNameText;
+    private TextMeshProUGUI _bossLevelText;
+    private Image           _bossVulnGlow;
+
+    private VampireEnemy    _boundVampire;
+
     // ── Runtime-built label references ────────────────────────────────────────
 
     private TextMeshProUGUI _woodText;
@@ -93,6 +103,12 @@ public class UIManager : MonoBehaviour
             PersistentDataManager.Instance.OnCurrencyChanged -= HandleCurrencyChanged;
         BuildingManager.OnSelectionChanged -= HandleHotbarSelectionChanged;
         PlacedBuilding.OnSelected          -= HandlePlacedBuildingSelected;
+
+        if (_boundVampire != null)
+        {
+            _boundVampire.OnHealthChanged -= OnVampireHealthChanged;
+            _boundVampire.OnLevelChanged  -= OnVampireLevelChanged;
+        }
     }
 
     // ── Subscription ─────────────────────────────────────────────────────────
@@ -414,6 +430,126 @@ public class UIManager : MonoBehaviour
         BuildTopBar(canvasGO.transform, font);
         BuildHotbar(canvasGO.transform, font);
         BuildInfoPanel(canvasGO.transform, font);
+        BuildBossHealthBar(canvasGO.transform, font);
+    }
+
+    // ── Boss health bar ───────────────────────────────────────────────────────
+
+    private void BuildBossHealthBar(Transform canvas, TMP_FontAsset font)
+    {
+        // Panel — bottom-centre, above hotbar
+        _bossPanel = new GameObject("BossHealthBar");
+        _bossPanel.transform.SetParent(canvas, false);
+
+        RectTransform rt  = _bossPanel.AddComponent<RectTransform>();
+        rt.anchorMin      = new Vector2(0.5f, 0f);
+        rt.anchorMax      = new Vector2(0.5f, 0f);
+        rt.pivot          = new Vector2(0.5f, 0f);
+        rt.anchoredPosition = new Vector2(0f, 120f);   // above hotbar
+        rt.sizeDelta      = new Vector2(500f, 60f);
+
+        _bossPanel.AddComponent<Image>().color = new Color(0.05f, 0f, 0.1f, 0.85f);
+
+        // Vulnerability glow (full-panel colour overlay)
+        GameObject glowGO = new GameObject("VulnGlow");
+        glowGO.transform.SetParent(_bossPanel.transform, false);
+        RectTransform grt  = glowGO.AddComponent<RectTransform>();
+        grt.anchorMin      = Vector2.zero;
+        grt.anchorMax      = Vector2.one;
+        grt.offsetMin      = grt.offsetMax = Vector2.zero;
+        _bossVulnGlow      = glowGO.AddComponent<Image>();
+        _bossVulnGlow.color = new Color(1f, 1f, 0f, 0f);
+
+        // Name label
+        GameObject nameGO = new GameObject("BossName");
+        nameGO.transform.SetParent(_bossPanel.transform, false);
+        RectTransform nrt  = nameGO.AddComponent<RectTransform>();
+        nrt.anchorMin      = new Vector2(0f, 0.5f);
+        nrt.anchorMax      = new Vector2(0.65f, 1f);
+        nrt.offsetMin      = new Vector2(8f, 0f);
+        nrt.offsetMax      = Vector2.zero;
+        _bossNameText      = nameGO.AddComponent<TextMeshProUGUI>();
+        _bossNameText.font = font;
+        _bossNameText.text = "The Vampire";
+        _bossNameText.fontSize    = 18f;
+        _bossNameText.fontStyle   = FontStyles.Bold;
+        _bossNameText.color       = new Color(0.85f, 0.5f, 1f);
+        _bossNameText.alignment   = TextAlignmentOptions.MidlineLeft;
+
+        // Level badge
+        GameObject lvlGO  = new GameObject("BossLevel");
+        lvlGO.transform.SetParent(_bossPanel.transform, false);
+        RectTransform lrt  = lvlGO.AddComponent<RectTransform>();
+        lrt.anchorMin      = new Vector2(0.65f, 0.5f);
+        lrt.anchorMax      = new Vector2(1f, 1f);
+        lrt.offsetMin      = Vector2.zero;
+        lrt.offsetMax      = new Vector2(-8f, 0f);
+        _bossLevelText     = lvlGO.AddComponent<TextMeshProUGUI>();
+        _bossLevelText.font = font;
+        _bossLevelText.text = "Lv 1";
+        _bossLevelText.fontSize   = 16f;
+        _bossLevelText.color      = new Color(1f, 0.9f, 0.4f);
+        _bossLevelText.alignment  = TextAlignmentOptions.MidlineRight;
+
+        // Health bar background
+        GameObject barBg = new GameObject("HealthBg");
+        barBg.transform.SetParent(_bossPanel.transform, false);
+        RectTransform brt  = barBg.AddComponent<RectTransform>();
+        brt.anchorMin      = new Vector2(0f, 0f);
+        brt.anchorMax      = new Vector2(1f, 0.5f);
+        brt.offsetMin      = new Vector2(8f, 6f);
+        brt.offsetMax      = new Vector2(-8f, 0f);
+        barBg.AddComponent<Image>().color = new Color(0.15f, 0.05f, 0.2f);
+
+        // Health fill
+        GameObject fillGO  = new GameObject("HealthFill");
+        fillGO.transform.SetParent(barBg.transform, false);
+        RectTransform frt   = fillGO.AddComponent<RectTransform>();
+        frt.anchorMin       = Vector2.zero;
+        frt.anchorMax       = Vector2.one;
+        frt.offsetMin       = frt.offsetMax = Vector2.zero;
+        _bossHealthFill     = fillGO.AddComponent<Image>();
+        _bossHealthFill.color = new Color(0.7f, 0.1f, 0.9f);
+        _bossHealthFill.type  = Image.Type.Filled;
+        _bossHealthFill.fillMethod  = Image.FillMethod.Horizontal;
+        _bossHealthFill.fillOrigin  = (int)Image.OriginHorizontal.Left;
+        _bossHealthFill.fillAmount  = 1f;
+
+        _bossPanel.SetActive(false);
+    }
+
+    private void Update()
+    {
+        // Late-bind to VampireEnemy when it first becomes available
+        if (_boundVampire == null && VampireEnemy.Instance != null)
+        {
+            _boundVampire = VampireEnemy.Instance;
+            _boundVampire.OnHealthChanged += OnVampireHealthChanged;
+            _boundVampire.OnLevelChanged  += OnVampireLevelChanged;
+        }
+
+        if (_bossPanel == null) return;
+
+        bool vampireActive = _boundVampire != null && _boundVampire.gameObject.activeSelf;
+        _bossPanel.SetActive(vampireActive);
+
+        if (vampireActive && _bossVulnGlow != null)
+        {
+            float alpha = _boundVampire.IsVulnerable ? 0.25f + 0.15f * Mathf.Sin(Time.time * 6f) : 0f;
+            _bossVulnGlow.color = new Color(1f, 1f, 0f, alpha);
+        }
+    }
+
+    private void OnVampireHealthChanged(float current, float max)
+    {
+        if (_bossHealthFill != null)
+            _bossHealthFill.fillAmount = max > 0f ? current / max : 0f;
+    }
+
+    private void OnVampireLevelChanged(int level)
+    {
+        if (_bossLevelText != null)
+            _bossLevelText.text = $"Lv {level}";
     }
 
     // ── Top bar ───────────────────────────────────────────────────────────────

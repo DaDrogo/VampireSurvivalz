@@ -39,6 +39,22 @@ public class GameManager : MonoBehaviour
     [SerializeField] private float damageScalePerWave  = 0.10f;
     [SerializeField] private GameObject enemyPrefab;
 
+    [Header("Vampire Coffin")]
+    [Tooltip("VampireCoffin prefab spawned dynamically in the enemy room at game start.")]
+    [SerializeField] private GameObject vampireCoffinPrefab;
+
+    [Header("Citadel")]
+    [Tooltip("Citadel prefab spawned in the player room at game start.")]
+    [SerializeField] private GameObject citadelPrefab;
+
+    [Header("Siege Enemies")]
+    [Tooltip("Enemy prefab with siegeMode = true. Spawned in addition to regular enemies from this wave onwards.")]
+    [SerializeField] private GameObject siegeEnemyPrefab;
+    [Tooltip("Wave number from which siege enemies start spawning (1-based).")]
+    [SerializeField] private int siegeEnemyStartWave = 3;
+    [Tooltip("Number of siege enemies added per wave (capped to a reasonable maximum).")]
+    [SerializeField] private int siegeEnemiesPerWave = 1;
+
     [Header("Spawn Area — Polygon (takes priority)")]
     [Tooltip("Draw a PolygonCollider2D (Trigger, no Rigidbody) over valid spawn ground. " +
              "When assigned, the ring below is ignored.")]
@@ -103,6 +119,8 @@ public class GameManager : MonoBehaviour
     private GameObject   _gameOverScreen;
     private GameObject   _playerInstance;
     private MapGenerator _mapGenerator;
+    private GameObject   _coffinInstance;
+    private GameObject   _citadelInstance;
 
     // ── Unity lifecycle ───────────────────────────────────────────────────────
 
@@ -114,6 +132,22 @@ public class GameManager : MonoBehaviour
         if (DayNightManager.Instance == null)
             gameObject.AddComponent<DayNightManager>();
     }
+
+    private void OnEnable()
+    {
+        // VampireEnemy may not exist yet — we subscribe lazily in Update
+    }
+
+    private void Update()
+    {
+        // Late-bind victory subscription once the vampire is instantiated
+        if (_vampireSubscribed) return;
+        if (VampireEnemy.Instance == null) return;
+        VampireEnemy.Instance.OnPermanentlyKilled += TriggerVictory;
+        _vampireSubscribed = true;
+    }
+
+    private bool _vampireSubscribed = false;
 
     private void Start()
     {
@@ -154,6 +188,9 @@ public class GameManager : MonoBehaviour
         {
             Debug.LogWarning("GameManager: MapGenerator not found. Starting game without map regeneration.");
         }
+
+        SpawnCoffin();
+        SpawnCitadel();
 
         AudioManager.Instance?.StartGameMusic();
         SpawnOrRepositionPlayer();
@@ -261,6 +298,147 @@ public class GameManager : MonoBehaviour
         ShowGameOverScreen();
     }
 
+    // ── Coffin spawning ───────────────────────────────────────────────────────
+
+    private void SpawnCitadel()
+    {
+        if (citadelPrefab == null) return;
+
+        if (_citadelInstance != null)
+            Destroy(_citadelInstance);
+
+        // Spawn in the player room (opposite side from the enemy room)
+        Room playerRoom = HouseManager.Instance?.PlayerRoom;
+        // PlayerRoom is null at game start — fall back to player spawn hint position
+        Vector2 spawnPos = playerSpawnHint;
+
+        if (playerRoom != null)
+        {
+            PathNode node = PathfindingGrid.Instance?.FindNearestWalkable(playerRoom.WorldCenter);
+            spawnPos = node != null ? node.WorldPos : playerRoom.WorldCenter;
+        }
+        else
+        {
+            PathNode node = PathfindingGrid.Instance?.FindNearestWalkable(playerSpawnHint);
+            spawnPos = node != null ? node.WorldPos : playerSpawnHint;
+        }
+
+        _citadelInstance = Instantiate(citadelPrefab, spawnPos, Quaternion.identity);
+    }
+
+    private void SpawnCoffin()
+    {
+        if (vampireCoffinPrefab == null) return;
+
+        // Destroy previous coffin from last run
+        if (_coffinInstance != null)
+            Destroy(_coffinInstance);
+
+        Room enemyRoom = HouseManager.Instance?.EnemyRoom;
+        Vector2 spawnPos;
+
+        if (enemyRoom != null)
+        {
+            // Place near the center of the enemy room, snapped to nearest walkable tile
+            PathNode node = PathfindingGrid.Instance?.FindNearestWalkable(enemyRoom.WorldCenter);
+            spawnPos = node != null ? node.WorldPos : enemyRoom.WorldCenter;
+        }
+        else
+        {
+            // No room system — fall back to world origin
+            spawnPos = Vector2.zero;
+            Debug.LogWarning("[GameManager] EnemyRoom not found — spawning coffin at world origin.");
+        }
+
+        _coffinInstance = Instantiate(vampireCoffinPrefab, spawnPos, Quaternion.identity);
+    }
+
+    // ── Called by VampireEnemy system ────────────────────────────────────────
+
+    /// <summary>
+    /// Spawn additional enemies (e.g. vampire thralls). Uses the same pool/prefab as waves.
+    /// </summary>
+    public void SpawnExtraEnemies(int count)
+    {
+        if (enemyPrefab == null) return;
+        float healthMult = 1f + (WaveNumber - 1) * healthScalePerWave;
+        float speedMult  = 1f + (WaveNumber - 1) * speedScalePerWave;
+        float damageMult = 1f + (WaveNumber - 1) * damageScalePerWave;
+        for (int i = 0; i < count; i++)
+            SpawnEnemy(healthMult, speedMult, damageMult);
+    }
+
+    /// <summary>Called when the vampire is permanently killed — player wins.</summary>
+    public void TriggerVictory()
+    {
+        if (CurrentState == GameState.GameOver) return;
+        StopAllCoroutines();
+        CurrentState   = GameState.GameOver;
+        Time.timeScale = 0f;
+        OnStateChanged?.Invoke(CurrentState);
+        ShowVictoryScreen();
+    }
+
+    private void ShowVictoryScreen()
+    {
+        EnsureEventSystem();
+
+        GameObject canvasGO = new GameObject("VictoryCanvas");
+        Canvas canvas       = canvasGO.AddComponent<Canvas>();
+        canvas.renderMode   = RenderMode.ScreenSpaceOverlay;
+        canvas.sortingOrder = 200;
+
+        CanvasScaler scaler        = canvasGO.AddComponent<CanvasScaler>();
+        scaler.uiScaleMode         = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.referenceResolution = new Vector2(1920f, 1080f);
+        scaler.matchWidthOrHeight  = 0.5f;
+        canvasGO.AddComponent<GraphicRaycaster>();
+
+        GameObject screen = new GameObject("VictoryScreen");
+        screen.transform.SetParent(canvasGO.transform, false);
+        RectTransform sr = screen.AddComponent<RectTransform>();
+        sr.anchorMin = Vector2.zero;
+        sr.anchorMax = Vector2.one;
+        sr.offsetMin = sr.offsetMax = Vector2.zero;
+        screen.AddComponent<Image>().color = new Color(0f, 0f, 0f, 0.75f);
+
+        GameObject panel         = new GameObject("Panel");
+        panel.transform.SetParent(screen.transform, false);
+        RectTransform pr         = panel.AddComponent<RectTransform>();
+        pr.anchorMin             = new Vector2(0.5f, 0.5f);
+        pr.anchorMax             = new Vector2(0.5f, 0.5f);
+        pr.pivot                 = new Vector2(0.5f, 0.5f);
+        pr.sizeDelta             = new Vector2(420f, 320f);
+        panel.AddComponent<Image>().color = new Color(0.05f, 0.08f, 0.05f, 0.96f);
+
+        VerticalLayoutGroup layout    = panel.AddComponent<VerticalLayoutGroup>();
+        layout.padding                = new RectOffset(30, 30, 30, 30);
+        layout.spacing                = 18f;
+        layout.childControlHeight     = true;
+        layout.childControlWidth      = true;
+        layout.childForceExpandHeight = true;
+        layout.childForceExpandWidth  = true;
+
+        TMP_FontAsset font = Resources.Load<TMP_FontAsset>("Fonts & Materials/LiberationSans SDF");
+
+        var title       = MakeLabel(panel.transform, "Title", "VICTORY!", font, 58f);
+        title.color     = new Color(0.9f, 0.85f, 0.1f);
+        title.fontStyle = FontStyles.Bold;
+
+        var sub         = MakeLabel(panel.transform, "Sub", "The vampire is slain.", font, 26f);
+        sub.color       = new Color(0.8f, 0.8f, 0.8f);
+
+        GameObject btnGO = new GameObject("MenuButton");
+        btnGO.transform.SetParent(panel.transform, false);
+        btnGO.AddComponent<RectTransform>();
+        btnGO.AddComponent<Image>().color = new Color(0.18f, 0.18f, 0.55f);
+        Button btn = btnGO.AddComponent<Button>();
+        btn.onClick.AddListener(ReturnToMainMenu);
+        var lbl = MakeLabel(btnGO.transform, "Label", "Main Menu", font, 32f);
+        lbl.GetComponent<RectTransform>().anchorMin = Vector2.zero;
+        lbl.GetComponent<RectTransform>().anchorMax = Vector2.one;
+    }
+
     // ── Called by Enemy.Die() ─────────────────────────────────────────────────
 
     public void OnEnemyDied()
@@ -319,13 +497,26 @@ public class GameManager : MonoBehaviour
             yield return new WaitForSeconds(timeBetweenSpawns);
         }
 
+        // Siege enemies start appearing from siegeEnemyStartWave onwards
+        if (siegeEnemyPrefab != null && WaveNumber >= siegeEnemyStartWave)
+        {
+            int count = Mathf.Min(siegeEnemiesPerWave + (WaveNumber - siegeEnemyStartWave), 5);
+            for (int i = 0; i < count; i++)
+            {
+                SpawnEnemy(healthMult * 1.5f, speedMult * 0.7f, damageMult, siegeEnemyPrefab);
+                yield return new WaitForSeconds(timeBetweenSpawns);
+            }
+        }
+
         // Next wave starts after the interval — regardless of surviving enemies
         EnterPreparation();
     }
 
-    private void SpawnEnemy(float healthMult, float speedMult, float damageMult)
+    private void SpawnEnemy(float healthMult, float speedMult, float damageMult,
+                             GameObject prefabOverride = null)
     {
-        if (enemyPrefab == null)
+        GameObject prefab = prefabOverride ?? enemyPrefab;
+        if (prefab == null)
         {
             Debug.LogWarning("GameManager: enemyPrefab not assigned.");
             return;
@@ -333,8 +524,8 @@ public class GameManager : MonoBehaviour
 
         Vector2 pos = GetSpawnPosition();
         var go = PoolManager.Instance != null
-            ? PoolManager.Instance.Get(enemyPrefab, pos, Quaternion.identity)
-            : Instantiate(enemyPrefab, pos, Quaternion.identity);
+            ? PoolManager.Instance.Get(prefab, pos, Quaternion.identity)
+            : Instantiate(prefab, pos, Quaternion.identity);
 
         if (go.TryGetComponent(out Enemy enemy))
             enemy.ApplyWaveScaling(healthMult, speedMult, damageMult);

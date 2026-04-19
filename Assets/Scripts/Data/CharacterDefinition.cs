@@ -2,6 +2,15 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
+public enum CitadelAuraType
+{
+    None,
+    BarricadeHealth,    // walls in the citadel room gain bonus HP
+    TurretFireRate,     // turrets in the citadel room shoot faster
+    TurretRange,        // turrets in the citadel room see farther
+    ResourceProduction, // resource producers in the citadel room produce faster
+}
+
 [Serializable]
 public class PassiveEffect
 {
@@ -29,6 +38,14 @@ public class CharacterDefinition : ScriptableObject, ILexikonSource
 
     [Header("Passive Effects")]
     public PassiveEffect[] passiveEffects;
+
+    [Header("Citadel Aura")]
+    [Tooltip("Which building stat this character's citadel aura boosts.")]
+    public CitadelAuraType auraType = CitadelAuraType.None;
+    [Tooltip("Multiplier applied per citadel tier upgrade (e.g. 0.25 = +25% per tier).")]
+    [Min(0f)] public float auraStrengthPerTier = 0.25f;
+    [TextArea(1, 2)]
+    public string auraDescription = "";
 
     public List<StatLine> GetLexikonStats()
     {

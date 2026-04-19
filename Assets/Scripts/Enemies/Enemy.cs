@@ -31,6 +31,10 @@ public class Enemy : MonoBehaviour, IDamageable, ILexikonSource
     [Tooltip("How often (seconds) the room-BFS navigation is re-evaluated.")]
     [SerializeField] private float pathRefreshInterval = 0.4f;
 
+    [Header("Siege Mode")]
+    [Tooltip("If true, this enemy navigates toward the Citadel instead of the player.")]
+    [SerializeField] private bool siegeMode = false;
+
     // ── IDamageable ───────────────────────────────────────────────────────────
 
     public float CurrentHealth { get; private set; }
@@ -201,11 +205,16 @@ public class Enemy : MonoBehaviour, IDamageable, ILexikonSource
 
     private void Start()
     {
-        GameObject playerGO = GameObject.FindGameObjectWithTag("Player");
-        if (playerGO != null)
-            _player = playerGO.transform;
+        if (siegeMode && Citadel.Instance != null)
+            _player = Citadel.Instance.transform;
         else
-            Debug.LogWarning("[Enemy] No GameObject tagged 'Player' found.", this);
+        {
+            GameObject playerGO = GameObject.FindGameObjectWithTag("Player");
+            if (playerGO != null)
+                _player = playerGO.transform;
+            else
+                Debug.LogWarning("[Enemy] No GameObject tagged 'Player' found.", this);
+        }
 
         _lastMoveDir   = _player != null
             ? ((Vector2)_player.position - _rb.position).normalized
@@ -236,8 +245,13 @@ public class Enemy : MonoBehaviour, IDamageable, ILexikonSource
 
         if (_player == null)
         {
-            GameObject go = GameObject.FindGameObjectWithTag("Player");
-            if (go != null) _player = go.transform;
+            if (siegeMode && Citadel.Instance != null)
+                _player = Citadel.Instance.transform;
+            else
+            {
+                GameObject go = GameObject.FindGameObjectWithTag("Player");
+                if (go != null) _player = go.transform;
+            }
         }
         if (_player == null) return;
 

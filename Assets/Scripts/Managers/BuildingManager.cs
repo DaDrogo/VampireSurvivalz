@@ -80,9 +80,16 @@ public class BuildingManager : MonoBehaviour
 
     public bool IsPlacing => _isPlacing;
 
-    public static event Action<int> OnSelectionChanged;
+    public static event Action<int>           OnSelectionChanged;
+    public static event Action<PlacedBuilding> OnBuildingPlaced;
+
     public int BuildingCount => buildings?.Length ?? 0;
     public BuildingDefinition GetDefinition(int i) => buildings[i];
+
+    private readonly List<PlacedBuilding> _allPlaced = new();
+    public IReadOnlyList<PlacedBuilding> AllPlaced => _allPlaced;
+
+    public void UntrackBuilding(PlacedBuilding pb) => _allPlaced.Remove(pb);
 
     private BuildingDefinition      _active;
     private int                     _activeIndex = -1;
@@ -215,10 +222,19 @@ public class BuildingManager : MonoBehaviour
             return;
         }
 
+        if (!IsWithinCitadelRange(pos))
+        {
+            Debug.Log("BuildingManager: placement out of Citadel build radius.");
+            return;
+        }
+
         Vector2Int tile   = WorldToTileCoord(pos);
         GameObject placed = Instantiate(_active.prefab, pos, Quaternion.identity);
-        placed.AddComponent<PlacedBuilding>().Init(tile, _active);
+        var pb = placed.AddComponent<PlacedBuilding>();
+        pb.Init(tile, _active);
         _occupiedTiles.Add(tile);
+        _allPlaced.Add(pb);
+        OnBuildingPlaced?.Invoke(pb);
 
         // Barricades start in Ghost state by default; build them immediately
         // since the player already paid through BuildingManager.
@@ -276,7 +292,8 @@ public class BuildingManager : MonoBehaviour
         bool    valid = CanAfford(_active)
                      && IsAreaClear(pos, _active.footprint)
                      && !IsOnWall(pos)
-                     && !IsTileOccupied(pos);
+                     && !IsTileOccupied(pos)
+                     && IsWithinCitadelRange(pos);
         _ghostSR.color = valid ? validColor : invalidColor;
     }
 
@@ -305,6 +322,12 @@ public class BuildingManager : MonoBehaviour
     /// the pathfinding grid. Works independently of layer masks so it always
     /// catches wall tiles even if they share a layer with walkable geometry.
     /// </summary>
+    private static bool IsWithinCitadelRange(Vector2 pos)
+    {
+        if (Citadel.Instance == null) return true;
+        return Vector2.Distance(pos, Citadel.Instance.transform.position) <= Citadel.Instance.BuildRadius;
+    }
+
     private static bool IsOnWall(Vector2 snappedPos)
     {
         PathNode node = PathfindingGrid.Instance?.NodeFromWorld(snappedPos);

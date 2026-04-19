@@ -60,6 +60,10 @@ public class PlacedBuilding : MonoBehaviour
         if (Definition?.upgrades == null || Level >= Definition.upgrades.Length)
             return false;
 
+        // Citadel tier gates upgrade level: Tier 2 allows level 1, Tier 3 allows level 2, etc.
+        if (Citadel.Instance != null && Level >= Citadel.Instance.MaxBuildingLevel)
+            return false;
+
         BuildingUpgradeTier tier = Definition.upgrades[Level];
 
         if (ResourceManager.Instance == null) return false;
@@ -122,5 +126,7 @@ public class PlacedBuilding : MonoBehaviour
 
         if (!_skipFreeTile)
             BuildingManager.Instance?.FreeTile(_tile);
+
+        BuildingManager.Instance?.UntrackBuilding(this);
     }
 }

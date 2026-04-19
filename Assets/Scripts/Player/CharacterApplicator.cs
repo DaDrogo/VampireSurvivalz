@@ -8,7 +8,18 @@ using UnityEngine;
 [DefaultExecutionOrder(1)]  // Awake/Start before GameManager (5) so we subscribe before StartGame fires
 public class CharacterApplicator : MonoBehaviour
 {
+    public static CharacterApplicator Instance { get; private set; }
+
+    /// <summary>The character the player selected in setup. Set once on Start.</summary>
+    public CharacterDefinition ActiveCharacter { get; private set; }
+
     [SerializeField] private CharacterDefinition[] characters;
+
+    private void Awake()
+    {
+        if (Instance != null) { Destroy(this); return; }
+        Instance = this;
+    }
 
     private void Start()
     {
@@ -33,6 +44,7 @@ public class CharacterApplicator : MonoBehaviour
         CharacterDefinition def = characters[idx];
         if (def == null) return;
 
+        ActiveCharacter = def;
         player.ApplyCharacter(def);
 
         // Starting resources are added after GameManager.StartGame() calls ResetResources(),

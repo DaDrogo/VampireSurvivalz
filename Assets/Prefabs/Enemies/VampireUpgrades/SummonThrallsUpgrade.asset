@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c071fc4c70859014bb3a6b0ee358de68, type: 3}
+  m_Name: SummonThrallsUpgrade
+  m_EditorClassIdentifier: 
+  upgradeName: Unnamed Upgrade
+  description: 
+  isUnique: 1
+  count: 2
+  interval: 20

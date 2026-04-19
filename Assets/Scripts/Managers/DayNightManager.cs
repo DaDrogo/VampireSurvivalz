@@ -49,6 +49,9 @@ public class DayNightManager : MonoBehaviour
     /// <summary>Fired when the active phase changes (Day / transitions / Night).</summary>
     public event Action<Phase> OnPhaseChanged;
 
+    /// <summary>Fired once when 10 seconds remain in DuskTransition (vampire warning).</summary>
+    public event Action OnDuskWarning;
+
     /// <summary>
     /// Fired every frame with the player's current speed multiplier (1 = base,
     /// >1 during day).  PlayerController subscribes to this.
@@ -65,6 +68,7 @@ public class DayNightManager : MonoBehaviour
 
     private float _phaseTimer;
     private float _accumulatedPermanentBonus = 0f;  // total bonus added so far (e.g. 0.10 after 2 cycles)
+    private bool  _duskWarnFired = false;
 
     private readonly List<Enemy> _registeredEnemies = new();
 
@@ -101,6 +105,14 @@ public class DayNightManager : MonoBehaviour
 
         UpdateBuffs();
         UpdateVisuals();
+
+        // Fire dusk warning when 10s remain in DuskTransition (vampire incoming)
+        if (CurrentPhase == Phase.DuskTransition && !_duskWarnFired
+            && transitionDuration - _phaseTimer <= 10f)
+        {
+            _duskWarnFired = true;
+            OnDuskWarning?.Invoke();
+        }
 
         if (_phaseTimer >= CurrentPhaseDuration())
             AdvancePhase();
@@ -167,9 +179,10 @@ public class DayNightManager : MonoBehaviour
 
     private void EnterPhase(Phase phase)
     {
-        CurrentPhase  = phase;
-        _phaseTimer   = 0f;
-        PhaseProgress = 0f;
+        CurrentPhase   = phase;
+        _phaseTimer    = 0f;
+        PhaseProgress  = 0f;
+        _duskWarnFired = false;
         OnPhaseChanged?.Invoke(phase);
     }
 
