@@ -12,6 +12,14 @@ using UnityEngine.UI;
 /// </summary>
 public class MainMenuManager : MonoBehaviour
 {
+    [Header("Audio")]
+    [SerializeField] private AudioClip menuMusic;
+
+    [Header("Background")]
+    [SerializeField] private Sprite backgroundSprite;
+    [Range(0f, 1f)]
+    [SerializeField] private float overlayAlpha = 0.55f;
+
     [Header("Content — assign ScriptableObject arrays in Inspector")]
     [SerializeField] private LexikonEntry[]        lexikonEntries;
     [SerializeField] private MilestoneDefinition[] milestones;
@@ -29,8 +37,8 @@ public class MainMenuManager : MonoBehaviour
 
     // ── Colours ───────────────────────────────────────────────────────────────
     private static readonly Color BgColor        = new Color(0.06f, 0.06f, 0.08f);
-    private static readonly Color SidebarColor   = new Color(0.08f, 0.08f, 0.10f);
-    private static readonly Color PanelColor     = new Color(0.10f, 0.10f, 0.13f);
+    private static readonly Color SidebarColor   = new Color(0.06f, 0.06f, 0.09f, 0.80f);
+    private static readonly Color PanelColor     = new Color(0.08f, 0.08f, 0.11f, 0.72f);
     private static readonly Color NavNormal      = new Color(0.12f, 0.12f, 0.15f);
     private static readonly Color NavHover       = new Color(0.18f, 0.22f, 0.30f);
     private static readonly Color CardNormal     = new Color(0.12f, 0.12f, 0.15f);
@@ -48,6 +56,7 @@ public class MainMenuManager : MonoBehaviour
         EnsureEventSystem();
         BuildUI();
         ShowPanel(_homePanel);
+        AudioManager.Instance?.PlayMusic(menuMusic);
     }
 
     private static LexikonEntry[] CreateDefaultLexikonEntries()
@@ -99,7 +108,21 @@ public class MainMenuManager : MonoBehaviour
         canvasGO.AddComponent<GraphicRaycaster>();
 
         // ── Background ────────────────────────────────────────────────────────
-        Stretch(MakeBG(canvasGO.transform, "BG", BgColor), Vector2.zero, Vector2.one);
+        // Background image
+        GameObject bgGO = MakeBG(canvasGO.transform, "BG", BgColor);
+        Image bgImg     = bgGO.GetComponent<Image>();
+        if (backgroundSprite != null)
+        {
+            bgImg.sprite = backgroundSprite;
+            bgImg.type   = Image.Type.Simple;
+            bgImg.preserveAspect = false;
+            bgImg.color  = Color.white;
+        }
+        Stretch(bgGO, Vector2.zero, Vector2.one);
+
+        // Dark overlay
+        GameObject overlayGO = MakeBG(canvasGO.transform, "Overlay", new Color(0f, 0f, 0f, overlayAlpha));
+        Stretch(overlayGO, Vector2.zero, Vector2.one);
 
         // ── Sidebar (left 260 px) ─────────────────────────────────────────────
         GameObject sidebar   = new GameObject("Sidebar");
@@ -176,13 +199,13 @@ public class MainMenuManager : MonoBehaviour
         col.transform.SetParent(panel.transform, false);
         col.AddComponent<RectTransform>();
         VerticalLayoutGroup colVL  = col.AddComponent<VerticalLayoutGroup>();
-        colVL.padding              = new RectOffset(0, 0, 120, 80);
+        colVL.padding              = new RectOffset(0, 260, 0, 0);
         colVL.spacing              = 28f;
         colVL.childControlHeight   = false;
         colVL.childControlWidth    = false;
         colVL.childForceExpandWidth  = false;
         colVL.childForceExpandHeight = false;
-        colVL.childAlignment       = TextAnchor.UpperCenter;
+        colVL.childAlignment       = TextAnchor.MiddleCenter;
 
         var title       = MakeLabel(col.transform, "Title", "VAMPIRE SURVIVALZ", 68f);
         title.color     = AccentRed;

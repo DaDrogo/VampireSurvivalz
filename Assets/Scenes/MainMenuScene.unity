@@ -193,6 +193,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4a29e5eec54062f46a7cd8762a0afe8c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  backgroundSprite: {fileID: -60501695457147688, guid: 0bfb1b72953e8e247b2e1cd2faf0792b, type: 3}
+  overlayAlpha: 0.55
   lexikonEntries:
   - {fileID: 11400000, guid: 234ff19a628d96e469ee6cc57c81db9b, type: 2}
   - {fileID: 11400000, guid: 21bcbf157a1863c47a382fbeb5071211, type: 2}
