@@ -23,6 +23,7 @@ public class UIManager : MonoBehaviour
     private TextMeshProUGUI _stateText;
     private TextMeshProUGUI _timerText;
     private TextMeshProUGUI _hpText;
+    private TextMeshProUGUI _currencyText;
 
     // ── Hotbar ────────────────────────────────────────────────────────────────
 
@@ -88,6 +89,8 @@ public class UIManager : MonoBehaviour
             GameManager.Instance.OnEnemiesRemainingChanged -= HandleEnemiesRemainingChanged;
             GameManager.Instance.OnPlayerSpawned           -= BindHPLabel;
         }
+        if (PersistentDataManager.Instance != null)
+            PersistentDataManager.Instance.OnCurrencyChanged -= HandleCurrencyChanged;
         BuildingManager.OnSelectionChanged -= HandleHotbarSelectionChanged;
         PlacedBuilding.OnSelected          -= HandlePlacedBuildingSelected;
     }
@@ -112,6 +115,11 @@ public class UIManager : MonoBehaviour
         }
         else Debug.LogWarning("UIManager: GameManager not found.");
 
+        if (PersistentDataManager.Instance != null)
+        {
+            PersistentDataManager.Instance.OnCurrencyChanged += HandleCurrencyChanged;
+            HandleCurrencyChanged(PersistentDataManager.Instance.TotalCurrency);
+        }
         BuildingManager.OnSelectionChanged += HandleHotbarSelectionChanged;
         PlacedBuilding.OnSelected          += HandlePlacedBuildingSelected;
     }
@@ -181,6 +189,9 @@ public class UIManager : MonoBehaviour
                 ? new Color(1f, 0.35f, 0.2f)
                 : new Color(1f, 0.85f, 0.3f);
     }
+
+    private void HandleCurrencyChanged(int coins) =>
+        _currencyText?.SetText("Coins: {0}", coins);
 
     private void HandleEnemiesRemainingChanged(int count)
     {
@@ -475,6 +486,8 @@ public class UIManager : MonoBehaviour
                   new Color(0.6f, 0.6f, 0.6f), TextAlignmentOptions.Right);
         _hpText = MakeLabel(rightGO.transform, "HPText", "--/--", font, 22f,
                             Color.white, TextAlignmentOptions.Right);
+        _currencyText = MakeLabel(rightGO.transform, "CurrencyText", "Coins: 0", font, 18f,
+                                  new Color(1f, 0.85f, 0.2f), TextAlignmentOptions.Right);
 
         // Pause button — fixed-width slot at the right end of the top bar
         GameObject pauseBtnGO = new GameObject("PauseButton");

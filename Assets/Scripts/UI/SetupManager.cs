@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 /// <summary>
@@ -30,6 +31,7 @@ public class SetupManager : MonoBehaviour
     private Image[]              _stepPillBgs;
     private TextMeshProUGUI[]    _stepPillLabels;
     private Button               _backBtn;
+    private TextMeshProUGUI      _backLabel;
     private Button               _nextBtn;
     private TextMeshProUGUI      _nextLabel;
 
@@ -619,8 +621,8 @@ public class SetupManager : MonoBehaviour
         _backBtn.targetGraphic = backImg;
         SetBtn(_backBtn, Color.white, new Color(1.15f, 1.15f, 1.15f), new Color(0.8f, 0.8f, 0.8f));
         _backBtn.onClick.AddListener(OnBack);
-        var bl = Label(backGO.transform, "← BACK", 22f, Color.white);
-        StretchRT(bl.GetComponent<RectTransform>());
+        _backLabel = Label(backGO.transform, "← BACK", 22f, Color.white);
+        StretchRT(_backLabel.GetComponent<RectTransform>());
 
         // Spacer
         var sp = GroupGO(bar.transform, "Spacer");
@@ -659,7 +661,7 @@ public class SetupManager : MonoBehaviour
                                         ? new Color(0.58f, 0.74f, 1f) : new Color(0.38f, 0.38f, 0.42f);
         }
 
-        _backBtn.gameObject.SetActive(_step > 0);
+        _backLabel.text = _step == 0 ? "← MENU" : "← BACK";
 
         bool isLast = _step == _stepPanels.Length - 1;
         _nextLabel.text = isLast ? "START GAME" : "NEXT  →";
@@ -672,7 +674,11 @@ public class SetupManager : MonoBehaviour
             SelectCharacter(_charIndex, save: false);
     }
 
-    private void OnBack() => GoToStep(_step - 1);
+    private void OnBack()
+    {
+        if (_step == 0) SceneManager.LoadScene("MainMenuScene");
+        else            GoToStep(_step - 1);
+    }
     private void OnNext()
     {
         if (_step < _stepPanels.Length - 1) GoToStep(_step + 1);

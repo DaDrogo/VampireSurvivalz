@@ -12,6 +12,12 @@ public class LexikonEntry : ScriptableObject
     public string          description;
     [TextArea(1, 3)]
     public string          stats;
+
+    [Header("Unlock")]
+    [Tooltip("If true this entry is always available. If false the player must spend coins to unlock it.")]
+    public bool isUnlockedByDefault = true;
+    [Tooltip("Coin cost to unlock. Only used when isUnlockedByDefault is false.")]
+    public int  unlockCost          = 50;
 }
 
 /// <summary>Runtime tag placed on lexikon row GameObjects so filter buttons can toggle them.</summary>

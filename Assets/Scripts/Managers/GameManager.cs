@@ -99,6 +99,7 @@ public class GameManager : MonoBehaviour
     // ── Private ───────────────────────────────────────────────────────────────
 
     private int          _enemiesSpawned;
+    private int          _coinsEarnedThisRun;
     private GameObject   _gameOverScreen;
     private GameObject   _playerInstance;
     private MapGenerator _mapGenerator;
@@ -131,6 +132,7 @@ public class GameManager : MonoBehaviour
         EnemiesRemaining = 0;
         EnemiesThisWave = 0;
         _enemiesSpawned = 0;
+        _coinsEarnedThisRun = 0;
 
         if (_gameOverScreen != null)
             _gameOverScreen.SetActive(false);
@@ -262,10 +264,19 @@ public class GameManager : MonoBehaviour
         EnemiesRemaining = Mathf.Max(0, EnemiesRemaining - 1);
         OnEnemiesRemainingChanged?.Invoke(EnemiesRemaining);
         PersistentDataManager.Instance?.AddKills(1);
+        PersistentDataManager.Instance?.AddCurrency(1);
+        _coinsEarnedThisRun++;
 
         // Only end the wave after every enemy has been spawned AND killed
         if (_enemiesSpawned >= EnemiesThisWave && EnemiesRemaining <= 0)
+        {
+            // Wave-completion bonus: wave × 5 coins
+            int waveBonus = WaveNumber * 5;
+            PersistentDataManager.Instance?.AddCurrency(waveBonus);
+            _coinsEarnedThisRun += waveBonus;
+            PersistentDataManager.Instance?.SaveKills();
             EnterPreparation();
+        }
     }
 
     // ── Restart / Return to Menu ──────────────────────────────────────────────
@@ -485,7 +496,7 @@ public class GameManager : MonoBehaviour
         panelRect.anchorMin         = new Vector2(0.5f, 0.5f);
         panelRect.anchorMax         = new Vector2(0.5f, 0.5f);
         panelRect.pivot             = new Vector2(0.5f, 0.5f);
-        panelRect.sizeDelta         = new Vector2(420f, 340f);
+        panelRect.sizeDelta         = new Vector2(420f, 380f);
         panel.AddComponent<Image>().color = new Color(0.08f, 0.08f, 0.08f, 0.96f);
 
         VerticalLayoutGroup layout  = panel.AddComponent<VerticalLayoutGroup>();
@@ -504,6 +515,11 @@ public class GameManager : MonoBehaviour
 
         var waveLine    = MakeLabel(panel.transform, "WaveLine", $"You survived {WaveNumber} wave(s)", font, 26f);
         waveLine.color  = new Color(0.8f, 0.8f, 0.8f);
+
+        int totalCoins  = PersistentDataManager.Instance?.TotalCurrency ?? 0;
+        var coinLine    = MakeLabel(panel.transform, "CoinLine",
+                          $"+{_coinsEarnedThisRun} coins  (total: {totalCoins})", font, 22f);
+        coinLine.color  = new Color(1f, 0.85f, 0.2f);
 
         // Restart button
         GameObject btnGO = new GameObject("RestartButton");

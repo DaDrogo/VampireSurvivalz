@@ -22,7 +22,9 @@
       "mcp__ai-game-developer__console-get-logs",
       "mcp__ai-game-developer__tool-list",
       "mcp__ai-game-developer__gameobject-component-add",
-      "mcp__ai-game-developer__gameobject-component-modify"
+      "mcp__ai-game-developer__gameobject-component-modify",
+      "Bash(grep -v \"^  m_Name: $\")",
+      "Bash(xargs grep *)"
     ]
   },
   "enableAllProjectMcpServers": true,
