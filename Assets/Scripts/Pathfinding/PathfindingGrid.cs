@@ -124,6 +124,16 @@ public class PathfindingGrid : MonoBehaviour
         node.BarricadeRef = null;
     }
 
+    /// <summary>
+    /// Marks a single grid node as walkable without rebuilding the whole grid.
+    /// Called by <see cref="MapGenerator.TryBreakInteriorWall"/> after a wall tile is removed.
+    /// </summary>
+    public void ClearWallNode(Vector2 worldPos)
+    {
+        if (!TryGetNode(worldPos, out PathNode node)) return;
+        node.IsWall = false;
+    }
+
     // ═════════════════════════════════════════════════════════════════════════
     //  Node access
     // ═════════════════════════════════════════════════════════════════════════

@@ -137,6 +137,14 @@ public class StatusEffectHandler : MonoBehaviour
         RecalcDerivedState();
     }
 
+    public void ClearAll()
+    {
+        _active.Clear();
+        SpeedMultiplier = 1f;
+        IsStunned       = false;
+        if (_renderer != null) _renderer.color = _originalColor;
+    }
+
     // ── Stacking helpers ──────────────────────────────────────────────────────
 
     private void ApplySlow(OnHitEffect data)

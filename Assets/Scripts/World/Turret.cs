@@ -117,12 +117,12 @@ public class Turret : MonoBehaviour, IDamageable, IEnemyAttackable, ILexikonSour
         if (projectilePrefab == null) return;
 
         Transform spawnPoint = firePoint != null ? firePoint : head != null ? head : transform;
-        GameObject proj = Instantiate(projectilePrefab, spawnPoint.position, Quaternion.identity);
+        GameObject proj = PoolManager.Instance != null
+            ? PoolManager.Instance.Get(projectilePrefab, spawnPoint.position, Quaternion.identity)
+            : Instantiate(projectilePrefab, spawnPoint.position, Quaternion.identity);
 
         if (proj.TryGetComponent(out Projectile projectile))
-        {
             projectile.Initialize(targetPos);
-        }
     }
 
     private void OnDrawGizmosSelected()

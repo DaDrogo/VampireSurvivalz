@@ -36,6 +36,7 @@ public class PlayerController : MonoBehaviour, IDamageable
     private Rigidbody2D _rb;
     private Vector2     _moveInput;
     private float       _iFrameTimer;
+    private float       _daySpeedMult = 1f;
 
     // Manual hold-interaction (keyboard Interact button)
     private InputAction       _interactAction;
@@ -70,9 +71,19 @@ public class PlayerController : MonoBehaviour, IDamageable
 
         EnhancedTouchSupport.Enable();   // required for Touch.activeTouches on mobile
         BuildHoldBar();
+
+        if (DayNightManager.Instance != null)
+            DayNightManager.Instance.OnPlayerSpeedMultChanged += OnDaySpeedMultChanged;
     }
 
-    private void OnDestroy() => EnhancedTouchSupport.Disable();
+    private void OnDestroy()
+    {
+        EnhancedTouchSupport.Disable();
+        if (DayNightManager.Instance != null)
+            DayNightManager.Instance.OnPlayerSpeedMultChanged -= OnDaySpeedMultChanged;
+    }
+
+    private void OnDaySpeedMultChanged(float mult) => _daySpeedMult = mult;
 
 #if UNITY_EDITOR
     private void OnValidate() => SpriteColliderAutoFit.Fit(gameObject);
@@ -126,7 +137,7 @@ public class PlayerController : MonoBehaviour, IDamageable
         {
             // Keyboard/stick takes priority — cancel any click-to-move
             ClearPointToMove();
-            _rb.linearVelocity = _moveInput.normalized * moveSpeed;
+            _rb.linearVelocity = _moveInput.normalized * (moveSpeed * _daySpeedMult);
             return;
         }
 
@@ -251,7 +262,7 @@ public class PlayerController : MonoBehaviour, IDamageable
             return;
         }
 
-        _rb.linearVelocity = dir.normalized * moveSpeed;
+        _rb.linearVelocity = dir.normalized * (moveSpeed * _daySpeedMult);
     }
 
     private void ClearPointToMove()

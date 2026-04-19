@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Tilemaps;
 
 [RequireComponent(typeof(Rigidbody2D))]
 public class Enemy : MonoBehaviour, IDamageable, ILexikonSource
@@ -37,14 +38,19 @@ public class Enemy : MonoBehaviour, IDamageable, ILexikonSource
 
     // ── Constants ─────────────────────────────────────────────────────────────
 
-    private const float DOOR_REACH      = 0.8f;   // distance at which the enemy "crosses" a door
-    // Tuning notes:
-    // When an enemy is wedged between a wall and a side barricade, it may still "jitter"
-    // a bit due to collision resolution. If STUCK_MIN_MOVE is too small, the timer keeps
-    // resetting and the side barricade never becomes an attack target.
-    private const float STUCK_THRESHOLD = 3f;      // seconds of no meaningful movement before acting
-    private const float STUCK_MIN_MOVE  = 0.20f;   // tolerance for position jitter while effectively stuck
-    private const float STUCK_ATTACK_RADIUS = 1.5f; // overlap radius when searching for a stuck blocker
+    private const float DOOR_REACH      = 0.8f;
+    private const float STUCK_THRESHOLD = 3f;
+    private const float STUCK_MIN_MOVE  = 0.20f;
+    private const float STUCK_ATTACK_RADIUS = 1.5f;
+
+    // Wall-break stuck system
+    private const float WALL_BREAK_DURATION  = 10f;   // seconds against a wall before it breaks
+    private const float WALL_BREAK_SCAN_DIST = 0.7f;  // distance ahead to probe for wall tiles
+    private const float WALL_STUCK_SPEED_SQ  = 0.09f; // (0.3 m/s)² — below this = "stuck"
+
+    private static readonly Vector3Int InvalidTile = new Vector3Int(int.MinValue, int.MinValue, 0);
+    private static readonly Vector2[]  ScanDirs    =
+        { Vector2.up, Vector2.down, Vector2.left, Vector2.right };
 
     // ── Private ───────────────────────────────────────────────────────────────
 
@@ -84,12 +90,33 @@ public class Enemy : MonoBehaviour, IDamageable, ILexikonSource
     private bool    _wallContact;
     private Vector2 _wallNormal;   // accumulated (un-normalized) contact normals from wall tiles
 
+    // Wall-break system
+    private MapGenerator _mapGenerator;
+    private float        _wallBreakTimer;
+    private Vector3Int   _wallBreakTile;
+    private bool         _hasWallBreakTarget;
+
     // Status effects (component added on demand by Projectile)
     private StatusEffectHandler _statusEffects;
 
     // Reusable physics buffers — avoid per-frame allocations
     private readonly RaycastHit2D[] _castBuffer    = new RaycastHit2D[16];
     private readonly Collider2D[]   _overlapBuffer = new Collider2D[8];
+
+    // Base stats preserved for pool reset (ApplyWaveScaling mutates the fields)
+    private float _baseMaxHealth;
+    private float _baseMoveSpeed;
+    private float _baseAttackDamage;
+    private float _baseContactDamage;
+
+    // Day/night runtime multipliers (applied on top of wave-scaled stats)
+    private float _nightSpeedMult    = 1f;
+    private float _nightDamageMult   = 1f;
+    private float _permanentNightMult = 1f;   // grows each full cycle, never reset
+
+    private float EffectiveMoveSpeed    => moveSpeed    * _nightSpeedMult  * _permanentNightMult;
+    private float EffectiveAttackDamage => attackDamage * _nightDamageMult * _permanentNightMult;
+    private float EffectiveContactDamage => contactDamage * _nightDamageMult * _permanentNightMult;
 
     // ── Unity lifecycle ───────────────────────────────────────────────────────
 
@@ -102,6 +129,11 @@ public class Enemy : MonoBehaviour, IDamageable, ILexikonSource
         _rb.linearDamping  = 0f;
         CurrentHealth      = maxHealth;
 
+        _baseMaxHealth     = maxHealth;
+        _baseMoveSpeed     = moveSpeed;
+        _baseAttackDamage  = attackDamage;
+        _baseContactDamage = contactDamage;
+
         // Enemies must not physically block each other — otherwise they pile up
         // at narrow door openings and jam.  One call disables all enemy↔enemy
         // rigidbody collisions globally for whatever layer this object is on.
@@ -110,6 +142,57 @@ public class Enemy : MonoBehaviour, IDamageable, ILexikonSource
         int layer = gameObject.layer;
         if (layer != 0)
             Physics2D.IgnoreLayerCollision(layer, layer, true);
+    }
+
+    private void OnEnable()
+    {
+        // Restore base stats so ApplyWaveScaling starts from clean values each reuse
+        if (_baseMaxHealth > 0f)
+        {
+            maxHealth     = _baseMaxHealth;
+            moveSpeed     = _baseMoveSpeed;
+            attackDamage  = _baseAttackDamage;
+            contactDamage = _baseContactDamage;
+        }
+        CurrentHealth = maxHealth;
+
+        // Reset runtime navigation / combat state
+        _attackTarget    = null;
+        _attackTargetMB  = null;
+        _attackTimer     = 0f;
+        _contactTimer    = 0f;
+        _resourceContact = null;
+        _resourceContactTimer = 0f;
+        _wallContact     = false;
+        _wallNormal      = Vector2.zero;
+        _stuckTimer      = 0f;
+        _navTimer        = 0f;
+        _myRoom          = null;
+        _playerRoom      = null;
+        _nextDoor        = null;
+        _approachingDoor = false;
+
+        if (_rb != null)
+            _rb.linearVelocity = Vector2.zero;
+
+        if (_statusEffects != null)
+            _statusEffects.ClearAll();
+
+        // Cancel any in-progress wall-break without un-tinting (tile may be gone / reused)
+        _wallBreakTimer     = 0f;
+        _hasWallBreakTarget = false;
+
+        // Reset night mults — DayNightManager will re-apply them after registration
+        _nightSpeedMult    = 1f;
+        _nightDamageMult   = 1f;
+        _permanentNightMult = 1f;
+
+        DayNightManager.Instance?.RegisterEnemy(this);
+    }
+
+    private void OnDisable()
+    {
+        DayNightManager.Instance?.UnregisterEnemy(this);
     }
 
 #if UNITY_EDITOR
@@ -131,6 +214,7 @@ public class Enemy : MonoBehaviour, IDamageable, ILexikonSource
         _navTarget     = _player != null ? (Vector2)_player.position : _rb.position;
 
         _statusEffects = GetComponent<StatusEffectHandler>();
+        _mapGenerator  = FindAnyObjectByType<MapGenerator>();
 
         // Stagger so spawned enemies don't all recalculate on the same frame
         _navTimer = Random.Range(0f, pathRefreshInterval);
@@ -241,6 +325,9 @@ public class Enemy : MonoBehaviour, IDamageable, ILexikonSource
             _stuckCheckPos = _rb.position;
             return;
         }
+
+        // ── Wall-break stuck system ───────────────────────────────────────────
+        TickWallBreak();
 
         // ── Linecast block check then move ────────────────────────────────────
         if (CheckLinecastBlock()) return;
@@ -400,7 +487,7 @@ public class Enemy : MonoBehaviour, IDamageable, ILexikonSource
     /// </summary>
     private void Navigate(bool wallContact = false, Vector2 wallNormal = default)
     {
-        float   speed = moveSpeed * (_statusEffects != null ? _statusEffects.SpeedMultiplier : 1f);
+        float   speed = EffectiveMoveSpeed * (_statusEffects != null ? _statusEffects.SpeedMultiplier : 1f);
         Vector2 dir   = (_navTarget - _rb.position).normalized;
 
         if (wallContact && wallNormal.sqrMagnitude > 0.001f)
@@ -516,6 +603,97 @@ public class Enemy : MonoBehaviour, IDamageable, ILexikonSource
         UpdateNavigation();
     }
 
+    // ── Wall-break stuck system ───────────────────────────────────────────────
+
+    /// <summary>
+    /// Accumulates a timer while the enemy is nearly motionless against an
+    /// interior wall tile.  At <see cref="WALL_BREAK_DURATION"/> seconds the tile
+    /// is removed and the pathfinding grid is updated so other enemies re-route.
+    /// A crack tint (white → orange → red) gives the player visual warning.
+    /// </summary>
+    private void TickWallBreak()
+    {
+        // Only tick while truly stuck (velocity near zero)
+        if (_rb.linearVelocity.sqrMagnitude > WALL_STUCK_SPEED_SQ)
+        {
+            CancelWallBreak();
+            return;
+        }
+
+        Vector3Int tile = FindAdjacentInteriorWall();
+        if (tile == InvalidTile)
+        {
+            CancelWallBreak();
+            return;
+        }
+
+        // If the targeted tile changed, restart (enemy shifted position)
+        if (_hasWallBreakTarget && tile != _wallBreakTile)
+            CancelWallBreak();
+
+        _wallBreakTile      = tile;
+        _hasWallBreakTarget = true;
+        _wallBreakTimer    += Time.fixedDeltaTime;
+
+        ApplyWallCrackTint(_wallBreakTile, _wallBreakTimer / WALL_BREAK_DURATION);
+
+        if (_wallBreakTimer >= WALL_BREAK_DURATION)
+        {
+            _mapGenerator?.TryBreakInteriorWall(_wallBreakTile);
+            _hasWallBreakTarget = false;
+            _wallBreakTimer     = 0f;
+        }
+    }
+
+    private Vector3Int FindAdjacentInteriorWall()
+    {
+        if (_mapGenerator == null) return InvalidTile;
+
+        Tilemap wt = _mapGenerator.WallTilemap;
+        if (wt == null) return InvalidTile;
+
+        foreach (Vector2 dir in ScanDirs)
+        {
+            Vector2    probe    = _rb.position + dir * WALL_BREAK_SCAN_DIST;
+            Vector3Int tilePos  = wt.WorldToCell(probe);
+            tilePos.z = 0;
+            if (_mapGenerator.IsInteriorWall(tilePos))
+                return tilePos;
+        }
+        return InvalidTile;
+    }
+
+    private void ApplyWallCrackTint(Vector3Int tilePos, float t)
+    {
+        if (_mapGenerator?.WallTilemap == null) return;
+        Tilemap wt = _mapGenerator.WallTilemap;
+
+        // white → orange (t<0.5) → red (t=1)
+        Color crackColor = t < 0.5f
+            ? Color.Lerp(Color.white,             new Color(1f, 0.55f, 0f), t * 2f)
+            : Color.Lerp(new Color(1f, 0.55f, 0f), new Color(1f, 0.1f,  0f), (t - 0.5f) * 2f);
+
+        wt.SetTileFlags(tilePos, TileFlags.None);
+        wt.SetColor(tilePos, crackColor);
+    }
+
+    private void CancelWallBreak()
+    {
+        if (!_hasWallBreakTarget) return;
+
+        // Restore the tile's original colour if it still exists
+        if (_mapGenerator?.WallTilemap != null
+            && _mapGenerator.IsInteriorWall(_wallBreakTile))
+        {
+            Tilemap wt = _mapGenerator.WallTilemap;
+            wt.SetTileFlags(_wallBreakTile, TileFlags.None);
+            wt.SetColor(_wallBreakTile, Color.white);
+        }
+
+        _hasWallBreakTarget = false;
+        _wallBreakTimer     = 0f;
+    }
+
     // ── Stuck-blocker attack ──────────────────────────────────────────────────
 
     /// <summary>
@@ -618,7 +796,7 @@ public class Enemy : MonoBehaviour, IDamageable, ILexikonSource
         if (_attackTimer > 0f) return;
 
         _attackTimer = attackInterval;
-        _attackTarget.ReceiveEnemyAttack(attackDamage, attackInterval);
+        _attackTarget.ReceiveEnemyAttack(EffectiveAttackDamage, attackInterval);
     }
 
     private void ClearAttackTarget()
@@ -658,10 +836,30 @@ public class Enemy : MonoBehaviour, IDamageable, ILexikonSource
         CurrentHealth  = maxHealth;
     }
 
+    // ── Day/night buff API (called by DayNightManager) ────────────────────────
+
+    public void ApplyNightBuff(float speedMult, float damageMult)
+    {
+        _nightSpeedMult  = speedMult;
+        _nightDamageMult = damageMult;
+    }
+
+    public void ClearNightBuff()
+    {
+        _nightSpeedMult  = 1f;
+        _nightDamageMult = 1f;
+    }
+
+    /// <summary>Permanently increases the stat multiplier. Stacks each full cycle.</summary>
+    public void AddPermanentCycleBuff(float bonus) => _permanentNightMult += bonus;
+
     private void Die()
     {
         GameManager.Instance?.OnEnemyDied();
-        Destroy(gameObject);
+        if (PoolManager.Instance != null)
+            PoolManager.Instance.Release(gameObject);
+        else
+            Destroy(gameObject);
     }
 
     // ── Contact damage & resource destruction ────────────────────────────────
@@ -684,7 +882,7 @@ public class Enemy : MonoBehaviour, IDamageable, ILexikonSource
         {
             if (col.gameObject.TryGetComponent(out IDamageable damageable))
             {
-                damageable.TakeDamage(contactDamage);
+                damageable.TakeDamage(EffectiveContactDamage);
                 _contactTimer = contactCooldown;
             }
         }

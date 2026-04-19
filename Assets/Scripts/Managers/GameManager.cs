@@ -110,6 +110,9 @@ public class GameManager : MonoBehaviour
     {
         if (Instance != null) { Destroy(gameObject); return; }
         Instance = this;
+
+        if (DayNightManager.Instance == null)
+            gameObject.AddComponent<DayNightManager>();
     }
 
     private void Start()
@@ -152,6 +155,7 @@ public class GameManager : MonoBehaviour
             Debug.LogWarning("GameManager: MapGenerator not found. Starting game without map regeneration.");
         }
 
+        AudioManager.Instance?.StartGameMusic();
         SpawnOrRepositionPlayer();
         EnterPreparation();
     }
@@ -230,8 +234,8 @@ public class GameManager : MonoBehaviour
         WaveNumber++;
         CurrentState    = GameState.Wave;
         _enemiesSpawned = 0;
-        EnemiesThisWave = baseEnemyCount + (WaveNumber - 1) * enemyCountIncreasePerWave;
-        EnemiesRemaining = EnemiesThisWave;
+        EnemiesThisWave  = baseEnemyCount + (WaveNumber - 1) * enemyCountIncreasePerWave;
+        EnemiesRemaining += EnemiesThisWave;   // accumulate — previous wave enemies may still be alive
 
         OnWaveNumberChanged?.Invoke(WaveNumber);
         OnStateChanged?.Invoke(CurrentState);
@@ -266,17 +270,6 @@ public class GameManager : MonoBehaviour
         PersistentDataManager.Instance?.AddKills(1);
         PersistentDataManager.Instance?.AddCurrency(1);
         _coinsEarnedThisRun++;
-
-        // Only end the wave after every enemy has been spawned AND killed
-        if (_enemiesSpawned >= EnemiesThisWave && EnemiesRemaining <= 0)
-        {
-            // Wave-completion bonus: wave × 5 coins
-            int waveBonus = WaveNumber * 5;
-            PersistentDataManager.Instance?.AddCurrency(waveBonus);
-            _coinsEarnedThisRun += waveBonus;
-            PersistentDataManager.Instance?.SaveKills();
-            EnterPreparation();
-        }
     }
 
     // ── Restart / Return to Menu ──────────────────────────────────────────────
@@ -325,6 +318,9 @@ public class GameManager : MonoBehaviour
             _enemiesSpawned++;
             yield return new WaitForSeconds(timeBetweenSpawns);
         }
+
+        // Next wave starts after the interval — regardless of surviving enemies
+        EnterPreparation();
     }
 
     private void SpawnEnemy(float healthMult, float speedMult, float damageMult)
@@ -336,7 +332,9 @@ public class GameManager : MonoBehaviour
         }
 
         Vector2 pos = GetSpawnPosition();
-        var go = Instantiate(enemyPrefab, pos, Quaternion.identity);
+        var go = PoolManager.Instance != null
+            ? PoolManager.Instance.Get(enemyPrefab, pos, Quaternion.identity)
+            : Instantiate(enemyPrefab, pos, Quaternion.identity);
 
         if (go.TryGetComponent(out Enemy enemy))
             enemy.ApplyWaveScaling(healthMult, speedMult, damageMult);

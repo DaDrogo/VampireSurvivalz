@@ -289,6 +289,46 @@ public class MapGenerator : MonoBehaviour
         }
     }
 
+    // ── Public wall-break API (used by Enemy stuck system) ───────────────────
+
+    /// <summary>Exposes the wall tilemap so enemies can probe tiles directly.</summary>
+    public Tilemap WallTilemap => wallTilemap;
+
+    /// <summary>
+    /// Returns true when <paramref name="tilePos"/> holds a wall tile that is NOT
+    /// part of the outer perimeter (i.e. it is safe for enemies to break through it).
+    /// </summary>
+    public bool IsInteriorWall(Vector3Int tilePos)
+    {
+        if (wallTilemap == null || wallTilemap.GetTile(tilePos) == null) return false;
+
+        Vector2Int o = Origin;
+        int x = tilePos.x, y = tilePos.y;
+        // The perimeter occupies the outermost row/column on every side
+        if (x <= o.x || x >= o.x + mapWidth  - 1) return false;
+        if (y <= o.y || y >= o.y + mapHeight - 1) return false;
+        return true;
+    }
+
+    /// <summary>
+    /// Removes an interior wall tile, places a floor tile, and notifies the
+    /// pathfinding grid so enemies can immediately re-route through the gap.
+    /// Returns false if the tile is not an interior wall.
+    /// </summary>
+    public bool TryBreakInteriorWall(Vector3Int tilePos)
+    {
+        if (!IsInteriorWall(tilePos)) return false;
+
+        ClearWall(tilePos.x, tilePos.y);
+
+        // Tell the live A* grid the node is now walkable — no full rebuild needed.
+        Vector2 worldCentre = wallTilemap.CellToWorld(tilePos)
+                              + new Vector3(0.5f, 0.5f, 0f);
+        PathfindingGrid.Instance?.ClearWallNode(worldCentre);
+
+        return true;
+    }
+
     // ── Tile helpers ──────────────────────────────────────────────────────────
 
     private void SetWall(int x, int y)

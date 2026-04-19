@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -62,6 +63,7 @@ public class Projectile : MonoBehaviour
     private bool        _detonated;
     private float       _currentDamage;
     private int         _chainsLeft;
+    private Coroutine   _lifetimeRoutine;
 
     // Tracks already-hit colliders so a single projectile never damages the same
     // enemy twice (important for chain hops and fast-moving AoE splash).
@@ -80,6 +82,16 @@ public class Projectile : MonoBehaviour
 #if UNITY_EDITOR
     private void OnValidate() => SpriteColliderAutoFit.Fit(gameObject);
 #endif
+
+    private void OnEnable()
+    {
+        _initialized  = false;
+        _detonated    = false;
+        _currentDamage = damage;
+        _chainsLeft   = chainCount;
+        _hitSet.Clear();
+        _lifetimeRoutine = null;
+    }
 
     // ── Public API ────────────────────────────────────────────────────────────
 
@@ -100,7 +112,13 @@ public class Projectile : MonoBehaviour
         _rb.linearVelocity = dir * speed;
         _initialized = true;
 
-        Destroy(gameObject, maxLifetime);
+        _lifetimeRoutine = StartCoroutine(LifetimeRoutine());
+    }
+
+    private IEnumerator LifetimeRoutine()
+    {
+        yield return new WaitForSeconds(maxLifetime);
+        ReturnToPool();
     }
 
     // ── Per-frame ─────────────────────────────────────────────────────────────
@@ -140,6 +158,19 @@ public class Projectile : MonoBehaviour
         }
     }
 
+    // ── Pool release ──────────────────────────────────────────────────────────
+
+    private void ReturnToPool()
+    {
+        _initialized = false;
+        _detonated   = false;
+        _rb.linearVelocity = Vector2.zero;
+        if (PoolManager.Instance != null)
+            PoolManager.Instance.Release(gameObject);
+        else
+            Destroy(gameObject);
+    }
+
     // ── Arrow ─────────────────────────────────────────────────────────────────
 
     private void HitSingleTarget(Collider2D other)
@@ -147,7 +178,7 @@ public class Projectile : MonoBehaviour
         if (other.TryGetComponent(out IDamageable d))
             d.TakeDamage(_currentDamage);
         ApplyEffect(other);
-        Destroy(gameObject);
+        ReturnToPool();
     }
 
     // ── Cannonball ────────────────────────────────────────────────────────────
@@ -161,14 +192,14 @@ public class Projectile : MonoBehaviour
         foreach (Collider2D col in hits)
         {
             if (!col.CompareTag("Enemy")) continue;
-            if (_hitSet.Contains(col))    continue;    // don't double-hit corner cases
+            if (_hitSet.Contains(col))    continue;
             _hitSet.Add(col);
             if (col.TryGetComponent(out IDamageable d))
                 d.TakeDamage(_currentDamage);
             ApplyEffect(col);
         }
 
-        Destroy(gameObject);
+        ReturnToPool();
     }
 
     // ── Chain ─────────────────────────────────────────────────────────────────
@@ -183,14 +214,14 @@ public class Projectile : MonoBehaviour
 
         if (_chainsLeft <= 0)
         {
-            Destroy(gameObject);
+            ReturnToPool();
             return;
         }
 
         Collider2D next = FindNextChainTarget();
         if (next == null)
         {
-            Destroy(gameObject);
+            ReturnToPool();
             return;
         }
 

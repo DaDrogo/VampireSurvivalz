@@ -181,6 +181,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   musicSource: {fileID: 0}
   sfxSource: {fileID: 0}
+  buttonClickSfx: {fileID: 8300000, guid: a90d0758e518a1e4c902a13315f9442e, type: 3}
 --- !u!114 &243077327
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -193,6 +194,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4a29e5eec54062f46a7cd8762a0afe8c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  menuMusic: {fileID: 8300000, guid: 38069de709ce6934899883756fe915e3, type: 3}
   backgroundSprite: {fileID: -60501695457147688, guid: 0bfb1b72953e8e247b2e1cd2faf0792b, type: 3}
   overlayAlpha: 0.55
   lexikonEntries:
