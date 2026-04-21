@@ -27,9 +27,21 @@ MonoBehaviour:
     description: 
     isBasic: 0
     isCitadel: 0
-    upgrades: []
-    upgradeChoices: []
-    groundTiles: []
+    upgrades:
+    - label: 
+      woodCost: 5
+      metalCost: 5
+      healthMult: 2
+      fireRateMult: 2
+      rangeMult: 2
+    upgradeChoices:
+    - label: 
+      prefab: {fileID: 1111100000000001, guid: 9f2b48e2931b95140b783df3604c2faa, type: 3}
+      woodCost: 5
+      metalCost: 5
+      description: 
+    groundTiles:
+    - {fileID: 11400000, guid: 2a2bc5156453e854ba040d2fbc77088d, type: 2}
   isBasic: 0
   isCitadel: 0
   statsSummary: 

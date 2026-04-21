@@ -39,6 +39,10 @@ public class CharacterDefinition : ScriptableObject, ILexikonSource
     [Header("Passive Effects")]
     public PassiveEffect[] passiveEffects;
 
+    [Header("Animation")]
+    [Tooltip("Override controller that swaps animation clips for this character's sprite sheet.")]
+    public AnimatorOverrideController animatorOverride;
+
     [Header("Citadel Aura")]
     [Tooltip("Which building stat this character's citadel aura boosts.")]
     public CitadelAuraType auraType = CitadelAuraType.None;

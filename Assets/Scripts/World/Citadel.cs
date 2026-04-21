@@ -23,14 +23,11 @@ using UnityEngine.UI;
 ///   BuildingManager refuses placement outside CitadelBuildRadius.
 /// </summary>
 [RequireComponent(typeof(BoxCollider2D))]
-public class Citadel : MonoBehaviour, IDamageable, IEnemyAttackable, IHoldInteractable
+public class Citadel : Building, IHoldInteractable
 {
     public static Citadel Instance { get; private set; }
 
     // ── Inspector ─────────────────────────────────────────────────────────────
-
-    [Header("Health")]
-    [SerializeField] private float maxHealth = 500f;
 
     [Header("Tiers")]
     [Tooltip("Upgrade costs from Tier 1→2 (index 0) and Tier 2→3 (index 1).")]
@@ -43,22 +40,6 @@ public class Citadel : MonoBehaviour, IDamageable, IEnemyAttackable, IHoldIntera
     [Header("Build Radius")]
     [Tooltip("Max world-space distance from the Citadel at which buildings can be placed.")]
     [SerializeField] private float buildRadius = 12f;
-
-    // ── IDamageable / IEnemyAttackable ────────────────────────────────────────
-
-    public float CurrentHealth { get; private set; }
-    public float MaxHealth     => maxHealth;
-    public bool  IsDestroyed   => this == null || CurrentHealth <= 0f;
-
-    public void ReceiveEnemyAttack(float damage, float _) => TakeDamage(damage);
-
-    public void TakeDamage(float damage)
-    {
-        CurrentHealth = Mathf.Max(0f, CurrentHealth - damage);
-        OnHealthChanged?.Invoke(CurrentHealth, maxHealth);
-        if (CurrentHealth <= 0f)
-            HandleDestroyed();
-    }
 
     // ── IHoldInteractable — hold to upgrade ───────────────────────────────────
 
@@ -84,8 +65,7 @@ public class Citadel : MonoBehaviour, IDamageable, IEnemyAttackable, IHoldIntera
 
     // ── Events ────────────────────────────────────────────────────────────────
 
-    public event Action<int>          OnTierChanged;
-    public event Action<float, float> OnHealthChanged;
+    public event Action<int> OnTierChanged;
 
     // ── Public state ──────────────────────────────────────────────────────────
 
@@ -108,14 +88,11 @@ public class Citadel : MonoBehaviour, IDamageable, IEnemyAttackable, IHoldIntera
 
     // ── Unity lifecycle ───────────────────────────────────────────────────────
 
-    private void Awake()
+    protected override void Awake()
     {
         if (Instance != null) { Destroy(gameObject); return; }
         Instance = this;
-
-        SpriteColliderAutoFit.Fit(gameObject);
-        CurrentHealth = maxHealth;
-
+        base.Awake();
         if (TryGetComponent(out SpriteRenderer sr))
             sr.sortingOrder = 5;
     }
@@ -229,10 +206,10 @@ public class Citadel : MonoBehaviour, IDamageable, IEnemyAttackable, IHoldIntera
 
     // ── Destruction ───────────────────────────────────────────────────────────
 
-    private void HandleDestroyed()
+    protected override void OnDied()
     {
         GameManager.Instance?.TriggerGameOver();
-        Destroy(gameObject);
+        base.OnDied();
     }
 
     // ── Visual ────────────────────────────────────────────────────────────────

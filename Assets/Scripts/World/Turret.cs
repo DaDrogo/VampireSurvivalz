@@ -2,13 +2,8 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [RequireComponent(typeof(BoxCollider2D))]
-public class Turret : MonoBehaviour, IDamageable, IEnemyAttackable, ILexikonSource
+public class Turret : Building, ILexikonSource
 {
-    [Header("Health")]
-    [SerializeField] private float maxHealth = 150f;
-
-    public float CurrentHealth { get; private set; }
-    public float MaxHealth     => maxHealth;
 
     [Header("Detection")]
     [SerializeField] private float detectionRange = 8f;
@@ -28,31 +23,12 @@ public class Turret : MonoBehaviour, IDamageable, IEnemyAttackable, ILexikonSour
 
     private float _fireCooldown;
 
-    private void Awake()
-    {
-        SpriteColliderAutoFit.Fit(gameObject);
-        CurrentHealth = maxHealth;
-    }
-
     public List<StatLine> GetLexikonStats() => new()
     {
         new("HP",    maxHealth.ToString("F0")),
         new("Range", detectionRange.ToString("F1")),
         new("Rate",  fireRate.ToString("F1") + "/s"),
     };
-
-    public void TakeDamage(float damage)
-    {
-        CurrentHealth = Mathf.Max(0f, CurrentHealth - damage);
-        if (CurrentHealth <= 0f) Destroy(gameObject);
-    }
-
-    public bool IsDestroyed => this == null || CurrentHealth <= 0f;
-
-    public void ReceiveEnemyAttack(float damage, float attackInterval)
-    {
-        TakeDamage(damage);
-    }
 
     /// <summary>Called by <see cref="PlacedBuilding.TryUpgrade"/> to scale stats.</summary>
     public void ApplyUpgrade(float healthMult, float fireRateMult, float rangeMult)
@@ -63,10 +39,6 @@ public class Turret : MonoBehaviour, IDamageable, IEnemyAttackable, ILexikonSour
         fireRate       = Mathf.Max(0.1f, fireRate       * fireRateMult);
         detectionRange = Mathf.Max(1f,   detectionRange * rangeMult);
     }
-
-#if UNITY_EDITOR
-    private void OnValidate() => SpriteColliderAutoFit.Fit(gameObject);
-#endif
 
     private void Update()
     {

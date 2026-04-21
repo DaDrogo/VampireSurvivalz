@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 98d9dc6dc4b64914d86a9ffc1a426687, type: 3}
   m_Name: Level1
   m_EditorClassIdentifier: 
-  levelName: Level
+  levelName: Tutorial
   description: 
   previewColor: {r: 0.2, g: 0.4, b: 0.2, a: 1}
   sceneName: SampleScene

@@ -7,37 +7,14 @@ using UnityEngine;
 /// permanently killed without requiring a silver bullet.
 /// </summary>
 [RequireComponent(typeof(BoxCollider2D))]
-public class HolyWell : MonoBehaviour, IDamageable, IEnemyAttackable
+public class HolyWell : Building
 {
-    [Header("Health")]
-    [SerializeField] private float maxHealth = 80f;
-
-    // ── IDamageable / IEnemyAttackable ────────────────────────────────────────
-
-    public float CurrentHealth { get; private set; }
-    public float MaxHealth     => maxHealth;
-    public bool  IsDestroyed   => this == null || CurrentHealth <= 0f;
-
-    public void ReceiveEnemyAttack(float damage, float _) => TakeDamage(damage);
-
-    public void TakeDamage(float damage)
-    {
-        CurrentHealth = Mathf.Max(0f, CurrentHealth - damage);
-        if (CurrentHealth <= 0f)
-            Destroy(gameObject);
-    }
 
     // ── Private ───────────────────────────────────────────────────────────────
 
     private bool _registered = false;
 
     // ── Unity lifecycle ───────────────────────────────────────────────────────
-
-    private void Awake()
-    {
-        SpriteColliderAutoFit.Fit(gameObject);
-        CurrentHealth = maxHealth;
-    }
 
     private void OnEnable()  => TryRegister();
     private void OnDisable() => TryUnregister();

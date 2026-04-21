@@ -11,12 +11,9 @@ using UnityEngine;
 /// Upgrades scale via <c>ApplyUpgrade(healthMult, productionMult)</c>.
 /// </summary>
 [RequireComponent(typeof(CircleCollider2D))]
-public class ResourceProducer : MonoBehaviour, IDamageable, IEnemyAttackable
+public class ResourceProducer : Building
 {
     // ── Inspector ─────────────────────────────────────────────────────────────
-
-    [Header("Health")]
-    [SerializeField] private float maxHealth = 100f;
 
     [Header("Production")]
     [Tooltip("\"Wood\", \"Metal\", or \"Both\"")]
@@ -27,11 +24,6 @@ public class ResourceProducer : MonoBehaviour, IDamageable, IEnemyAttackable
 
     [Tooltip("Seconds between each production tick.")]
     [SerializeField] private float productionInterval = 10f;
-
-    // ── IDamageable ───────────────────────────────────────────────────────────
-
-    public float CurrentHealth { get; private set; }
-    public float MaxHealth     => maxHealth;
 
     // ── Read-only stats (for UI) ──────────────────────────────────────────────
 
@@ -44,16 +36,6 @@ public class ResourceProducer : MonoBehaviour, IDamageable, IEnemyAttackable
     private float _timer;
 
     // ── Unity lifecycle ───────────────────────────────────────────────────────
-
-    private void Awake()
-    {
-        SpriteColliderAutoFit.Fit(gameObject);
-        CurrentHealth = maxHealth;
-    }
-
-#if UNITY_EDITOR
-    private void OnValidate() => SpriteColliderAutoFit.Fit(gameObject);
-#endif
 
     private void Update()
     {
@@ -87,23 +69,6 @@ public class ResourceProducer : MonoBehaviour, IDamageable, IEnemyAttackable
                 Debug.LogWarning($"[ResourceProducer] Unknown outputType '{outputType}'.");
                 break;
         }
-    }
-
-    // ── IDamageable ───────────────────────────────────────────────────────────
-
-    public void TakeDamage(float damage)
-    {
-        CurrentHealth = Mathf.Max(0f, CurrentHealth - damage);
-        if (CurrentHealth <= 0f) Destroy(gameObject);
-    }
-
-    // ── IEnemyAttackable ──────────────────────────────────────────────────────
-
-    public bool IsDestroyed => this == null || CurrentHealth <= 0f;
-
-    public void ReceiveEnemyAttack(float damage, float attackInterval)
-    {
-        TakeDamage(damage);
     }
 
     // ── Upgrade ───────────────────────────────────────────────────────────────

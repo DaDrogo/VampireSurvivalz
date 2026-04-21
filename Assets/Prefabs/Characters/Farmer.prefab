@@ -14,6 +14,8 @@ GameObject:
   - component: {fileID: 8097267028818282354}
   - component: {fileID: 2172667160554066956}
   - component: {fileID: 7315491149026036325}
+  - component: {fileID: -7012418974091726579}
+  - component: {fileID: -7117340779611412314}
   m_Layer: 3
   m_Name: Farmer
   m_TagString: Player
@@ -173,6 +175,8 @@ MonoBehaviour:
     m_Bits: 768
   maxHealth: 100
   iFrameDuration: 0.5
+  hurtSfx: {fileID: 0}
+  deathSfx: {fileID: 0}
 --- !u!114 &7315491149026036325
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -203,3 +207,37 @@ MonoBehaviour:
   m_DefaultActionMap: 
   m_SplitScreenIndex: -1
   m_Camera: {fileID: 0}
+--- !u!95 &-7012418974091726579
+Animator:
+  serializedVersion: 7
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2946335545438956832}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: 27cecfdf227b1014b8bf662245b3c61a, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &-7117340779611412314
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2946335545438956832}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 89d2e62a906c95c478e59ea5a2064a22, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 

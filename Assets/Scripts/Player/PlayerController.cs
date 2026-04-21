@@ -37,8 +37,9 @@ public class PlayerController : MonoBehaviour, IDamageable
 
     // ── Private ───────────────────────────────────────────────────────────────
 
-    private Rigidbody2D _rb;
-    private Vector2     _moveInput;
+    private Rigidbody2D              _rb;
+    private PlayerAnimationController _anim;
+    private Vector2                  _moveInput;
     private float       _iFrameTimer;
     private float       _daySpeedMult = 1f;
 
@@ -72,6 +73,7 @@ public class PlayerController : MonoBehaviour, IDamageable
 
         CurrentHealth   = maxHealth;
         _interactAction = GetComponent<PlayerInput>().actions.FindAction("Interact");
+        _anim           = GetComponent<PlayerAnimationController>();
 
         EnhancedTouchSupport.Enable();   // required for Touch.activeTouches on mobile
         BuildHoldBar();
@@ -141,7 +143,9 @@ public class PlayerController : MonoBehaviour, IDamageable
         {
             // Keyboard/stick takes priority — cancel any click-to-move
             ClearPointToMove();
-            _rb.linearVelocity = _moveInput.normalized * (moveSpeed * _daySpeedMult);
+            var vel = _moveInput.normalized * (moveSpeed * _daySpeedMult);
+            _rb.linearVelocity = vel;
+            _anim?.SetMovement(vel);
             return;
         }
 
@@ -152,6 +156,7 @@ public class PlayerController : MonoBehaviour, IDamageable
         }
 
         _rb.linearVelocity = Vector2.zero;
+        _anim?.SetMovement(Vector2.zero);
     }
 
     // ── Point-to-move ─────────────────────────────────────────────────────────
@@ -266,7 +271,9 @@ public class PlayerController : MonoBehaviour, IDamageable
             return;
         }
 
-        _rb.linearVelocity = dir.normalized * (moveSpeed * _daySpeedMult);
+        var pathVel = dir.normalized * (moveSpeed * _daySpeedMult);
+        _rb.linearVelocity = pathVel;
+        _anim?.SetMovement(pathVel);
     }
 
     private void ClearPointToMove()
@@ -366,12 +373,13 @@ public class PlayerController : MonoBehaviour, IDamageable
         OnHealthChanged?.Invoke(CurrentHealth, maxHealth);
 
         if (CurrentHealth <= 0f) Die();
-        else AudioManager.Instance?.PlaySFX(hurtSfx);
+        else { AudioManager.Instance?.PlaySFX(hurtSfx); _anim?.TriggerHurt(); }
     }
 
     private void Die()
     {
         AudioManager.Instance?.PlaySFX(deathSfx);
+        _anim?.TriggerDeath();
         OnDied?.Invoke();
         GameManager.Instance?.TriggerGameOver();
     }

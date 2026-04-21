@@ -47,6 +47,8 @@ public class CharacterApplicator : MonoBehaviour
         ActiveCharacter = def;
         player.ApplyCharacter(def);
 
+        player.GetComponent<PlayerAnimationController>()?.ApplyOverride(def.animatorOverride);
+
         // Starting resources are added after GameManager.StartGame() calls ResetResources(),
         // so they arrive on top of the clean slate.
         ResourceManager.Instance?.AddResource("Wood",  def.startingWood);
