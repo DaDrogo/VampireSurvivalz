@@ -18,6 +18,11 @@ public class Barricade : MonoBehaviour, IInteractable, IDamageable, IEnemyAttack
     [SerializeField] private Sprite ghostSprite;
     [SerializeField] private Sprite builtSprite;
 
+    [Header("Audio")]
+    [SerializeField] private AudioClip buildSfx;
+    [SerializeField] private AudioClip hitSfx;
+    [SerializeField] private AudioClip destroySfx;
+
     // Read-only state exposed for UI / enemy AI
     public BarricadeState State { get; private set; } = BarricadeState.Ghost;
     public float CurrentHealth { get; private set; }
@@ -91,6 +96,8 @@ public class Barricade : MonoBehaviour, IInteractable, IDamageable, IEnemyAttack
 
         if (CurrentHealth <= 0f)
             DestroyBarricade();
+        else
+            AudioManager.Instance?.PlaySFX(hitSfx);
     }
 
     public bool IsDestroyed => this == null || CurrentHealth <= 0f;
@@ -121,6 +128,7 @@ public class Barricade : MonoBehaviour, IInteractable, IDamageable, IEnemyAttack
 
         PathfindingGrid.Instance?.RegisterBarricade(transform.position, this);
 
+        AudioManager.Instance?.PlaySFX(buildSfx);
         OnStateChanged?.Invoke(State);
         OnHealthChanged?.Invoke(CurrentHealth, maxHealth);
     }
@@ -138,6 +146,7 @@ public class Barricade : MonoBehaviour, IInteractable, IDamageable, IEnemyAttack
 
     private void DestroyBarricade()
     {
+        AudioManager.Instance?.PlaySFX(destroySfx);
         PathfindingGrid.Instance?.UnregisterBarricade(transform.position);
         OnDestroyed?.Invoke();
         Destroy(gameObject);

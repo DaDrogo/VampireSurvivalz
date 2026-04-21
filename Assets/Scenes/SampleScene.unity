@@ -368,7 +368,7 @@ GameObject:
   - component: {fileID: 698131739}
   - component: {fileID: 698131738}
   m_Layer: 0
-  m_Name: Tilemap_Floor
+  m_Name: Tilemap_Land
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -16024,7 +16024,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   buildings:
-  - buildingName: 0
+  - buildingName: Watchtower
     prefab: {fileID: 1235989768153408661, guid: 3879803ff30ac3743887e12103ec009e, type: 3}
     footprint: {x: 1, y: 1}
     woodCost: 10
@@ -16034,7 +16034,8 @@ MonoBehaviour:
     isCitadel: 0
     upgrades: []
     upgradeChoices: []
-  - buildingName: 1
+    groundTiles: []
+  - buildingName: Barricade
     prefab: {fileID: 5080038164091897146, guid: ea33fb6a9282979478b604fff1a24a74, type: 3}
     footprint: {x: 1, y: 1}
     woodCost: 5
@@ -16044,7 +16045,8 @@ MonoBehaviour:
     isCitadel: 0
     upgrades: []
     upgradeChoices: []
-  - buildingName: Resource Producer
+    groundTiles: []
+  - buildingName: Warehouse
     prefab: {fileID: 1823645102394756890, guid: c8a7f9e2d5b31048b6e8c7f9d2a4b871, type: 3}
     footprint: {x: 1, y: 1}
     woodCost: 15
@@ -16069,6 +16071,34 @@ MonoBehaviour:
       woodCost: 100
       metalCost: 100
       description: Produces both Wood and Metal.
+    groundTiles: []
+  - buildingName: Warehouse
+    prefab: {fileID: 1823645102394756890, guid: c8a7f9e2d5b31048b6e8c7f9d2a4b871, type: 3}
+    footprint: {x: 1, y: 1}
+    woodCost: 15
+    metalCost: 10
+    description: Produces Wood. Upgrade to specialise.
+    isBasic: 0
+    isCitadel: 0
+    upgrades: []
+    upgradeChoices:
+    - label: Wood Mill
+      prefab: {fileID: 1823645102394756890, guid: be1330661bc6334429dc8ba50a0e57c4, type: 3}
+      woodCost: 0
+      metalCost: 0
+      description: More Wood, faster cycles.
+    - label: Metal Smelter
+      prefab: {fileID: 1823645102394756890, guid: 66670b63f6f65784d8cb603561bd01fc, type: 3}
+      woodCost: 0
+      metalCost: 0
+      description: Produces Metal each cycle.
+    - label: Trade Post
+      prefab: {fileID: 1823645102394756890, guid: 6449fc98b372151448e53b215e3fb260, type: 3}
+      woodCost: 100
+      metalCost: 100
+      description: Produces both Wood and Metal.
+    groundTiles: []
+  mapGenerator: {fileID: 0}
   placementGrid: {fileID: 0}
   blockingLayers:
     serializedVersion: 2
@@ -16217,6 +16247,14 @@ MonoBehaviour:
   clusterPrefabs:
   - {fileID: 4727471163069319871, guid: d6ca8a83e5bd8814da9e62049446718c, type: 3}
   clusterDensity: 0.12
+  harvestableGroundTiles:
+  - {fileID: 11400000, guid: f8a486a084e1bb7498071333f81213bd, type: 2}
+  - {fileID: 11400000, guid: 4dde338edc874f648ad7691d38f99996, type: 2}
+  clusterGroundTiles:
+  - {fileID: 11400000, guid: f10a33a7206371c48915358b5e7b69b6, type: 2}
+  - {fileID: 11400000, guid: 2a2bc5156453e854ba040d2fbc77088d, type: 2}
+  - {fileID: 11400000, guid: 840a15bf4811a63479727838c5e86416, type: 2}
+  - {fileID: 11400000, guid: dddcf0e6f3f167c48912bec3d77e4a5d, type: 2}
   obstacleMask:
     serializedVersion: 2
     m_Bits: 64
@@ -16391,7 +16429,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   mapGenerator: {fileID: 1656504981}
-  enemyRoomTileColor: {r: 0.9, g: 0.45, b: 0.45, a: 1}
+  corruptedLandTiles:
+  - {fileID: 11400000, guid: fecec0d5750c37748ba03fb19d5503eb, type: 2}
+  - {fileID: 11400000, guid: d1b1ce2e7bbc06f4ab7be60e1e4c20b7, type: 2}
+  - {fileID: 11400000, guid: 8cda3bf9ababd614fb8c8f30bb933093, type: 2}
+  - {fileID: 11400000, guid: df069bd2bc84c82459197f4c7257ab66, type: 2}
 --- !u!1 &1656504980
 GameObject:
   m_ObjectHideFlags: 0
@@ -16423,9 +16465,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   floorTilemap: {fileID: 698131739}
   wallTilemap: {fileID: 993896336}
-  floorTile: {fileID: 11400000, guid: 7019187befd247640be62aa9143086b7, type: 2}
-  wallTile: {fileID: 11400000, guid: b9714f6278c602c4ba14a2a793756158, type: 2}
-  doorTile: {fileID: 11400000, guid: d6255b9a488dcc548b8ae9c1ad60df42, type: 2}
+  landTiles:
+  - {fileID: 11400000, guid: c068a41481297d44f932ef720a475bca, type: 2}
+  - {fileID: 11400000, guid: f818e9d33b8736147a6d04d2dbee089d, type: 2}
+  - {fileID: 11400000, guid: 554ac22791f9aa548bb0f4a161ab860e, type: 2}
+  - {fileID: 11400000, guid: 4dde338edc874f648ad7691d38f99996, type: 2}
+  wallTiles:
+  - {fileID: 0}
+  riverTiles:
+  - {fileID: 11400000, guid: c83dfd02f073af949aea265cf816e6ea, type: 2}
+  bridgeTile: {fileID: 11400000, guid: 741a479d8e67d5f47b09201b1258826c, type: 2}
   mapWidth: 100
   mapHeight: 80
   mapCenter: {x: 0, y: 0}

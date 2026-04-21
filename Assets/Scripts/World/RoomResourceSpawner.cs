@@ -35,6 +35,12 @@ public class RoomResourceSpawner : MonoBehaviour
     [Tooltip("Fraction of interior tiles filled by the cluster (0.10 = 10 %).")]
     [SerializeField] [Range(0f, 0.5f)] private float clusterDensity = 0.12f;
 
+    [Header("Ground Tiles")]
+    [Tooltip("Floor tile(s) painted under wall harvestables when they spawn. Leave empty for no change.")]
+    [SerializeField] private UnityEngine.Tilemaps.TileBase[] harvestableGroundTiles;
+    [Tooltip("Floor tile(s) painted under cluster nodes (trees, rocks) when they spawn. Leave empty for no change.")]
+    [SerializeField] private UnityEngine.Tilemaps.TileBase[] clusterGroundTiles;
+
     [Header("Placement")]
     [Tooltip("Layer mask for walls and blocking geometry — occupancy check for both layers.")]
     [SerializeField] private LayerMask obstacleMask;
@@ -120,7 +126,7 @@ public class RoomResourceSpawner : MonoBehaviour
             if (spawned >= target) break;
             if (!TryClaim(tile, occupied)) continue;
 
-            Place(harvestablePrefabs, tile);
+            Place(harvestablePrefabs, tile, harvestableGroundTiles);
             spawned++;
         }
     }
@@ -181,7 +187,7 @@ public class RoomResourceSpawner : MonoBehaviour
         }
 
         foreach (Vector2Int tile in cluster)
-            Place(clusterPrefabs, tile);
+            Place(clusterPrefabs, tile, clusterGroundTiles);
     }
 
     // ── Door clearance ────────────────────────────────────────────────────────
@@ -290,7 +296,7 @@ public class RoomResourceSpawner : MonoBehaviour
         return Physics2D.OverlapCircle(world, overlapRadius, obstacleMask) == null;
     }
 
-    private void Place(GameObject[] prefabs, Vector2Int tile)
+    private void Place(GameObject[] prefabs, Vector2Int tile, UnityEngine.Tilemaps.TileBase[] groundTiles = null)
     {
         GameObject prefab = prefabs[Random.Range(0, prefabs.Length)];
         if (prefab == null) return;
@@ -298,6 +304,9 @@ public class RoomResourceSpawner : MonoBehaviour
         Vector2    world = _mapGenerator.TileToWorldCenter(tile);
         GameObject obj   = Instantiate(prefab, world, Quaternion.identity);
         _spawned.Add(obj);
+
+        if (groundTiles != null && groundTiles.Length > 0)
+            _mapGenerator.SetFloorTile(new Vector3Int(tile.x, tile.y, 0), groundTiles);
     }
 
     // ── Utilities ─────────────────────────────────────────────────────────────

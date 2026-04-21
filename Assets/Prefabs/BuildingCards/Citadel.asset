@@ -11,12 +11,25 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 81f3fb6210267524f866196ac5d13f3d, type: 3}
   m_Name: Citadel
-  m_EditorClassIdentifier:
+  m_EditorClassIdentifier: 
   displayName: Citadel
-  description: Your fortress heart. Upgrade it to unlock higher building tiers and radiate a character aura that buffs every building in the room.
+  description: Your fortress heart. Upgrade it to unlock higher building tiers and
+    radiate a character aura that buffs every building in the room.
   color: {r: 1, g: 0.82, b: 0.22, a: 1}
   woodCost: 0
   metalCost: 0
+  buildingDef:
+    buildingName: Citadel
+    prefab: {fileID: 1823645102394756890, guid: a8ef863af87879040a02f632b036dc3b, type: 3}
+    footprint: {x: 1, y: 1}
+    woodCost: 10
+    metalCost: 10
+    description: 
+    isBasic: 1
+    isCitadel: 1
+    upgrades: []
+    upgradeChoices: []
+    groundTiles: []
   isBasic: 1
   isCitadel: 1
-  statsSummary: HP: 500  Tiers: 3  Aura: buffs all nearby buildings
+  statsSummary: 

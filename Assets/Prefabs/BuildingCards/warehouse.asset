@@ -11,12 +11,25 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 81f3fb6210267524f866196ac5d13f3d, type: 3}
   m_Name: warehouse
-  m_EditorClassIdentifier:
+  m_EditorClassIdentifier: 
   displayName: Warehouse
-  description: Stores surplus materials and generates a steady trickle of Wood and Metal each wave.
+  description: Stores surplus materials and generates a steady trickle of Wood and
+    Metal each wave.
   color: {r: 0.76, g: 0.56, b: 0.28, a: 1}
   woodCost: 25
   metalCost: 5
+  buildingDef:
+    buildingName: Warehouse
+    prefab: {fileID: 1823645102394756890, guid: c8a7f9e2d5b31048b6e8c7f9d2a4b871, type: 3}
+    footprint: {x: 1, y: 1}
+    woodCost: 100
+    metalCost: 100
+    description: 
+    isBasic: 0
+    isCitadel: 0
+    upgrades: []
+    upgradeChoices: []
+    groundTiles: []
   isBasic: 0
   isCitadel: 0
-  statsSummary: HP: 120  Yield: +20W +10M per wave  Cost: 25W 5M
+  statsSummary: 

@@ -834,19 +834,33 @@ public class SetupManager : MonoBehaviour
     {
         PersistentDataManager.Instance?.SetBuildingLoadout(_loadout.ToArray());
 
-        // Save names of ALL buildings the player should have access to:
-        // selected non-basic/citadel cards + all basic cards + citadel card
-        var names = new List<string>();
-        if (buildingCards != null)
+        if (PersistentDataManager.Instance != null && buildingCards != null)
         {
+            var defs  = new List<BuildingDefinition>();
+            var names = new List<string>();
+
+            // Citadel / always-included first
             foreach (var bc in buildingCards)
-                if (bc != null && (bc.isCitadel || bc.isBasic))
-                    names.Add(bc.displayName);
+            {
+                if (bc == null || bc.buildingDef == null) continue;
+                if (bc.isCitadel || bc.isBasic)
+                {
+                    defs.Add(bc.buildingDef);
+                    names.Add(bc.buildingDef.buildingName);
+                }
+            }
+
+            // Player-selected buildings
             foreach (int i in _loadout)
-                if (i < buildingCards.Length && buildingCards[i] != null)
-                    names.Add(buildingCards[i].displayName);
+            {
+                if (i >= buildingCards.Length || buildingCards[i] == null || buildingCards[i].buildingDef == null) continue;
+                defs.Add(buildingCards[i].buildingDef);
+                names.Add(buildingCards[i].buildingDef.buildingName);
+            }
+
+            PersistentDataManager.Instance.SetBuildingDefinitions(defs.ToArray());
+            PersistentDataManager.Instance.SetBuildingLoadoutNames(names.ToArray());
         }
-        PersistentDataManager.Instance?.SetBuildingLoadoutNames(names.ToArray());
 
         PersistentDataManager.Instance?.SelectLevel(_levelIndex);
 

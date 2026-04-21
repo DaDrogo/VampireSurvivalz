@@ -16,6 +16,10 @@ public class BuildingCard : ScriptableObject, ILexikonSource
     public int    woodCost;
     public int    metalCost;
 
+    [Header("Linked Definition")]
+    [Tooltip("The BuildingDefinition in BuildingManager that this card represents. Must be set for loadout transfer to work.")]
+    public BuildingDefinition buildingDef;
+
     [Header("Roster Flags")]
     [Tooltip("Always included in the loadout — player cannot deselect it.")]
     public bool isBasic    = false;

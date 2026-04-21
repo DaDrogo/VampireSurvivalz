@@ -25,10 +25,17 @@ public class MapGenerator : MonoBehaviour
     [SerializeField] private Tilemap floorTilemap;
     [SerializeField] private Tilemap wallTilemap;
 
-    [Header("Tiles")]
-    [SerializeField] private TileBase floorTile;
-    [SerializeField] private TileBase wallTile;
-    [SerializeField] private TileBase doorTile;
+    [Header("Tiles — Land (normal rooms)")]
+    [SerializeField] private TileBase[] landTiles;
+
+    [Header("Tiles — Walls (outer perimeter)")]
+    [SerializeField] private TileBase[] wallTiles;
+
+    [Header("Tiles — Rivers (interior dividers, falls back to wallTiles when empty)")]
+    [SerializeField] private TileBase[] riverTiles;
+
+    [Header("Tiles — Bridge (door openings)")]
+    [SerializeField] private TileBase bridgeTile;
 
     [Header("Map Size")]
     [Tooltip("Total map width in tiles (includes the 1-tile perimeter wall on each side)")]
@@ -126,7 +133,7 @@ public class MapGenerator : MonoBehaviour
         // 1. Flood-fill floor
         for (int x = origin.x; x < origin.x + mapWidth;  x++)
         for (int y = origin.y; y < origin.y + mapHeight; y++)
-            floorTilemap.SetTile(new Vector3Int(x, y, 0), floorTile);
+            floorTilemap.SetTile(new Vector3Int(x, y, 0), PickRandom(landTiles));
 
         // 2. Solid outer perimeter
         DrawPerimeter(origin);
@@ -154,13 +161,13 @@ public class MapGenerator : MonoBehaviour
     {
         for (int x = origin.x; x < origin.x + mapWidth; x++)
         {
-            SetWall(x, origin.y);
-            SetWall(x, origin.y + mapHeight - 1);
+            SetWall(x, origin.y,                 isPerimeter: true);
+            SetWall(x, origin.y + mapHeight - 1, isPerimeter: true);
         }
         for (int y = origin.y + 1; y < origin.y + mapHeight - 1; y++)
         {
-            SetWall(origin.x,                y);
-            SetWall(origin.x + mapWidth - 1, y);
+            SetWall(origin.x,                y, isPerimeter: true);
+            SetWall(origin.x + mapWidth - 1, y, isPerimeter: true);
         }
     }
 
@@ -269,23 +276,27 @@ public class MapGenerator : MonoBehaviour
     /// <summary>World-space size of a tile rectangle (1 tile = 1 world unit).</summary>
     public Vector2 TileRectWorldSize(RectInt rect) => new Vector2(rect.width, rect.height);
 
-    /// <summary>
-    /// Tints every floor tile inside <paramref name="tileBounds"/> with <paramref name="color"/>.
-    /// Clears LockColor flags first so SetColor takes effect.
-    /// </summary>
-    public void ColorRoomTiles(RectInt tileBounds, Color color)
+    /// <summary>Sets a single floor tile to a random pick from <paramref name="tiles"/>.</summary>
+    public void SetFloorTile(Vector3Int tilePos, TileBase[] tiles)
     {
-        if (floorTilemap == null) return;
+        if (floorTilemap == null || tiles == null || tiles.Length == 0) return;
+        floorTilemap.SetTile(tilePos, PickRandom(tiles));
+    }
+
+    /// <summary>
+    /// Replaces every floor tile inside <paramref name="tileBounds"/> with a random pick from <paramref name="tiles"/>.
+    /// Used by HouseManager to paint the enemy room with corrupted land tiles.
+    /// </summary>
+    public void PaintRoomTiles(RectInt tileBounds, TileBase[] tiles)
+    {
+        if (floorTilemap == null || tiles == null || tiles.Length == 0) return;
 
         for (int x = tileBounds.xMin; x < tileBounds.xMax; x++)
+        for (int y = tileBounds.yMin; y < tileBounds.yMax; y++)
         {
-            for (int y = tileBounds.yMin; y < tileBounds.yMax; y++)
-            {
-                var pos = new Vector3Int(x, y, 0);
-                if (floorTilemap.GetTile(pos) == null) continue;
-                floorTilemap.SetTileFlags(pos, UnityEngine.Tilemaps.TileFlags.None);
-                floorTilemap.SetColor(pos, color);
-            }
+            var pos = new Vector3Int(x, y, 0);
+            if (floorTilemap.GetTile(pos) == null) continue;
+            floorTilemap.SetTile(pos, PickRandom(tiles));
         }
     }
 
@@ -331,10 +342,13 @@ public class MapGenerator : MonoBehaviour
 
     // ── Tile helpers ──────────────────────────────────────────────────────────
 
-    private void SetWall(int x, int y)
+    private void SetWall(int x, int y, bool isPerimeter = false)
     {
         var p = new Vector3Int(x, y, 0);
-        wallTilemap.SetTile(p, wallTile);
+        TileBase tile = isPerimeter
+            ? PickRandom(wallTiles)
+            : (riverTiles != null && riverTiles.Length > 0 ? PickRandom(riverTiles) : PickRandom(wallTiles));
+        wallTilemap.SetTile(p, tile);
         floorTilemap.SetTile(p, null);
     }
 
@@ -342,25 +356,28 @@ public class MapGenerator : MonoBehaviour
     {
         var p = new Vector3Int(x, y, 0);
         wallTilemap.SetTile(p, null);
-        floorTilemap.SetTile(p, floorTile);
+        floorTilemap.SetTile(p, PickRandom(landTiles));
     }
 
     private void PlaceDoorTile(int x, int y)
     {
         var p = new Vector3Int(x, y, 0);
         wallTilemap.SetTile(p, null);
-        floorTilemap.SetTile(p, doorTile != null ? doorTile : floorTile);
+        floorTilemap.SetTile(p, bridgeTile != null ? bridgeTile : PickRandom(landTiles));
     }
+
+    private TileBase PickRandom(TileBase[] tiles) =>
+        tiles != null && tiles.Length > 0 ? tiles[Random.Range(0, tiles.Length)] : null;
 
     // ── Validation ────────────────────────────────────────────────────────────
 
     private bool ValidateReferences()
     {
         bool ok = true;
-        if (floorTilemap == null) { Debug.LogError("MapGenerator: floorTilemap not assigned."); ok = false; }
-        if (wallTilemap  == null) { Debug.LogError("MapGenerator: wallTilemap not assigned.");  ok = false; }
-        if (floorTile    == null) { Debug.LogError("MapGenerator: floorTile not assigned.");    ok = false; }
-        if (wallTile     == null) { Debug.LogError("MapGenerator: wallTile not assigned.");     ok = false; }
+        if (floorTilemap == null)                          { Debug.LogError("MapGenerator: floorTilemap not assigned."); ok = false; }
+        if (wallTilemap  == null)                          { Debug.LogError("MapGenerator: wallTilemap not assigned.");  ok = false; }
+        if (landTiles    == null || landTiles.Length == 0) { Debug.LogError("MapGenerator: landTiles is empty.");        ok = false; }
+        if (wallTiles    == null || wallTiles.Length == 0) { Debug.LogError("MapGenerator: wallTiles is empty.");        ok = false; }
         return ok;
     }
 

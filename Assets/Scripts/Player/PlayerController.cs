@@ -22,6 +22,10 @@ public class PlayerController : MonoBehaviour, IDamageable
     [Tooltip("Seconds of invincibility after taking a hit, preventing damage spam")]
     [SerializeField] private float iFrameDuration = 0.5f;
 
+    [Header("Audio")]
+    [SerializeField] private AudioClip hurtSfx;
+    [SerializeField] private AudioClip deathSfx;
+
     // ── IDamageable ───────────────────────────────────────────────────────────
 
     public float CurrentHealth     { get; private set; }
@@ -362,10 +366,12 @@ public class PlayerController : MonoBehaviour, IDamageable
         OnHealthChanged?.Invoke(CurrentHealth, maxHealth);
 
         if (CurrentHealth <= 0f) Die();
+        else AudioManager.Instance?.PlaySFX(hurtSfx);
     }
 
     private void Die()
     {
+        AudioManager.Instance?.PlaySFX(deathSfx);
         OnDied?.Invoke();
         GameManager.Instance?.TriggerGameOver();
     }

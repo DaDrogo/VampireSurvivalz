@@ -17,6 +17,9 @@ public class HarvestableObject : MonoBehaviour, IHoldInteractable, IEnemyAttacka
     [Header("Enemy Destruction")]
     [SerializeField] private float enemyDestroyTime = 2f;
 
+    [Header("Audio")]
+    [SerializeField] private AudioClip harvestSfx;
+
     [Header("Loot")]
     [SerializeField] private ResourceType resourceType  = ResourceType.Wood;
     [Tooltip("Total resources available in this node.")]
@@ -60,6 +63,7 @@ public class HarvestableObject : MonoBehaviour, IHoldInteractable, IEnemyAttacka
     {
         if (_isDestroyed) return;
 
+        AudioManager.Instance?.PlaySFX(harvestSfx);
         GiveResource();
         _remainingAmount -= amountPerHarvest;
 

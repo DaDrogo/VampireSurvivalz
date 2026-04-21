@@ -26,6 +26,12 @@ public class AudioManager : MonoBehaviour
     [Tooltip("Seconds to fade game music in from silence when a game starts.")]
     [SerializeField] private float musicFadeInDuration = 2f;
 
+    [Header("Game State SFX")]
+    [SerializeField] private AudioClip waveStartSfx;
+    [SerializeField] private AudioClip waveSurvivedSfx;
+    [SerializeField] private AudioClip gameOverSfx;
+    [SerializeField] private AudioClip victorySfx;
+
     [Header("UI Sounds")]
     [SerializeField] private AudioClip buttonClickSfx;
 
@@ -175,6 +181,11 @@ public class AudioManager : MonoBehaviour
         if (clip == null) return;
         sfxSource.PlayOneShot(clip);
     }
+
+    public void PlayWaveStart()    => PlaySFX(waveStartSfx);
+    public void PlayWaveSurvived() => PlaySFX(waveSurvivedSfx);
+    public void PlayGameOver()     => PlaySFX(gameOverSfx);
+    public void PlayVictory()      => PlaySFX(victorySfx);
 
     // ── Button sounds ─────────────────────────────────────────────────────────
 

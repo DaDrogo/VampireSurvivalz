@@ -24,8 +24,8 @@ public class HouseManager : MonoBehaviour
     [Tooltip("Auto-found if left empty.")]
     [SerializeField] private MapGenerator mapGenerator;
 
-    [Tooltip("Floor tile tint applied to the randomly selected enemy room.")]
-    [SerializeField] private Color enemyRoomTileColor = new Color(0.9f, 0.45f, 0.45f, 1f);
+    [Tooltip("Corrupted land tiles painted on the randomly selected enemy room.")]
+    [SerializeField] private UnityEngine.Tilemaps.TileBase[] corruptedLandTiles;
 
     // ── Public state ──────────────────────────────────────────────────────────
 
@@ -168,8 +168,8 @@ public class HouseManager : MonoBehaviour
     {
         EnemyRoom = _rooms.Count > 0 ? _rooms[UnityEngine.Random.Range(0, _rooms.Count)] : null;
 
-        if (EnemyRoom != null && mapGenerator != null)
-            mapGenerator.ColorRoomTiles(EnemyRoom.TileBounds, enemyRoomTileColor);
+        if (EnemyRoom != null && mapGenerator != null && corruptedLandTiles != null && corruptedLandTiles.Length > 0)
+            mapGenerator.PaintRoomTiles(EnemyRoom.TileBounds, corruptedLandTiles);
     }
 
     /// <summary>

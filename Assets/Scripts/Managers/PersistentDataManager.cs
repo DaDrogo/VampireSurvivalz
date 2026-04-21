@@ -21,6 +21,12 @@ public class PersistentDataManager : MonoBehaviour
     public int[]    SelectedBuildingIndices { get; private set; } = new int[0];
     public string[] SelectedBuildingNames   { get; private set; } = new string[0];
 
+    /// <summary>
+    /// Runtime-only (not persisted). Set by SetupManager before scene load so
+    /// BuildingManager can use the exact definitions without name matching.
+    /// </summary>
+    public BuildingDefinition[] SelectedBuildingDefinitions { get; private set; }
+
     // ── Milestone counters ────────────────────────────────────────────────────
     public int BestWave           { get; private set; } = 0;
     public int TotalEnemiesKilled { get; private set; } = 0;
@@ -91,6 +97,11 @@ public class PersistentDataManager : MonoBehaviour
         SelectedBuildingNames = names ?? new string[0];
         PlayerPrefs.SetString("BuildingLoadoutNames", string.Join("|", SelectedBuildingNames));
         PlayerPrefs.Save();
+    }
+
+    public void SetBuildingDefinitions(BuildingDefinition[] defs)
+    {
+        SelectedBuildingDefinitions = defs;
     }
 
     // ── Milestone recording ───────────────────────────────────────────────────

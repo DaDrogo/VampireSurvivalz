@@ -262,6 +262,9 @@ public class GameManager : MonoBehaviour
         CurrentState  = GameState.Preparation;
         TimeRemaining = preparationDuration;
 
+        if (WaveNumber > 0)
+            AudioManager.Instance?.PlayWaveSurvived();
+
         OnStateChanged?.Invoke(CurrentState);
         StartCoroutine(PreparationCountdown());
     }
@@ -274,6 +277,7 @@ public class GameManager : MonoBehaviour
         EnemiesThisWave  = baseEnemyCount + (WaveNumber - 1) * enemyCountIncreasePerWave;
         EnemiesRemaining += EnemiesThisWave;   // accumulate — previous wave enemies may still be alive
 
+        AudioManager.Instance?.PlayWaveStart();
         OnWaveNumberChanged?.Invoke(WaveNumber);
         OnStateChanged?.Invoke(CurrentState);
         OnEnemiesRemainingChanged?.Invoke(EnemiesRemaining);
@@ -294,6 +298,7 @@ public class GameManager : MonoBehaviour
         PersistentDataManager.Instance?.RecordGameOver(WaveNumber);
         PersistentDataManager.Instance?.SaveKills();
 
+        AudioManager.Instance?.PlayGameOver();
         OnStateChanged?.Invoke(CurrentState);
         ShowGameOverScreen();
     }
@@ -375,6 +380,7 @@ public class GameManager : MonoBehaviour
         StopAllCoroutines();
         CurrentState   = GameState.GameOver;
         Time.timeScale = 0f;
+        AudioManager.Instance?.PlayVictory();
         OnStateChanged?.Invoke(CurrentState);
         ShowVictoryScreen();
     }

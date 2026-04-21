@@ -23,6 +23,9 @@ public class Turret : MonoBehaviour, IDamageable, IEnemyAttackable, ILexikonSour
     [Header("References")]
     [SerializeField] private Transform head;               // child transform that rotates
 
+    [Header("Audio")]
+    [SerializeField] private AudioClip fireSfx;
+
     private float _fireCooldown;
 
     private void Awake()
@@ -123,6 +126,8 @@ public class Turret : MonoBehaviour, IDamageable, IEnemyAttackable, ILexikonSour
 
         if (proj.TryGetComponent(out Projectile projectile))
             projectile.Initialize(targetPos);
+
+        AudioManager.Instance?.PlaySFX(fireSfx);
     }
 
     private void OnDrawGizmosSelected()

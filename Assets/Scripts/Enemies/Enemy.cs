@@ -27,6 +27,10 @@ public class Enemy : MonoBehaviour, IDamageable, ILexikonSource
     [Tooltip("Seconds the enemy must stay in contact with a resource before destroying it.")]
     [SerializeField] private float resourceDestroyTime = 3f;
 
+    [Header("Audio")]
+    [SerializeField] private AudioClip hurtSfx;
+    [SerializeField] private AudioClip deathSfx;
+
     [Header("Navigation")]
     [Tooltip("How often (seconds) the room-BFS navigation is re-evaluated.")]
     [SerializeField] private float pathRefreshInterval = 0.4f;
@@ -830,6 +834,7 @@ public class Enemy : MonoBehaviour, IDamageable, ILexikonSource
     {
         CurrentHealth = Mathf.Max(0f, CurrentHealth - damage);
         if (CurrentHealth <= 0f) Die();
+        else AudioManager.Instance?.PlaySFX(hurtSfx);
     }
 
     public List<StatLine> GetLexikonStats() => new()
@@ -869,6 +874,7 @@ public class Enemy : MonoBehaviour, IDamageable, ILexikonSource
 
     private void Die()
     {
+        AudioManager.Instance?.PlaySFX(deathSfx);
         GameManager.Instance?.OnEnemyDied();
         if (PoolManager.Instance != null)
             PoolManager.Instance.Release(gameObject);

@@ -11,12 +11,25 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 81f3fb6210267524f866196ac5d13f3d, type: 3}
   m_Name: Watchtower
-  m_EditorClassIdentifier:
+  m_EditorClassIdentifier: 
   displayName: Watchtower
-  description: An elevated sniper post with long reach. Targets the nearest enemy and fires with deadly accuracy.
-  color: {r: 0.35, g: 0.60, b: 0.80, a: 1}
+  description: An elevated sniper post with long reach. Targets the nearest enemy
+    and fires with deadly accuracy.
+  color: {r: 0.35, g: 0.6, b: 0.8, a: 1}
   woodCost: 20
   metalCost: 10
+  buildingDef:
+    buildingName: Watchtower
+    prefab: {fileID: 1235989768153408661, guid: 3879803ff30ac3743887e12103ec009e, type: 3}
+    footprint: {x: 1, y: 1}
+    woodCost: 20
+    metalCost: 10
+    description: 
+    isBasic: 0
+    isCitadel: 0
+    upgrades: []
+    upgradeChoices: []
+    groundTiles: []
   isBasic: 0
   isCitadel: 0
-  statsSummary: HP: 60  Range: 12  Fire: 1.0/s  DMG: 25
+  statsSummary: 

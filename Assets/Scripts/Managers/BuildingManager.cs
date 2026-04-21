@@ -53,6 +53,8 @@ public class BuildingDefinition
     public BuildingUpgradeTier[] upgrades;
     [Tooltip("If set, the upgrade button is replaced with a choice panel — pick one to transform this building.")]
     public BuildingUpgradeChoice[] upgradeChoices;
+    [Tooltip("Floor tile(s) placed under this building when built. Leave empty for no change.")]
+    public UnityEngine.Tilemaps.TileBase[] groundTiles;
 }
 
 /// <summary>
@@ -68,6 +70,10 @@ public class BuildingManager : MonoBehaviour
 
     [Header("Buildings  (index 0 → key 1,  index 1 → key 2, …)")]
     [SerializeField] private BuildingDefinition[] buildings;
+
+    [Header("Map")]
+    [Tooltip("Auto-found if left empty.")]
+    [SerializeField] private MapGenerator mapGenerator;
 
     [Header("Grid Snapping")]
     [Tooltip("Assign a GameObject with a Grid component to snap to its cell centres. " +
@@ -117,6 +123,8 @@ public class BuildingManager : MonoBehaviour
 
     private void Start()
     {
+        if (mapGenerator == null)
+            mapGenerator = FindAnyObjectByType<MapGenerator>();
         ApplyLoadout();
     }
 
@@ -126,43 +134,19 @@ public class BuildingManager : MonoBehaviour
     /// </summary>
     private void ApplyLoadout()
     {
-        if (buildings == null || buildings.Length == 0) return;
+        var pdm = PersistentDataManager.Instance;
 
-        string[] names = PersistentDataManager.Instance?.SelectedBuildingNames;
-
-        // Name-based matching: preserves order citadel → basic → selected
-        if (names != null && names.Length > 0)
+        // Use the definitions passed directly from SetupManager (no name matching needed)
+        if (pdm?.SelectedBuildingDefinitions != null && pdm.SelectedBuildingDefinitions.Length > 0)
         {
-            var nameSet = new HashSet<string>(names, System.StringComparer.OrdinalIgnoreCase);
-            var result  = new List<BuildingDefinition>();
-
-            // Citadel first
-            foreach (var b in buildings)
-                if (b != null && b.isCitadel && nameSet.Contains(b.buildingName)) result.Add(b);
-
-            // Basic (non-citadel)
-            foreach (var b in buildings)
-                if (b != null && b.isBasic && !b.isCitadel && nameSet.Contains(b.buildingName)) result.Add(b);
-
-            // Selected non-fixed, in the order the player chose them
-            foreach (string n in names)
-            {
-                foreach (var b in buildings)
-                {
-                    if (b != null && !b.isCitadel && !b.isBasic
-                        && string.Equals(b.buildingName, n, System.StringComparison.OrdinalIgnoreCase))
-                    { result.Add(b); break; }
-                }
-            }
-
-            if (result.Count > 0) { buildings = result.ToArray(); return; }
+            buildings = pdm.SelectedBuildingDefinitions;
+            return;
         }
 
-        // Fallback: include all buildings (no setup data yet)
+        // Fallback: use whatever is in the Inspector array (editor / direct play mode)
+        if (buildings == null || buildings.Length == 0) return;
         var fallback = new List<BuildingDefinition>();
-        foreach (var b in buildings) if (b != null && b.isCitadel)             fallback.Add(b);
-        foreach (var b in buildings) if (b != null && b.isBasic && !b.isCitadel) fallback.Add(b);
-        foreach (var b in buildings) if (b != null && !b.isCitadel && !b.isBasic) fallback.Add(b);
+        foreach (var b in buildings) if (b != null) fallback.Add(b);
         if (fallback.Count > 0) buildings = fallback.ToArray();
     }
 
@@ -266,6 +250,9 @@ public class BuildingManager : MonoBehaviour
         _occupiedTiles.Add(tile);
         _allPlaced.Add(pb);
         OnBuildingPlaced?.Invoke(pb);
+
+        if (_active.groundTiles != null && _active.groundTiles.Length > 0)
+            mapGenerator?.SetFloorTile(new Vector3Int(tile.x, tile.y, 0), _active.groundTiles);
 
         // Barricades start in Ghost state by default; build them immediately
         // since the player already paid through BuildingManager.
