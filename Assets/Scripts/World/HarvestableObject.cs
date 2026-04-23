@@ -100,6 +100,9 @@ public class HarvestableObject : MonoBehaviour, IHoldInteractable, IEnemyAttacka
 
         int actual = Mathf.Min(amountPerHarvest, _remainingAmount);
         ResourceManager.Instance.AddResource(type, actual);
+
+        var kind = type == "Metal" ? FloatingTextManager.ResourceKind.Metal : FloatingTextManager.ResourceKind.Wood;
+        FloatingTextManager.Instance?.Spawn(transform.position, actual, kind);
     }
 
     private void DestroySelf()

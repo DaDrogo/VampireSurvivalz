@@ -22,23 +22,51 @@ MonoBehaviour:
     buildingName: Watchtower
     prefab: {fileID: 1235989768153408661, guid: 3879803ff30ac3743887e12103ec009e, type: 3}
     footprint: {x: 1, y: 1}
-    woodCost: 20
+    woodCost: 40
     metalCost: 10
     description: 
     isBasic: 0
     isCitadel: 0
     upgrades:
     - label: 
+      woodCost: 40
+      metalCost: 10
+      healthMult: 2
+      fireRateMult: 2
+      rangeMult: 2
+    - label: 
       woodCost: 5
       metalCost: 5
       healthMult: 2
       fireRateMult: 2
       rangeMult: 2
+    - label: 
+      woodCost: 40
+      metalCost: 40
+      healthMult: 2
+      fireRateMult: 2
+      rangeMult: 2
+    - label: 
+      woodCost: 100
+      metalCost: 100
+      healthMult: 2
+      fireRateMult: 2
+      rangeMult: 2
     upgradeChoices:
     - label: 
-      prefab: {fileID: 1111100000000001, guid: 9f2b48e2931b95140b783df3604c2faa, type: 3}
-      woodCost: 5
-      metalCost: 5
+      prefab: {fileID: 3331100000000001, guid: 78cd6453b6a01704d841d15664928962, type: 3}
+      woodCost: 10
+      metalCost: 40
+      description: 
+    - label: 
+      prefab: {fileID: 7771100000000001, guid: 93a53aa89f9019f4195b14d87854b9ee, type: 3}
+      woodCost: 10
+      metalCost: 40
+      description: 
+    - label: 
+      prefab: {fileID: 2221100000000001, guid: df563e9a30fbf564f87a879ef968e32f, type: 3}
+      woodCost: 20
+      metalCost: 20
       description: 
     groundTiles:
     - {fileID: 11400000, guid: 2a2bc5156453e854ba040d2fbc77088d, type: 2}

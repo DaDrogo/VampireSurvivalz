@@ -14,6 +14,9 @@ public class CharacterSelectScreen : MonoBehaviour
 {
     public static CharacterSelectScreen Instance { get; private set; }
 
+    [Header("UI Theme")]
+    [SerializeField] private UITheme _theme;
+
     [SerializeField] private CharacterDefinition[] characters;
 
     // ── State ─────────────────────────────────────────────────────────────────
@@ -55,7 +58,9 @@ public class CharacterSelectScreen : MonoBehaviour
             return;
         }
 
-        _font = Resources.Load<TMP_FontAsset>("Fonts & Materials/LiberationSans SDF");
+        _font = _theme?.font != null
+            ? _theme.font
+            : Resources.Load<TMP_FontAsset>("Fonts & Materials/LiberationSans SDF");
         BuildScreen();
 
         _selectedIndex = PersistentDataManager.Instance != null
@@ -151,16 +156,13 @@ public class CharacterSelectScreen : MonoBehaviour
         card.transform.SetParent(content, false);
 
         Image cardBg            = card.AddComponent<Image>();
-        cardBg.color            = CardNormal;
+        UIHelper.ApplyImage(cardBg, _theme?.cardBackground, CardNormal);
         _cardBgs[i]             = cardBg;
 
         Button btn              = card.AddComponent<Button>();
         btn.targetGraphic       = cardBg;
-        ColorBlock cb           = btn.colors;
-        cb.normalColor          = Color.white;
-        cb.highlightedColor     = new Color(1.15f, 1.15f, 1.15f);
-        cb.pressedColor         = new Color(0.85f, 0.85f, 0.85f);
-        btn.colors              = cb;
+        btn.colors              = UIHelper.BtnColors(_theme?.cardBackground,
+            Color.white, new Color(1.15f, 1.15f, 1.15f), new Color(0.85f, 0.85f, 0.85f));
         btn.onClick.AddListener(() => SelectCharacter(idx));
 
         card.AddComponent<LayoutElement>().preferredHeight = 86f;
@@ -204,15 +206,12 @@ public class CharacterSelectScreen : MonoBehaviour
         go.transform.SetParent(parent, false);
 
         Image img           = go.AddComponent<Image>();
-        img.color           = new Color(0.15f, 0.52f, 0.15f);
+        UIHelper.ApplyImage(img, _theme?.buttonPrimary, new Color(0.15f, 0.52f, 0.15f));
 
         Button btn          = go.AddComponent<Button>();
         btn.targetGraphic   = img;
-        ColorBlock cb       = btn.colors;
-        cb.normalColor      = Color.white;
-        cb.highlightedColor = new Color(1.2f, 1.2f, 1.2f);
-        cb.pressedColor     = new Color(0.8f, 0.8f, 0.8f);
-        btn.colors          = cb;
+        btn.colors          = UIHelper.BtnColors(_theme?.buttonPrimary,
+            Color.white, new Color(1.2f, 1.2f, 1.2f), new Color(0.8f, 0.8f, 0.8f));
         btn.onClick.AddListener(OnStartClicked);
 
         go.AddComponent<LayoutElement>().preferredHeight = 72f;

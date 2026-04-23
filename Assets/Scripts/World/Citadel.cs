@@ -29,6 +29,9 @@ public class Citadel : Building, IHoldInteractable
 
     // ── Inspector ─────────────────────────────────────────────────────────────
 
+    [Header("UI Theme")]
+    [SerializeField] private UITheme _theme;
+
     [Header("Tiers")]
     [Tooltip("Upgrade costs from Tier 1→2 (index 0) and Tier 2→3 (index 1).")]
     [SerializeField] private CitadelTierData[] tierUpgrades =
@@ -243,7 +246,9 @@ public class Citadel : Building, IHoldInteractable
         rt.localScale      = Vector3.one * 0.025f;
 
         _hintText          = _hintGO.AddComponent<TextMeshProUGUI>();
-        _hintText.font     = Resources.Load<TMP_FontAsset>("Fonts & Materials/LiberationSans SDF");
+        _hintText.font     = _theme?.font != null
+            ? _theme.font
+            : Resources.Load<TMP_FontAsset>("Fonts & Materials/LiberationSans SDF");
         _hintText.fontSize = 28f;
         _hintText.alignment = TextAlignmentOptions.Center;
         _hintText.color    = new Color(1f, 0.9f, 0.3f);

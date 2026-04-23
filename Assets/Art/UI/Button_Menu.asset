@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b29b1fb8ee18c084db4cc38841431b41, type: 3}
+  m_Name: Button_Menu
+  m_EditorClassIdentifier: 
+  font: {fileID: 11400000, guid: 1c2fdcead8f8292478714c2fc1eef14e, type: 2}
+  buttonNav: {fileID: 4308510075684986452, guid: ddd532d1c454beb428653e5c595e1708, type: 3}
+  buttonPrimary: {fileID: 4308510075684986452, guid: ddd532d1c454beb428653e5c595e1708, type: 3}
+  buttonDanger: {fileID: 4308510075684986452, guid: ddd532d1c454beb428653e5c595e1708, type: 3}
+  buttonSecondary: {fileID: 0}
+  buttonGold: {fileID: 0}
+  cardBackground: {fileID: 0}
+  panelBackground: {fileID: 0}
+  sliderBackground: {fileID: 1294554391194801996, guid: ddd532d1c454beb428653e5c595e1708, type: 3}
+  sliderFill: {fileID: -5210660370525581307, guid: 3db406fa44e588a4a83d56211004c631, type: 3}
+  sliderHandle: {fileID: -1904349589002811397, guid: ddd532d1c454beb428653e5c595e1708, type: 3}

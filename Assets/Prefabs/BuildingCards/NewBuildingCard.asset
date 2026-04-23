@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 81f3fb6210267524f866196ac5d13f3d, type: 3}
   m_Name: NewBuildingCard
   m_EditorClassIdentifier: 
-  displayName: Building
+  displayName: HollyWell
   description: 
   color: {r: 1, g: 1, b: 1, a: 1}
   woodCost: 0
@@ -21,14 +21,14 @@ MonoBehaviour:
     buildingName: 
     prefab: {fileID: 0}
     footprint: {x: 1, y: 1}
-    woodCost: 0
-    metalCost: 0
+    woodCost: 1000
+    metalCost: 1000
     description: 
     isBasic: 0
     isCitadel: 0
     upgrades: []
     upgradeChoices: []
     groundTiles: []
-  isBasic: 0
+  isBasic: 1
   isCitadel: 0
   statsSummary: 

@@ -15,6 +15,9 @@ public class MainMenuManager : MonoBehaviour
     [Header("Audio")]
     [SerializeField] private AudioClip menuMusic;
 
+    [Header("UI Theme")]
+    [SerializeField] private UITheme _theme;
+
     [Header("Background")]
     [SerializeField] private Sprite backgroundSprite;
     [Range(0f, 1f)]
@@ -50,7 +53,9 @@ public class MainMenuManager : MonoBehaviour
 
     private void Start()
     {
-        _font = Resources.Load<TMP_FontAsset>("Fonts & Materials/LiberationSans SDF");
+        _font = _theme?.font != null
+            ? _theme.font
+            : Resources.Load<TMP_FontAsset>("Fonts & Materials/LiberationSans SDF");
         if (lexikonEntries == null || lexikonEntries.Length == 0)
             lexikonEntries = CreateDefaultLexikonEntries();
         EnsureEventSystem();
@@ -497,7 +502,7 @@ public class MainMenuManager : MonoBehaviour
             btnGO.transform.SetParent(row.transform, false);
             btnGO.AddComponent<LayoutElement>().preferredWidth = 130f;
             Image btnImg      = btnGO.AddComponent<Image>();
-            btnImg.color      = new Color(0.62f, 0.50f, 0.06f);
+            UIHelper.ApplyImage(btnImg, _theme?.buttonGold, new Color(0.62f, 0.50f, 0.06f));
             Button btn        = btnGO.AddComponent<Button>();
             btn.targetGraphic = btnImg;
 
@@ -855,7 +860,7 @@ public class MainMenuManager : MonoBehaviour
         valLbl.alignment = TextAlignmentOptions.Right;
         valLbl.gameObject.AddComponent<LayoutElement>().preferredWidth = 70f;
 
-        BuildSlider(sliderGO.transform, initial, v =>
+        BuildSlider(sliderGO.transform, initial, _theme, v =>
         {
             onChange?.Invoke(v);
             valLbl.text = $"{v:P0}";
@@ -885,7 +890,8 @@ public class MainMenuManager : MonoBehaviour
         btnGO.transform.SetParent(row.transform, false);
         btnGO.AddComponent<LayoutElement>().preferredWidth = 100f;
         Image btnImg     = btnGO.AddComponent<Image>();
-        btnImg.color     = isFS ? new Color(0.14f, 0.52f, 0.14f) : new Color(0.36f, 0.14f, 0.14f);
+        UIHelper.ApplyImage(btnImg, _theme?.buttonSecondary,
+            isFS ? new Color(0.14f, 0.52f, 0.14f) : new Color(0.36f, 0.14f, 0.14f));
         Button btn       = btnGO.AddComponent<Button>();
         btn.targetGraphic = btnImg;
 
@@ -897,7 +903,8 @@ public class MainMenuManager : MonoBehaviour
         {
             bool next        = !Screen.fullScreen;
             Screen.fullScreen = next;
-            btnImg.color     = next ? new Color(0.14f, 0.52f, 0.14f) : new Color(0.36f, 0.14f, 0.14f);
+            UIHelper.ApplyImage(btnImg, _theme?.buttonSecondary,
+                next ? new Color(0.14f, 0.52f, 0.14f) : new Color(0.36f, 0.14f, 0.14f));
             btnLbl.text      = next ? "ON" : "OFF";
             PlayerPrefs.SetInt("Fullscreen", next ? 1 : 0);
             PlayerPrefs.Save();
@@ -963,14 +970,11 @@ public class MainMenuManager : MonoBehaviour
         btnGO.AddComponent<LayoutElement>().preferredWidth = 180f;
         Image btnImg     = btnGO.AddComponent<Image>();
         Color dangerCol  = new Color(0.44f, 0.10f, 0.10f);
-        btnImg.color     = dangerCol;
+        UIHelper.ApplyImage(btnImg, _theme?.buttonDanger, dangerCol);
         Button btn       = btnGO.AddComponent<Button>();
         btn.targetGraphic = btnImg;
-        ColorBlock cb    = btn.colors;
-        cb.normalColor      = dangerCol;
-        cb.highlightedColor = new Color(0.64f, 0.14f, 0.14f);
-        cb.pressedColor     = new Color(0.28f, 0.06f, 0.06f);
-        btn.colors          = cb;
+        btn.colors = UIHelper.BtnColors(_theme?.buttonDanger, dangerCol,
+            new Color(0.64f, 0.14f, 0.14f), new Color(0.28f, 0.06f, 0.06f));
 
         var btnLbl       = MakeLabel(btnGO.transform, "Lbl", "RESET PROGRESS", 15f);
         btnLbl.fontStyle = FontStyles.Bold;
@@ -983,7 +987,7 @@ public class MainMenuManager : MonoBehaviour
             {
                 confirming         = true;
                 btnImg.color       = new Color(0.82f, 0.12f, 0.12f);
-                cb                 = btn.colors;
+                ColorBlock cb      = btn.colors;
                 cb.normalColor     = new Color(0.82f, 0.12f, 0.12f);
                 cb.highlightedColor = new Color(0.95f, 0.16f, 0.16f);
                 btn.colors         = cb;
@@ -1091,7 +1095,7 @@ public class MainMenuManager : MonoBehaviour
         return go;
     }
 
-    private static Slider BuildSlider(Transform parent, float initial, UnityEngine.Events.UnityAction<float> onChange)
+    private static Slider BuildSlider(Transform parent, float initial, UITheme theme, UnityEngine.Events.UnityAction<float> onChange)
     {
         // Background
         GameObject bg    = new GameObject("BG");
@@ -1101,7 +1105,8 @@ public class MainMenuManager : MonoBehaviour
         bgRT.anchorMax   = new Vector2(1f, 0.7f);
         bgRT.offsetMin   = Vector2.zero;
         bgRT.offsetMax   = Vector2.zero;
-        bg.AddComponent<Image>().color = new Color(0.18f, 0.18f, 0.18f);
+        Image bgImg      = bg.AddComponent<Image>();
+        UIHelper.ApplyImage(bgImg, theme?.sliderBackground, new Color(0.18f, 0.18f, 0.18f));
 
         // Fill area
         GameObject fa    = new GameObject("FillArea");
@@ -1117,7 +1122,10 @@ public class MainMenuManager : MonoBehaviour
         RectTransform fillRT = fill.AddComponent<RectTransform>();
         fillRT.anchorMin = Vector2.zero;
         fillRT.anchorMax = new Vector2(1f, 1f);
-        fill.AddComponent<Image>().color = new Color(0.2f, 0.6f, 1f);
+        fillRT.offsetMin = Vector2.zero;
+        fillRT.offsetMax = Vector2.zero;
+        Image fillImg    = fill.AddComponent<Image>();
+        UIHelper.ApplyImage(fillImg, theme?.sliderFill, new Color(0.2f, 0.6f, 1f));
 
         // Handle
         GameObject ha    = new GameObject("HandleArea");
@@ -1135,7 +1143,7 @@ public class MainMenuManager : MonoBehaviour
         handleRT.anchorMin = Vector2.zero;
         handleRT.anchorMax = new Vector2(0f, 1f);
         Image handleImg    = handle.AddComponent<Image>();
-        handleImg.color    = Color.white;
+        UIHelper.ApplyImage(handleImg, theme?.sliderHandle, Color.white);
 
         Slider slider      = parent.gameObject.AddComponent<Slider>();
         slider.minValue    = 0f;
@@ -1179,20 +1187,16 @@ public class MainMenuManager : MonoBehaviour
         go.transform.SetParent(parent, false);
         go.AddComponent<RectTransform>().sizeDelta = new Vector2(0f, 52f);
         Image img        = go.AddComponent<Image>();
-        img.color        = normal;
+        UIHelper.ApplyImage(img, _theme?.buttonNav, normal);
         Button btn       = go.AddComponent<Button>();
         btn.targetGraphic = img;
-        ColorBlock cb    = btn.colors;
-        cb.normalColor      = normal;
-        cb.highlightedColor = hover;
-        cb.pressedColor     = normal * 0.65f;
-        btn.colors          = cb;
+        btn.colors = UIHelper.BtnColors(_theme?.buttonNav, normal, hover, normal * 0.65f);
         btn.onClick.AddListener(() => onClick());
 
         var lbl          = MakeLabel(go.transform, "Lbl", label, 20f);
         lbl.color        = Color.white;
-        lbl.alignment    = TextAlignmentOptions.Left;
-        Stretch(lbl.gameObject, Vector2.zero, Vector2.one, new Vector2(24f, 0f), Vector2.zero);
+        lbl.alignment    = TextAlignmentOptions.Center;
+        Stretch(lbl.gameObject, Vector2.zero, Vector2.one, new Vector2(0f, 0f), Vector2.zero);
     }
 
     private GameObject MakeLargeButton(Transform parent, string label, Color color, Action onClick)
@@ -1201,14 +1205,10 @@ public class MainMenuManager : MonoBehaviour
         go.transform.SetParent(parent, false);
         go.AddComponent<RectTransform>();
         Image img        = go.AddComponent<Image>();
-        img.color        = color;
+        UIHelper.ApplyImage(img, _theme?.buttonPrimary, color);
         Button btn       = go.AddComponent<Button>();
         btn.targetGraphic = img;
-        ColorBlock cb    = btn.colors;
-        cb.normalColor      = color;
-        cb.highlightedColor = color * 1.28f;
-        cb.pressedColor     = color * 0.65f;
-        btn.colors          = cb;
+        btn.colors = UIHelper.BtnColors(_theme?.buttonPrimary, color, color * 1.28f, color * 0.65f);
         btn.onClick.AddListener(() => onClick());
 
         var lbl          = new GameObject("Lbl");
@@ -1229,14 +1229,10 @@ public class MainMenuManager : MonoBehaviour
         go.transform.SetParent(parent, false);
         go.AddComponent<RectTransform>().sizeDelta = new Vector2(110f, 0f);
         Image img        = go.AddComponent<Image>();
-        img.color        = color;
+        UIHelper.ApplyImage(img, _theme?.buttonNav, color);
         Button btn       = go.AddComponent<Button>();
         btn.targetGraphic = img;
-        ColorBlock cb    = btn.colors;
-        cb.normalColor      = color;
-        cb.highlightedColor = color * 1.3f;
-        cb.pressedColor     = color * 0.65f;
-        btn.colors          = cb;
+        btn.colors = UIHelper.BtnColors(_theme?.buttonNav, color, color * 1.3f, color * 0.65f);
         btn.onClick.AddListener(() => onClick());
 
         var lbl          = new GameObject("Lbl");

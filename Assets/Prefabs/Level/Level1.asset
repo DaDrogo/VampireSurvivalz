@@ -17,4 +17,4 @@ MonoBehaviour:
   previewColor: {r: 0.2, g: 0.4, b: 0.2, a: 1}
   sceneName: SampleScene
   isUnlockedByDefault: 1
-  unlockAtBestWave: 5
+  unlockAtBestWave: 20

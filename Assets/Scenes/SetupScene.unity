@@ -148,20 +148,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 232f0f7da503df345841a7c2d8777ba3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  _theme: {fileID: 11400000, guid: d73d985f196e4c14190280d8661a373c, type: 2}
   characters:
   - {fileID: 11400000, guid: b8863e24240b27a438e9e5f47350d651, type: 2}
-  - {fileID: 11400000, guid: b8863e24240b27a438e9e5f47350d651, type: 2}
-  - {fileID: 11400000, guid: b8863e24240b27a438e9e5f47350d651, type: 2}
-  - {fileID: 11400000, guid: b8863e24240b27a438e9e5f47350d651, type: 2}
+  - {fileID: 11400000, guid: 6919f05ed8747714a9183457cb3e793d, type: 2}
+  - {fileID: 11400000, guid: c4b89c12a90b76c43b83a5f99d4edf64, type: 2}
   buildingCards:
   - {fileID: 11400000, guid: b737c8e1cc9457546b76e626357500a1, type: 2}
   - {fileID: 11400000, guid: 518ea1ab5727a244db8c51ad75b9175c, type: 2}
   - {fileID: 11400000, guid: 21b49d9a38072a94f81b4cc26975e443, type: 2}
   - {fileID: 11400000, guid: 8a7d71c9e0043ba48a0251ea4c762be4, type: 2}
-  - {fileID: 0}
+  - {fileID: 11400000, guid: 8df3a7173f3c0da428e466dc5ea2cc2c, type: 2}
   maxLoadoutSize: 5
   levels:
   - {fileID: 11400000, guid: 83e8d898a28124a4d9fa2205d18d934c, type: 2}
+  - {fileID: 11400000, guid: 32c5987f96ad5884b9e12595188cb6e7, type: 2}
 --- !u!4 &373476503
 Transform:
   m_ObjectHideFlags: 0

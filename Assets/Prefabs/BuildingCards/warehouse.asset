@@ -22,13 +22,28 @@ MonoBehaviour:
     buildingName: Warehouse
     prefab: {fileID: 1823645102394756890, guid: c8a7f9e2d5b31048b6e8c7f9d2a4b871, type: 3}
     footprint: {x: 1, y: 1}
-    woodCost: 100
-    metalCost: 100
+    woodCost: 50
+    metalCost: 0
     description: 
     isBasic: 0
     isCitadel: 0
     upgrades: []
-    upgradeChoices: []
+    upgradeChoices:
+    - label: Woodcutter
+      prefab: {fileID: 1823645102394756890, guid: be1330661bc6334429dc8ba50a0e57c4, type: 3}
+      woodCost: 50
+      metalCost: 0
+      description: 
+    - label: Smith
+      prefab: {fileID: 1823645102394756890, guid: 66670b63f6f65784d8cb603561bd01fc, type: 3}
+      woodCost: 0
+      metalCost: 50
+      description: 
+    - label: Trader
+      prefab: {fileID: 1823645102394756890, guid: 6449fc98b372151448e53b215e3fb260, type: 3}
+      woodCost: 50
+      metalCost: 50
+      description: 
     groundTiles: []
   isBasic: 0
   isCitadel: 0

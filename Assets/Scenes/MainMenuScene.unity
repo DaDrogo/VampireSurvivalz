@@ -190,6 +190,10 @@ MonoBehaviour:
   - {fileID: 8300000, guid: 10abd3bd7e5621c47859671e18bad5e1, type: 3}
   - {fileID: 8300000, guid: 783de272d6237c340b61f353ac9d8054, type: 3}
   musicFadeInDuration: 2
+  waveStartSfx: {fileID: 0}
+  waveSurvivedSfx: {fileID: 0}
+  gameOverSfx: {fileID: 0}
+  victorySfx: {fileID: 0}
   buttonClickSfx: {fileID: 8300000, guid: a90d0758e518a1e4c902a13315f9442e, type: 3}
 --- !u!114 &243077327
 MonoBehaviour:
@@ -204,6 +208,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   menuMusic: {fileID: 8300000, guid: 38069de709ce6934899883756fe915e3, type: 3}
+  _theme: {fileID: 11400000, guid: d73d985f196e4c14190280d8661a373c, type: 2}
   backgroundSprite: {fileID: -60501695457147688, guid: 0bfb1b72953e8e247b2e1cd2faf0792b, type: 3}
   overlayAlpha: 0.55
   lexikonEntries:

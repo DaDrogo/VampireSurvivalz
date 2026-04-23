@@ -105,7 +105,7 @@ public class Projectile : MonoBehaviour
         _currentDamage = damage;
         _chainsLeft    = chainCount;
 
-        Vector2 dir = ((Vector2)targetWorldPos - _rb.position).normalized;
+        Vector2 dir = ((Vector2)targetWorldPos - (Vector2)transform.position).normalized;
         float angle = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg - 90f;
         transform.rotation = Quaternion.Euler(0f, 0f, angle);
 

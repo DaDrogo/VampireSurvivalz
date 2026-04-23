@@ -15,6 +15,10 @@ public class Barricade : Building, IInteractable, ILexikonSource
     [SerializeField] private Sprite ghostSprite;
     [SerializeField] private Sprite builtSprite;
 
+    [Header("Regeneration")]
+    [Tooltip("Health regenerated per second as a fraction of max health (e.g. 0.02 = 2%/s).")]
+    [SerializeField] private float regenPercentPerSecond = 0.02f;
+
     [Header("Audio")]
     [SerializeField] private AudioClip buildSfx;
 
@@ -69,6 +73,17 @@ public class Barricade : Building, IInteractable, ILexikonSource
     /// Skips the resource check — costs were already paid to BuildingManager.
     /// </summary>
     public void BuildImmediate() => Build();
+
+    // ── Regeneration ─────────────────────────────────────────────────────────
+
+    private void Update()
+    {
+        if (State != BarricadeState.Built) return;
+        if (CurrentHealth >= maxHealth) return;
+
+        CurrentHealth = Mathf.Min(maxHealth, CurrentHealth + maxHealth * regenPercentPerSecond * Time.deltaTime);
+        RaiseHealthChanged();
+    }
 
     // ── Combat ────────────────────────────────────────────────────────────────
 

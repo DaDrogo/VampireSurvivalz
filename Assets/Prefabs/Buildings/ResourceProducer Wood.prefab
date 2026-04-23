@@ -139,9 +139,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   maxHealth: 100
+  hitSfx: {fileID: 0}
+  destroySfx: {fileID: 0}
   outputType: Wood
   amountPerCycle: 10
-  productionInterval: 10
+  productionInterval: 5
 --- !u!114 &1823645102394756895
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -12,7 +12,7 @@ using UnityEngine;
 /// the coffin accumulates ambient XP that is granted in bulk on recall.
 /// </summary>
 [RequireComponent(typeof(BoxCollider2D))]
-public class VampireCoffin : MonoBehaviour, IDamageable, IEnemyAttackable
+public class VampireCoffin : MonoBehaviour, IDamageable
 {
     [Header("Health")]
     [SerializeField] private float maxHealth = 300f;
@@ -31,14 +31,9 @@ public class VampireCoffin : MonoBehaviour, IDamageable, IEnemyAttackable
     public float MaxHealth     => maxHealth;
     public bool  IsDestroyed   => this == null || CurrentHealth <= 0f;
 
-    public void ReceiveEnemyAttack(float damage, float _) => TakeDamage(damage);
+    public void ReceiveEnemyAttack(float damage, float _) { }
 
-    public void TakeDamage(float damage)
-    {
-        CurrentHealth = Mathf.Max(0f, CurrentHealth - damage);
-        if (CurrentHealth <= 0f)
-            DestroyCoffin();
-    }
+    public void TakeDamage(float damage) { }
 
     // ── Private ───────────────────────────────────────────────────────────────
 

@@ -26,6 +26,9 @@ public class UIManager : MonoBehaviour
 
     private VampireEnemy    _boundVampire;
 
+    [Header("UI Theme")]
+    [SerializeField] private UITheme _theme;
+
     // ── Runtime-built label references ────────────────────────────────────────
 
     private TextMeshProUGUI _woodText;
@@ -411,7 +414,9 @@ public class UIManager : MonoBehaviour
     {
         EnsureEventSystem();
 
-        TMP_FontAsset font = Resources.Load<TMP_FontAsset>("Fonts & Materials/LiberationSans SDF");
+        TMP_FontAsset font = _theme?.font != null
+            ? _theme.font
+            : Resources.Load<TMP_FontAsset>("Fonts & Materials/LiberationSans SDF");
         if (font == null)
             Debug.LogWarning("UIManager: TMP font not found — import TMP Essential Resources via Window > TextMeshPro.");
 
@@ -635,15 +640,12 @@ public class UIManager : MonoBehaviour
         pauseLE.flexibleWidth   = 0f;
 
         Image pauseImg          = pauseBtnGO.AddComponent<Image>();
-        pauseImg.color          = new Color(0.18f, 0.18f, 0.22f, 0.85f);
+        UIHelper.ApplyImage(pauseImg, _theme?.buttonSecondary, new Color(0.18f, 0.18f, 0.22f, 0.85f));
 
         Button pauseBtn         = pauseBtnGO.AddComponent<Button>();
         pauseBtn.targetGraphic  = pauseImg;
-        ColorBlock pauseCB      = pauseBtn.colors;
-        pauseCB.normalColor     = Color.white;
-        pauseCB.highlightedColor = new Color(0.7f, 0.85f, 1f);
-        pauseCB.pressedColor    = new Color(0.45f, 0.55f, 0.7f);
-        pauseBtn.colors         = pauseCB;
+        pauseBtn.colors         = UIHelper.BtnColors(_theme?.buttonSecondary,
+                                      Color.white, new Color(0.7f, 0.85f, 1f), new Color(0.45f, 0.55f, 0.7f));
         pauseBtn.onClick.AddListener(() => PauseMenuManager.Instance?.Pause());
 
         var pauseLabel          = MakeLabel(pauseBtnGO.transform, "Label", "⏸", font, 28f,
@@ -791,11 +793,12 @@ public class UIManager : MonoBehaviour
             GameObject btnGO = new GameObject("UpgradeBtn");
             btnGO.transform.SetParent(_upgradeSection.transform, false);
             Image btnImg         = btnGO.AddComponent<Image>();
-            btnImg.color         = new Color(0.12f, 0.55f, 0.12f, 1f);
+            UIHelper.ApplyImage(btnImg, _theme?.buttonPrimary, new Color(0.12f, 0.55f, 0.12f, 1f));
             _upgradeButton       = btnGO.AddComponent<Button>();
             _upgradeButton.targetGraphic = btnImg;
             _upgradeButton.onClick.AddListener(OnUpgradeClicked);
-            ColorBlock upgCB     = _upgradeButton.colors;
+            ColorBlock upgCB     = UIHelper.BtnColors(_theme?.buttonPrimary,
+                new Color(0.12f, 0.55f, 0.12f), new Color(0.18f, 0.75f, 0.18f), new Color(0.08f, 0.38f, 0.08f));
             upgCB.disabledColor  = new Color(0.35f, 0.35f, 0.35f);
             _upgradeButton.colors = upgCB;
             btnGO.AddComponent<LayoutElement>().preferredHeight = 56f;
@@ -837,11 +840,12 @@ public class UIManager : MonoBehaviour
                 GameObject cBtn   = new GameObject($"ChoiceBtn_{i}");
                 cBtn.transform.SetParent(_choiceSection.transform, false);
                 Image cImg        = cBtn.AddComponent<Image>();
-                cImg.color        = new Color(0.12f, 0.38f, 0.55f, 1f);
+                UIHelper.ApplyImage(cImg, _theme?.buttonSecondary, new Color(0.12f, 0.38f, 0.55f, 1f));
                 Button btn        = cBtn.AddComponent<Button>();
                 btn.targetGraphic = cImg;
                 btn.onClick.AddListener(() => OnChoiceClicked(idx));
-                ColorBlock cb     = btn.colors;
+                ColorBlock cb     = UIHelper.BtnColors(_theme?.buttonSecondary,
+                    new Color(0.12f, 0.38f, 0.55f), new Color(0.18f, 0.52f, 0.75f), new Color(0.08f, 0.25f, 0.38f));
                 cb.disabledColor  = new Color(0.25f, 0.25f, 0.25f);
                 btn.colors        = cb;
                 cBtn.AddComponent<LayoutElement>().preferredHeight = 62f;

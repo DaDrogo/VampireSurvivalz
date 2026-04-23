@@ -57,13 +57,17 @@ public class ResourceProducer : Building
         {
             case "wood":
                 ResourceManager.Instance.AddResource("Wood", amountPerCycle);
+                FloatingTextManager.Instance?.Spawn(transform.position, amountPerCycle, FloatingTextManager.ResourceKind.Wood);
                 break;
             case "metal":
                 ResourceManager.Instance.AddResource("Metal", amountPerCycle);
+                FloatingTextManager.Instance?.Spawn(transform.position, amountPerCycle, FloatingTextManager.ResourceKind.Metal);
                 break;
             case "both":
                 ResourceManager.Instance.AddResource("Wood",  amountPerCycle);
                 ResourceManager.Instance.AddResource("Metal", amountPerCycle);
+                FloatingTextManager.Instance?.Spawn(transform.position + new Vector3(-0.2f, 0f, 0f), amountPerCycle, FloatingTextManager.ResourceKind.Wood);
+                FloatingTextManager.Instance?.Spawn(transform.position + new Vector3( 0.2f, 0f, 0f), amountPerCycle, FloatingTextManager.ResourceKind.Metal);
                 break;
             default:
                 Debug.LogWarning($"[ResourceProducer] Unknown outputType '{outputType}'.");

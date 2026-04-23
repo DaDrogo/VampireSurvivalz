@@ -19,6 +19,9 @@ public class PauseMenuManager : MonoBehaviour
 
     private TMP_FontAsset _font;
 
+    [Header("UI Theme")]
+    [SerializeField] private UITheme _theme;
+
     private static readonly Color BgDark    = new Color(0.08f, 0.08f, 0.10f, 0.97f);
     private static readonly Color BtnGreen  = new Color(0.15f, 0.52f, 0.15f);
     private static readonly Color BtnBlue   = new Color(0.15f, 0.32f, 0.62f);
@@ -35,7 +38,9 @@ public class PauseMenuManager : MonoBehaviour
 
     private void Start()
     {
-        _font = Resources.Load<TMP_FontAsset>("Fonts & Materials/LiberationSans SDF");
+        _font = _theme?.font != null
+            ? _theme.font
+            : Resources.Load<TMP_FontAsset>("Fonts & Materials/LiberationSans SDF");
         BuildPauseUI();
     }
 
@@ -129,9 +134,9 @@ public class PauseMenuManager : MonoBehaviour
         _pausePanel    = BuildPanel("PausePanel", new Vector2(360f, 320f), _pauseCanvas.transform,
             p => {
                 AddTitle(p,  "PAUSED", 46f, new Color(0.9f, 0.9f, 0.9f));
-                AddButton(p, "Resume",      "Resume",      BtnGreen, Resume);
-                AddButton(p, "Settings",    "Settings",    BtnBlue,  ShowSettingsPanel);
-                AddButton(p, "MainMenu",    "Main Menu",   BtnRed,   ReturnToMainMenu);
+                AddButton(p, "Resume",      "Resume",      BtnGreen, Resume,            _theme?.buttonPrimary);
+                AddButton(p, "Settings",    "Settings",    BtnBlue,  ShowSettingsPanel,  _theme?.buttonSecondary);
+                AddButton(p, "MainMenu",    "Main Menu",   BtnRed,   ReturnToMainMenu,   _theme?.buttonDanger);
             });
 
         _settingsPanel = BuildPanel("SettingsPanel", new Vector2(460f, 340f), _pauseCanvas.transform,
@@ -143,7 +148,7 @@ public class PauseMenuManager : MonoBehaviour
                 AddVolumeSlider(p, "SFX Volume",
                     PersistentDataManager.Instance?.SFXVolume ?? 0.8f,
                     v => PersistentDataManager.Instance?.SetSFXVolume(v));
-                AddButton(p, "Back", "Back", BtnGray, ShowPausePanel);
+                AddButton(p, "Back", "Back", BtnGray, ShowPausePanel, _theme?.buttonSecondary);
             });
 
         _settingsPanel.SetActive(false);
@@ -185,21 +190,17 @@ public class PauseMenuManager : MonoBehaviour
         lbl.fontStyle   = FontStyles.Bold;
     }
 
-    private void AddButton(Transform parent, string goName, string label, Color color, UnityAction action)
+    private void AddButton(Transform parent, string goName, string label, Color color, UnityAction action, Sprite sprite = null)
     {
         GameObject go   = new GameObject(goName);
         go.transform.SetParent(parent, false);
         go.AddComponent<RectTransform>();
         Image img       = go.AddComponent<Image>();
-        img.color       = color;
+        UIHelper.ApplyImage(img, sprite, color);
 
         Button btn      = go.AddComponent<Button>();
         btn.targetGraphic = img;
-        ColorBlock cb   = btn.colors;
-        cb.normalColor      = color;
-        cb.highlightedColor = color * 1.3f;
-        cb.pressedColor     = color * 0.65f;
-        btn.colors = cb;
+        btn.colors = UIHelper.BtnColors(sprite, color, color * 1.3f, color * 0.65f);
         btn.onClick.AddListener(action);
 
         var lbl         = MakeLabel(go.transform, "Label", label, 28f);
@@ -233,7 +234,7 @@ public class PauseMenuManager : MonoBehaviour
         valLE.preferredWidth = 52f;
 
         // Slider
-        Slider slider   = BuildSlider(row.transform, initial, v =>
+        Slider slider   = BuildSlider(row.transform, initial, _theme, v =>
         {
             onChange?.Invoke(v);
             valLbl.text = $"{v:P0}";
@@ -241,7 +242,7 @@ public class PauseMenuManager : MonoBehaviour
         slider.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1f;
     }
 
-    private static Slider BuildSlider(Transform parent, float initial, UnityAction<float> onChange)
+    private static Slider BuildSlider(Transform parent, float initial, UITheme theme, UnityAction<float> onChange)
     {
         GameObject go   = new GameObject("Slider");
         go.transform.SetParent(parent, false);
@@ -255,7 +256,8 @@ public class PauseMenuManager : MonoBehaviour
         bgRT.anchorMax  = new Vector2(1f, 0.7f);
         bgRT.offsetMin  = Vector2.zero;
         bgRT.offsetMax  = Vector2.zero;
-        bg.AddComponent<Image>().color = new Color(0.18f, 0.18f, 0.18f);
+        Image bgImg     = bg.AddComponent<Image>();
+        UIHelper.ApplyImage(bgImg, theme?.sliderBackground, new Color(0.18f, 0.18f, 0.18f));
 
         // Fill area
         GameObject fillArea = new GameObject("FillArea");
@@ -271,7 +273,8 @@ public class PauseMenuManager : MonoBehaviour
         RectTransform fillRT = fill.AddComponent<RectTransform>();
         fillRT.anchorMin = Vector2.zero;
         fillRT.anchorMax = new Vector2(1f, 1f);
-        fill.AddComponent<Image>().color = new Color(0.2f, 0.6f, 1f);
+        Image fillImg    = fill.AddComponent<Image>();
+        UIHelper.ApplyImage(fillImg, theme?.sliderFill, new Color(0.2f, 0.6f, 1f));
 
         // Handle
         GameObject ha   = new GameObject("HandleArea");
@@ -289,7 +292,7 @@ public class PauseMenuManager : MonoBehaviour
         handleRT.anchorMin = Vector2.zero;
         handleRT.anchorMax = new Vector2(0f, 1f);
         Image handleImg    = handle.AddComponent<Image>();
-        handleImg.color    = Color.white;
+        UIHelper.ApplyImage(handleImg, theme?.sliderHandle, Color.white);
 
         Slider slider       = go.AddComponent<Slider>();
         slider.minValue     = 0f;

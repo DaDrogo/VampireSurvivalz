@@ -36,12 +36,24 @@ MonoBehaviour:
       rangeMult: 0
     - label: III
       woodCost: 50
+      metalCost: 0
+      healthMult: 2
+      fireRateMult: 0
+      rangeMult: 0
+    - label: IV
+      woodCost: 100
+      metalCost: 0
+      healthMult: 2
+      fireRateMult: 0
+      rangeMult: 0
+    - label: IV
+      woodCost: 200
       metalCost: 50
       healthMult: 2
       fireRateMult: 0
       rangeMult: 0
     - label: IV
-      woodCost: 50
+      woodCost: 800
       metalCost: 50
       healthMult: 2
       fireRateMult: 0

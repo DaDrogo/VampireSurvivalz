@@ -20,6 +20,9 @@ public class GameManager : MonoBehaviour
 
     // ── Inspector ─────────────────────────────────────────────────────────────
 
+    [Header("UI Theme")]
+    [SerializeField] private UITheme _theme;
+
     [Header("Preparation")]
     [SerializeField] private float preparationDuration = 60f;
 
@@ -130,7 +133,10 @@ public class GameManager : MonoBehaviour
         Instance = this;
 
         if (DayNightManager.Instance == null)
-            gameObject.AddComponent<DayNightManager>();
+        {
+            var dnm = gameObject.AddComponent<DayNightManager>();
+            dnm.SetTheme(_theme);
+        }
     }
 
     private void OnEnable()
@@ -425,7 +431,9 @@ public class GameManager : MonoBehaviour
         layout.childForceExpandHeight = true;
         layout.childForceExpandWidth  = true;
 
-        TMP_FontAsset font = Resources.Load<TMP_FontAsset>("Fonts & Materials/LiberationSans SDF");
+        TMP_FontAsset font = _theme?.font != null
+            ? _theme.font
+            : Resources.Load<TMP_FontAsset>("Fonts & Materials/LiberationSans SDF");
 
         var title       = MakeLabel(panel.transform, "Title", "VICTORY!", font, 58f);
         title.color     = new Color(0.9f, 0.85f, 0.1f);
@@ -437,8 +445,12 @@ public class GameManager : MonoBehaviour
         GameObject btnGO = new GameObject("MenuButton");
         btnGO.transform.SetParent(panel.transform, false);
         btnGO.AddComponent<RectTransform>();
-        btnGO.AddComponent<Image>().color = new Color(0.18f, 0.18f, 0.55f);
+        Image victoryMenuImg = btnGO.AddComponent<Image>();
+        UIHelper.ApplyImage(victoryMenuImg, _theme?.buttonSecondary, new Color(0.18f, 0.18f, 0.55f));
         Button btn = btnGO.AddComponent<Button>();
+        btn.targetGraphic = victoryMenuImg;
+        btn.colors = UIHelper.BtnColors(_theme?.buttonSecondary,
+            new Color(0.18f, 0.18f, 0.55f), new Color(0.25f, 0.25f, 0.72f), new Color(0.10f, 0.10f, 0.38f));
         btn.onClick.AddListener(ReturnToMainMenu);
         var lbl = MakeLabel(btnGO.transform, "Label", "Main Menu", font, 32f);
         lbl.GetComponent<RectTransform>().anchorMin = Vector2.zero;
@@ -702,7 +714,9 @@ public class GameManager : MonoBehaviour
         layout.childForceExpandHeight = true;
         layout.childForceExpandWidth  = true;
 
-        TMP_FontAsset font = Resources.Load<TMP_FontAsset>("Fonts & Materials/LiberationSans SDF");
+        TMP_FontAsset font = _theme?.font != null
+            ? _theme.font
+            : Resources.Load<TMP_FontAsset>("Fonts & Materials/LiberationSans SDF");
 
         var title       = MakeLabel(panel.transform, "Title",    "GAME OVER",               font, 54f);
         title.color     = new Color(0.9f, 0.15f, 0.15f);
@@ -720,14 +734,13 @@ public class GameManager : MonoBehaviour
         GameObject btnGO = new GameObject("RestartButton");
         btnGO.transform.SetParent(panel.transform, false);
         btnGO.AddComponent<RectTransform>();
-        btnGO.AddComponent<Image>().color = new Color(0.18f, 0.55f, 0.18f);
+        Image restartImg        = btnGO.AddComponent<Image>();
+        UIHelper.ApplyImage(restartImg, _theme?.buttonPrimary, new Color(0.18f, 0.55f, 0.18f));
 
         Button btn              = btnGO.AddComponent<Button>();
-        ColorBlock cols         = btn.colors;
-        cols.normalColor        = new Color(0.18f, 0.55f, 0.18f);
-        cols.highlightedColor   = new Color(0.25f, 0.72f, 0.25f);
-        cols.pressedColor       = new Color(0.10f, 0.38f, 0.10f);
-        btn.colors              = cols;
+        btn.targetGraphic       = restartImg;
+        btn.colors              = UIHelper.BtnColors(_theme?.buttonPrimary,
+            new Color(0.18f, 0.55f, 0.18f), new Color(0.25f, 0.72f, 0.25f), new Color(0.10f, 0.38f, 0.10f));
         btn.onClick.AddListener(RestartGame);
 
         var btnLabel            = MakeLabel(btnGO.transform, "Label", "Restart", font, 32f);
@@ -741,14 +754,13 @@ public class GameManager : MonoBehaviour
         GameObject menuBtnGO    = new GameObject("MainMenuButton");
         menuBtnGO.transform.SetParent(panel.transform, false);
         menuBtnGO.AddComponent<RectTransform>();
-        menuBtnGO.AddComponent<Image>().color = new Color(0.15f, 0.32f, 0.62f);
+        Image menuImg               = menuBtnGO.AddComponent<Image>();
+        UIHelper.ApplyImage(menuImg, _theme?.buttonSecondary, new Color(0.15f, 0.32f, 0.62f));
 
         Button menuBtn              = menuBtnGO.AddComponent<Button>();
-        ColorBlock menuCols         = menuBtn.colors;
-        menuCols.normalColor        = new Color(0.15f, 0.32f, 0.62f);
-        menuCols.highlightedColor   = new Color(0.22f, 0.45f, 0.82f);
-        menuCols.pressedColor       = new Color(0.08f, 0.20f, 0.42f);
-        menuBtn.colors              = menuCols;
+        menuBtn.targetGraphic       = menuImg;
+        menuBtn.colors              = UIHelper.BtnColors(_theme?.buttonSecondary,
+            new Color(0.15f, 0.32f, 0.62f), new Color(0.22f, 0.45f, 0.82f), new Color(0.08f, 0.20f, 0.42f));
         menuBtn.onClick.AddListener(ReturnToMainMenu);
 
         var menuLabel               = MakeLabel(menuBtnGO.transform, "Label", "Main Menu", font, 32f);
