@@ -18,8 +18,8 @@ MonoBehaviour:
   woodCost: 0
   metalCost: 0
   buildingDef:
-    buildingName: 
-    prefab: {fileID: 0}
+    buildingName: HollyWell
+    prefab: {fileID: 7460844404687726296, guid: 38f1c7eb60e48ee4890ff8a52a9644ed, type: 3}
     footprint: {x: 1, y: 1}
     woodCost: 1000
     metalCost: 1000

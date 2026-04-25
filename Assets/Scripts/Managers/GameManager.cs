@@ -704,7 +704,8 @@ public class GameManager : MonoBehaviour
         panelRect.anchorMax         = new Vector2(0.5f, 0.5f);
         panelRect.pivot             = new Vector2(0.5f, 0.5f);
         panelRect.sizeDelta         = new Vector2(420f, 380f);
-        panel.AddComponent<Image>().color = new Color(0.08f, 0.08f, 0.08f, 0.96f);
+        Image gameOverImg        = panel.AddComponent<Image>();
+        UIHelper.ApplyImage(gameOverImg, _theme?.menuBackground, new Color(0.18f, 0.55f, 0.18f));
 
         VerticalLayoutGroup layout  = panel.AddComponent<VerticalLayoutGroup>();
         layout.padding              = new RectOffset(30, 30, 30, 30);
@@ -735,11 +736,11 @@ public class GameManager : MonoBehaviour
         btnGO.transform.SetParent(panel.transform, false);
         btnGO.AddComponent<RectTransform>();
         Image restartImg        = btnGO.AddComponent<Image>();
-        UIHelper.ApplyImage(restartImg, _theme?.buttonPrimary, new Color(0.18f, 0.55f, 0.18f));
+        UIHelper.ApplyImage(restartImg, _theme?.buttonNav, new Color(0.18f, 0.55f, 0.18f));
 
         Button btn              = btnGO.AddComponent<Button>();
         btn.targetGraphic       = restartImg;
-        btn.colors              = UIHelper.BtnColors(_theme?.buttonPrimary,
+        btn.colors              = UIHelper.BtnColors(_theme?.buttonNav,
             new Color(0.18f, 0.55f, 0.18f), new Color(0.25f, 0.72f, 0.25f), new Color(0.10f, 0.38f, 0.10f));
         btn.onClick.AddListener(RestartGame);
 

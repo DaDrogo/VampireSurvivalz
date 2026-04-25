@@ -14,6 +14,8 @@ GameObject:
   - component: {fileID: 6710654032271347214}
   - component: {fileID: 5995712942476766601}
   - component: {fileID: -8344581297509007814}
+  - component: {fileID: 4119468961539476030}
+  - component: {fileID: 2227463394042309308}
   m_Layer: 7
   m_Name: Vampire Enemy
   m_TagString: Enemy
@@ -116,7 +118,7 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 2
-  m_Sprite: {fileID: 8755328375146228966, guid: 9cdf69215b3ee0344b0fe7a3ae8ac519, type: 3}
+  m_Sprite: {fileID: -2314506720581648914, guid: 4a07f4f9a53cc7e49931bbf990bd61a3, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -207,3 +209,37 @@ MonoBehaviour:
   - {fileID: 11400000, guid: cc6c75ca1d37658468c832522af77333, type: 2}
   - {fileID: 11400000, guid: 20a4b39b084619f4abc32a6103752957, type: 2}
   thrallPrefab: {fileID: 8368466745619319268, guid: 8df70025dbfafde4d8dff617b7a640a6, type: 3}
+--- !u!95 &4119468961539476030
+Animator:
+  serializedVersion: 7
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8368466745619319268}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: c56b63365962484459671612d3c04747, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &2227463394042309308
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8368466745619319268}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 15673a8b72dc9a143b691390849a32c8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 

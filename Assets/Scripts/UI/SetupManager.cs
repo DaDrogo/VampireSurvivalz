@@ -172,8 +172,10 @@ public class SetupManager : MonoBehaviour
 
     private void BuildStepBar(Transform parent)
     {
-        var bar = GroupGO(parent, "StepBar");
-        UIHelper.ApplyImage(bar.AddComponent<Image>(), _theme?.stepBarBackground, C_Surface);
+        var bar    = GroupGO(parent, "StepBar");
+        var barImg = bar.AddComponent<Image>();
+        UIHelper.ApplyImage(barImg, _theme?.stepBarBackground, C_Surface, Image.Type.Tiled);
+        barImg.color = C_Surface;
         bar.AddComponent<LayoutElement>().preferredHeight = 44f;
 
         // Thin accent line at the very bottom of the step bar
@@ -194,8 +196,10 @@ public class SetupManager : MonoBehaviour
             // Divider between steps
             if (i > 0)
             {
-                var dv = GroupGO(hlg.transform, "StepDiv");
-                UIHelper.ApplyImage(dv.AddComponent<Image>(), _theme?.stepDivider, C_Div);
+                var dv    = GroupGO(hlg.transform, "StepDiv");
+                var dvImg = dv.AddComponent<Image>();
+                UIHelper.ApplyImage(dvImg, _theme?.stepDivider, C_Div, Image.Type.Tiled);
+                dvImg.color = C_Div;
                 var dvLE = dv.AddComponent<LayoutElement>();
                 dvLE.preferredWidth  = 1f;
                 dvLE.flexibleWidth   = 0f;
@@ -214,7 +218,8 @@ public class SetupManager : MonoBehaviour
             var chip   = GroupGO(step.transform, "Chip");
             chip.AddComponent<LayoutElement>().preferredWidth = 30f;
             _stepChipBgs[i] = chip.AddComponent<Image>();
-            UIHelper.ApplyImage(_stepChipBgs[i], _theme?.stepChip, C_StepFut);
+            UIHelper.ApplyImage(_stepChipBgs[i], _theme?.stepChip, C_StepFut, Image.Type.Tiled);
+            _stepChipBgs[i].color = C_StepFut;
             var chipNum = Lbl(chip.transform, (i + 1).ToString(), 14f, Color.white);
             chipNum.fontStyle = FontStyles.Bold;
             chipNum.alignment = TextAlignmentOptions.Center;
@@ -245,7 +250,7 @@ public class SetupManager : MonoBehaviour
 
         // ── Left list (400px) ─────────────────────────────────────────────
         var left  = GroupGO(panel.transform, "Left");
-        UIHelper.ApplyImage(left.AddComponent<Image>(), _theme?.panelBackground, C_Surface);
+        UIHelper.ApplyImage(left.AddComponent<Image>(), _theme?.panelBackground, C_Surface, Image.Type.Tiled);
         left.AddComponent<LayoutElement>().preferredWidth = 400f;
 
         var leftVLG = left.AddComponent<VerticalLayoutGroup>();
@@ -276,7 +281,7 @@ public class SetupManager : MonoBehaviour
                 var card    = GroupGO(listContent, $"CC{i}");
                 card.AddComponent<LayoutElement>().preferredHeight = 72f;
                 var cardImg = card.AddComponent<Image>();
-                UIHelper.ApplyImage(cardImg, _theme?.cardBackground, CardNormal);
+                UIHelper.ApplyImage(cardImg, _theme?.cardBackground, CardNormal, Image.Type.Tiled);
                 _charCardBgs[i] = cardImg;
 
                 var btn = card.AddComponent<Button>();
@@ -321,7 +326,7 @@ public class SetupManager : MonoBehaviour
 
         // ── Right detail (flex) ───────────────────────────────────────────
         var right = GroupGO(panel.transform, "Right");
-        UIHelper.ApplyImage(right.AddComponent<Image>(), _theme?.panelBackground, C_Panel);
+        UIHelper.ApplyImage(right.AddComponent<Image>(), _theme?.panelBackground, C_Panel, Image.Type.Tiled);
         right.AddComponent<LayoutElement>().flexibleWidth = 1f;
 
         var rightVLG = right.AddComponent<VerticalLayoutGroup>();
@@ -395,7 +400,7 @@ public class SetupManager : MonoBehaviour
     private GameObject BuildLoadoutStep(Transform parent)
     {
         var panel = GroupGO(parent, "LoadoutStep");
-        UIHelper.ApplyImage(panel.AddComponent<Image>(), _theme?.panelBackground, Color.clear);
+        UIHelper.ApplyImage(panel.AddComponent<Image>(), _theme?.panelBackground, Color.clear, Image.Type.Tiled);
 
         var vlg = panel.AddComponent<VerticalLayoutGroup>();
         vlg.padding  = new RectOffset(48, 48, 28, 24);
@@ -482,7 +487,8 @@ public class SetupManager : MonoBehaviour
         // Root — VLG
         var go    = GroupGO(parent, $"Card{idx}");
         var bgImg = go.AddComponent<Image>();
-        UIHelper.ApplyImage(bgImg, _theme?.cardBackground, bgColor);
+        UIHelper.ApplyImage(bgImg, _theme?.cardBackground, bgColor, Image.Type.Tiled);
+        bgImg.color = bgColor;
         _loadoutCardBgs[idx] = bgImg;
 
         var btn = go.AddComponent<Button>();
@@ -617,7 +623,7 @@ public class SetupManager : MonoBehaviour
     private GameObject BuildLevelStep(Transform parent)
     {
         var panel = GroupGO(parent, "LevelStep");
-        UIHelper.ApplyImage(panel.AddComponent<Image>(), _theme?.panelBackground, Color.clear);
+        UIHelper.ApplyImage(panel.AddComponent<Image>(), _theme?.panelBackground, Color.clear, Image.Type.Tiled);
 
         var vlg = panel.AddComponent<VerticalLayoutGroup>();
         vlg.padding = new RectOffset(48, 48, 36, 36);
@@ -668,7 +674,7 @@ public class SetupManager : MonoBehaviour
 
         var img  = card.AddComponent<Image>();
         Color lvlCardColor = !unlocked ? C_CardLock : idx == _levelIndex ? C_CardSel : C_CardNorm;
-        UIHelper.ApplyImage(img, _theme?.cardBackground, lvlCardColor);
+        UIHelper.ApplyImage(img, _theme?.cardBackground, lvlCardColor, Image.Type.Tiled);
         img.color = lvlCardColor;   // restore tint after ApplyImage (sprite tinting still works)
         _levelCardBgs[idx] = img;
 
@@ -752,8 +758,10 @@ public class SetupManager : MonoBehaviour
 
     private void BuildNavBar(Transform parent)
     {
-        var bar = GroupGO(parent, "NavBar");
-        bar.AddComponent<Image>().color = C_Surface;
+        var bar    = GroupGO(parent, "NavBar");
+        var barImg = bar.AddComponent<Image>();
+        UIHelper.ApplyImage(barImg, _theme?.stepBarBackground, C_Surface, Image.Type.Tiled);
+        barImg.color = C_Surface;
         bar.AddComponent<LayoutElement>().preferredHeight = 56f;
 
         var hlg = bar.AddComponent<HorizontalLayoutGroup>();
@@ -762,11 +770,11 @@ public class SetupManager : MonoBehaviour
         hlg.childControlHeight     = true;
         hlg.childControlWidth      = false;
         hlg.childForceExpandHeight = true;
-        hlg.childForceExpandWidth  = false;
+        hlg.childForceExpandWidth  = true;
 
         // Back button
         var backGO = GroupGO(bar.transform, "BackBtn");
-        backGO.AddComponent<LayoutElement>().preferredWidth = 140f;
+        backGO.AddComponent<LayoutElement>().preferredWidth = 240f;
         var backImg = backGO.AddComponent<Image>();
         UIHelper.ApplyImage(backImg, _theme?.buttonSecondary, Color.clear);
         _backBtn = backGO.AddComponent<Button>();
@@ -774,7 +782,7 @@ public class SetupManager : MonoBehaviour
         _backBtn.colors = UIHelper.BtnColors(_theme?.buttonSecondary,
             Color.white, new Color(1.08f, 1.08f, 1.08f), new Color(0.88f, 0.88f, 0.88f));
         _backBtn.onClick.AddListener(OnBack);
-        _backLabel = Lbl(backGO.transform, "← BACK", 16f, C_TxtMid);
+        _backLabel = Lbl(backGO.transform, "BACK", 16f, C_TxtMid);
         _backLabel.alignment = TextAlignmentOptions.Center;
         StretchRT(_backLabel.GetComponent<RectTransform>());
 
@@ -784,14 +792,14 @@ public class SetupManager : MonoBehaviour
 
         // Next — primary action
         var nextGO = GroupGO(bar.transform, "NextBtn");
-        nextGO.AddComponent<LayoutElement>().preferredWidth = 300f;
+        nextGO.AddComponent<LayoutElement>().preferredWidth = 240f;
         var nextImg = nextGO.AddComponent<Image>();
         UIHelper.ApplyImage(nextImg, _theme?.buttonPrimary, new Color(0.12f, 0.46f, 0.12f));
         _nextBtn = nextGO.AddComponent<Button>();
         _nextBtn.targetGraphic = nextImg;
         SetBtn(_nextBtn, Color.white, new Color(1.10f, 1.10f, 1.10f), new Color(0.84f, 0.84f, 0.84f));
         _nextBtn.onClick.AddListener(OnNext);
-        _nextLabel = Lbl(nextGO.transform, "NEXT  →", 22f, Color.white);
+        _nextLabel = Lbl(nextGO.transform, "NEXT", 16f, Color.white);
         _nextLabel.fontStyle = FontStyles.Bold;
         _nextLabel.alignment = TextAlignmentOptions.Center;
         StretchRT(_nextLabel.GetComponent<RectTransform>());
@@ -817,10 +825,10 @@ public class SetupManager : MonoBehaviour
                                               : C_TxtDim;
         }
 
-        _backLabel.text = _step == 0 ? "← MENU" : "← BACK";
+        _backLabel.text = _step == 0 ? "MENU" : "BACK";
 
         bool isLast = _step == _stepPanels.Length - 1;
-        _nextLabel.text = isLast ? "START GAME" : "NEXT  →";
+        _nextLabel.text = isLast ? "START" : "NEXT";
         _nextBtn.GetComponent<Image>().color = isLast
             ? new Color(0.09f, 0.40f, 0.09f)
             : new Color(0.12f, 0.46f, 0.12f);

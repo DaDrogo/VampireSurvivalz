@@ -1,0 +1,1625 @@
+fileFormatVersion: 2
+guid: 7e83386e8a697594ea7f900388918a6c
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: 2992058213408355102
+    second: Vampires1_Attack_magic_0
+  - first:
+      213: 7903287882452010929
+    second: Vampires1_Attack_magic_1
+  - first:
+      213: 7856965777738171615
+    second: Vampires1_Attack_magic_2
+  - first:
+      213: 3710907855355268946
+    second: Vampires1_Attack_magic_3
+  - first:
+      213: 2760411469204462739
+    second: Vampires1_Attack_magic_4
+  - first:
+      213: 859682741371540980
+    second: Vampires1_Attack_magic_5
+  - first:
+      213: -2403388837714815046
+    second: Vampires1_Attack_magic_6
+  - first:
+      213: 3424231945940972894
+    second: Vampires1_Attack_magic_7
+  - first:
+      213: 8468570046910799857
+    second: Vampires1_Attack_magic_8
+  - first:
+      213: 2691513162449011249
+    second: Vampires1_Attack_magic_9
+  - first:
+      213: 6199993756965886014
+    second: Vampires1_Attack_magic_10
+  - first:
+      213: 2455041702358514772
+    second: Vampires1_Attack_magic_11
+  - first:
+      213: -4750466791259177976
+    second: Vampires1_Attack_magic_12
+  - first:
+      213: -1117050407976811252
+    second: Vampires1_Attack_magic_13
+  - first:
+      213: 4067869667645475796
+    second: Vampires1_Attack_magic_14
+  - first:
+      213: 6298987659396267432
+    second: Vampires1_Attack_magic_15
+  - first:
+      213: 3150545497199009761
+    second: Vampires1_Attack_magic_16
+  - first:
+      213: -6259373520882765415
+    second: Vampires1_Attack_magic_17
+  - first:
+      213: 8954679098220159844
+    second: Vampires1_Attack_magic_18
+  - first:
+      213: 6941004671708514665
+    second: Vampires1_Attack_magic_19
+  - first:
+      213: -3602206509826159542
+    second: Vampires1_Attack_magic_20
+  - first:
+      213: -100539359855507490
+    second: Vampires1_Attack_magic_21
+  - first:
+      213: -3259481281432342192
+    second: Vampires1_Attack_magic_22
+  - first:
+      213: 1903475617942947731
+    second: Vampires1_Attack_magic_23
+  - first:
+      213: 8880202842664639535
+    second: Vampires1_Attack_magic_24
+  - first:
+      213: 8710513133990107542
+    second: Vampires1_Attack_magic_25
+  - first:
+      213: -3804885971500949574
+    second: Vampires1_Attack_magic_26
+  - first:
+      213: -2761035656055962724
+    second: Vampires1_Attack_magic_27
+  - first:
+      213: -6439718554426479919
+    second: Vampires1_Attack_magic_28
+  - first:
+      213: -8900459621309140287
+    second: Vampires1_Attack_magic_29
+  - first:
+      213: -5142975406153160877
+    second: Vampires1_Attack_magic_30
+  - first:
+      213: -4520478440680975972
+    second: Vampires1_Attack_magic_31
+  - first:
+      213: 168035727980964742
+    second: Vampires1_Attack_magic_32
+  - first:
+      213: 2566066631149434419
+    second: Vampires1_Attack_magic_33
+  - first:
+      213: -2793938513474812717
+    second: Vampires1_Attack_magic_34
+  - first:
+      213: 4663530303310482157
+    second: Vampires1_Attack_magic_35
+  - first:
+      213: 4511744463626129518
+    second: Vampires1_Attack_magic_36
+  - first:
+      213: 6577930221821848688
+    second: Vampires1_Attack_magic_37
+  - first:
+      213: 8291567090512790066
+    second: Vampires1_Attack_magic_38
+  - first:
+      213: 4642034763881575013
+    second: Vampires1_Attack_magic_39
+  - first:
+      213: -5166088894157163118
+    second: Vampires1_Attack_magic_40
+  - first:
+      213: 1227853370291542204
+    second: Vampires1_Attack_magic_41
+  - first:
+      213: 5326966022045801668
+    second: Vampires1_Attack_magic_42
+  - first:
+      213: -263937302591543568
+    second: Vampires1_Attack_magic_43
+  - first:
+      213: 7074861334331439563
+    second: Vampires1_Attack_magic_44
+  - first:
+      213: -1105548614652448183
+    second: Vampires1_Attack_magic_45
+  - first:
+      213: -6988944392623272832
+    second: Vampires1_Attack_magic_46
+  - first:
+      213: -8463830274377201972
+    second: Vampires1_Attack_magic_47
+  - first:
+      213: 7823034930425217131
+    second: Vampires1_Attack_magic_48
+  - first:
+      213: 3868370709578070399
+    second: Vampires1_Attack_magic_49
+  - first:
+      213: 2644471267453072498
+    second: Vampires1_Attack_magic_50
+  - first:
+      213: 7063655927970374873
+    second: Vampires1_Attack_magic_51
+  - first:
+      213: -3141979083514134849
+    second: Vampires1_Attack_magic_52
+  - first:
+      213: -3234417684831156597
+    second: Vampires1_Attack_magic_53
+  - first:
+      213: 7220681732159522012
+    second: Vampires1_Attack_magic_54
+  - first:
+      213: -5616583956405890000
+    second: Vampires1_Attack_magic_55
+  - first:
+      213: 3394093318457901631
+    second: Vampires1_Attack_magic_56
+  - first:
+      213: 1586119115124748781
+    second: Vampires1_Attack_magic_57
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: Vampires1_Attack_magic_0
+      rect:
+        serializedVersion: 2
+        x: 85
+        y: 208
+        width: 14
+        height: 11
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e13be7da71de58920800000000000000
+      internalID: 2992058213408355102
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Vampires1_Attack_magic_1
+      rect:
+        serializedVersion: 2
+        x: 85
+        y: 80
+        width: 14
+        height: 11
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1b78337a47e1ead60800000000000000
+      internalID: 7903287882452010929
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Vampires1_Attack_magic_2
+      rect:
+        serializedVersion: 2
+        x: 92
+        y: 144
+        width: 14
+        height: 11
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: fd40c723fbc890d60800000000000000
+      internalID: 7856965777738171615
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Vampires1_Attack_magic_3
+      rect:
+        serializedVersion: 2
+        x: 92
+        y: 16
+        width: 14
+        height: 11
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 25f48a0880bcf7330800000000000000
+      internalID: 3710907855355268946
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Vampires1_Attack_magic_4
+      rect:
+        serializedVersion: 2
+        x: 145
+        y: 206
+        width: 19
+        height: 21
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 39c98df1b93fe4620800000000000000
+      internalID: 2760411469204462739
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Vampires1_Attack_magic_5
+      rect:
+        serializedVersion: 2
+        x: 145
+        y: 78
+        width: 19
+        height: 22
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4f51cf206e43eeb00800000000000000
+      internalID: 859682741371540980
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Vampires1_Attack_magic_6
+      rect:
+        serializedVersion: 2
+        x: 155
+        y: 142
+        width: 19
+        height: 22
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ab79ed6f59275aed0800000000000000
+      internalID: -2403388837714815046
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Vampires1_Attack_magic_7
+      rect:
+        serializedVersion: 2
+        x: 155
+        y: 14
+        width: 19
+        height: 22
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e553b5effc0558f20800000000000000
+      internalID: 3424231945940972894
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Vampires1_Attack_magic_8
+      rect:
+        serializedVersion: 2
+        x: 207
+        y: 204
+        width: 32
+        height: 27
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1ff91a9d697668570800000000000000
+      internalID: 8468570046910799857
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Vampires1_Attack_magic_9
+      rect:
+        serializedVersion: 2
+        x: 207
+        y: 76
+        width: 16
+        height: 25
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 132cf0406fc2a5520800000000000000
+      internalID: 2691513162449011249
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Vampires1_Attack_magic_10
+      rect:
+        serializedVersion: 2
+        x: 208
+        y: 140
+        width: 32
+        height: 27
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e385795197dca0650800000000000000
+      internalID: 6199993756965886014
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Vampires1_Attack_magic_11
+      rect:
+        serializedVersion: 2
+        x: 208
+        y: 29
+        width: 16
+        height: 10
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 45c79d1cb6f021220800000000000000
+      internalID: 2455041702358514772
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Vampires1_Attack_magic_12
+      rect:
+        serializedVersion: 2
+        x: 223
+        y: 93
+        width: 16
+        height: 10
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 80cf4b55f93f21eb0800000000000000
+      internalID: -4750466791259177976
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Vampires1_Attack_magic_13
+      rect:
+        serializedVersion: 2
+        x: 224
+        y: 12
+        width: 16
+        height: 25
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c05465482907f70f0800000000000000
+      internalID: -1117050407976811252
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Vampires1_Attack_magic_14
+      rect:
+        serializedVersion: 2
+        x: 270
+        y: 141
+        width: 29
+        height: 28
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4db489409e9f37830800000000000000
+      internalID: 4067869667645475796
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Vampires1_Attack_magic_15
+      rect:
+        serializedVersion: 2
+        x: 270
+        y: 13
+        width: 28
+        height: 28
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8ad32ea17ef7a6750800000000000000
+      internalID: 6298987659396267432
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Vampires1_Attack_magic_16
+      rect:
+        serializedVersion: 2
+        x: 276
+        y: 220
+        width: 9
+        height: 10
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1efd049ff6cf8bb20800000000000000
+      internalID: 3150545497199009761
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Vampires1_Attack_magic_17
+      rect:
+        serializedVersion: 2
+        x: 277
+        y: 205
+        width: 28
+        height: 28
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 991fb4342fc3229a0800000000000000
+      internalID: -6259373520882765415
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Vampires1_Attack_magic_18
+      rect:
+        serializedVersion: 2
+        x: 277
+        y: 77
+        width: 28
+        height: 28
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 46327072239654c70800000000000000
+      internalID: 8954679098220159844
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Vampires1_Attack_magic_19
+      rect:
+        serializedVersion: 2
+        x: 331
+        y: 151
+        width: 28
+        height: 18
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 969438159f6635060800000000000000
+      internalID: 6941004671708514665
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Vampires1_Attack_magic_20
+      rect:
+        serializedVersion: 2
+        x: 331
+        y: 25
+        width: 39
+        height: 19
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a4c463eb344620ec0800000000000000
+      internalID: -3602206509826159542
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Vampires1_Attack_magic_21
+      rect:
+        serializedVersion: 2
+        x: 333
+        y: 89
+        width: 39
+        height: 19
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ed70ed12cffca9ef0800000000000000
+      internalID: -100539359855507490
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Vampires1_Attack_magic_22
+      rect:
+        serializedVersion: 2
+        x: 344
+        y: 215
+        width: 28
+        height: 21
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 051b0344b0ff3c2d0800000000000000
+      internalID: -3259481281432342192
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Vampires1_Attack_magic_23
+      rect:
+        serializedVersion: 2
+        x: 394
+        y: 87
+        width: 35
+        height: 22
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3974b1e4df08a6a10800000000000000
+      internalID: 1903475617942947731
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Vampires1_Attack_magic_24
+      rect:
+        serializedVersion: 2
+        x: 402
+        y: 151
+        width: 23
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f2c9072af61dc3b70800000000000000
+      internalID: 8880202842664639535
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Vampires1_Attack_magic_25
+      rect:
+        serializedVersion: 2
+        x: 402
+        y: 23
+        width: 35
+        height: 22
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 699dada8b85f1e870800000000000000
+      internalID: 8710513133990107542
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Vampires1_Attack_magic_26
+      rect:
+        serializedVersion: 2
+        x: 406
+        y: 215
+        width: 23
+        height: 20
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: abf91d93e54523bc0800000000000000
+      internalID: -3804885971500949574
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Vampires1_Attack_magic_27
+      rect:
+        serializedVersion: 2
+        x: 453
+        y: 85
+        width: 24
+        height: 26
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c93c89c03b4dea9d0800000000000000
+      internalID: -2761035656055962724
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Vampires1_Attack_magic_28
+      rect:
+        serializedVersion: 2
+        x: 465
+        y: 149
+        width: 15
+        height: 29
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1daeae5081681a6a0800000000000000
+      internalID: -6439718554426479919
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Vampires1_Attack_magic_29
+      rect:
+        serializedVersion: 2
+        x: 465
+        y: 21
+        width: 19
+        height: 21
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1c2392e81273b7480800000000000000
+      internalID: -8900459621309140287
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Vampires1_Attack_magic_30
+      rect:
+        serializedVersion: 2
+        x: 469
+        y: 213
+        width: 25
+        height: 24
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 357aba3ed1b70a8b0800000000000000
+      internalID: -5142975406153160877
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Vampires1_Attack_magic_31
+      rect:
+        serializedVersion: 2
+        x: 475
+        y: 85
+        width: 19
+        height: 21
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c9116680fc80441c0800000000000000
+      internalID: -4520478440680975972
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Vampires1_Attack_magic_32
+      rect:
+        serializedVersion: 2
+        x: 481
+        y: 151
+        width: 9
+        height: 27
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 68b21e3ba9bf45200800000000000000
+      internalID: 168035727980964742
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Vampires1_Attack_magic_33
+      rect:
+        serializedVersion: 2
+        x: 482
+        y: 21
+        width: 24
+        height: 26
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 33635a361008c9320800000000000000
+      internalID: 2566066631149434419
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Vampires1_Attack_magic_34
+      rect:
+        serializedVersion: 2
+        x: 515
+        y: 19
+        width: 57
+        height: 221
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3d40d0499bfe939d0800000000000000
+      internalID: -2793938513474812717
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Vampires1_Attack_magic_35
+      rect:
+        serializedVersion: 2
+        x: 577
+        y: 81
+        width: 36
+        height: 34
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: dea47183a1038b040800000000000000
+      internalID: 4663530303310482157
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Vampires1_Attack_magic_36
+      rect:
+        serializedVersion: 2
+        x: 589
+        y: 168
+        width: 19
+        height: 14
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e6055c77fafec9e30800000000000000
+      internalID: 4511744463626129518
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Vampires1_Attack_magic_37
+      rect:
+        serializedVersion: 2
+        x: 593
+        y: 209
+        width: 33
+        height: 34
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 07c6ff47fa0894b50800000000000000
+      internalID: 6577930221821848688
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Vampires1_Attack_magic_38
+      rect:
+        serializedVersion: 2
+        x: 593
+        y: 146
+        width: 17
+        height: 21
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 23285559650911370800000000000000
+      internalID: 8291567090512790066
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Vampires1_Attack_magic_39
+      rect:
+        serializedVersion: 2
+        x: 602
+        y: 17
+        width: 36
+        height: 34
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 562fc20f502db6040800000000000000
+      internalID: 4642034763881575013
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Vampires1_Attack_magic_40
+      rect:
+        serializedVersion: 2
+        x: 609
+        y: 170
+        width: 13
+        height: 12
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 295fba9958d5e48b0800000000000000
+      internalID: -5166088894157163118
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Vampires1_Attack_magic_41
+      rect:
+        serializedVersion: 2
+        x: 611
+        y: 153
+        width: 11
+        height: 15
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: cb85e7482263a0110800000000000000
+      internalID: 1227853370291542204
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Vampires1_Attack_magic_42
+      rect:
+        serializedVersion: 2
+        x: 640
+        y: 100
+        width: 11
+        height: 11
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4cc9d92af5f2de940800000000000000
+      internalID: 5326966022045801668
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Vampires1_Attack_magic_43
+      rect:
+        serializedVersion: 2
+        x: 640
+        y: 80
+        width: 11
+        height: 11
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0f66e04fb6e465cf0800000000000000
+      internalID: -263937302591543568
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Vampires1_Attack_magic_44
+      rect:
+        serializedVersion: 2
+        x: 656
+        y: 228
+        width: 11
+        height: 11
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: bc9b8fb36e4fe2260800000000000000
+      internalID: 7074861334331439563
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Vampires1_Attack_magic_45
+      rect:
+        serializedVersion: 2
+        x: 656
+        y: 208
+        width: 11
+        height: 11
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 94237b5746d48a0f0800000000000000
+      internalID: -1105548614652448183
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Vampires1_Attack_magic_46
+      rect:
+        serializedVersion: 2
+        x: 656
+        y: 172
+        width: 11
+        height: 11
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 08c4bba9a18420f90800000000000000
+      internalID: -6988944392623272832
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Vampires1_Attack_magic_47
+      rect:
+        serializedVersion: 2
+        x: 656
+        y: 152
+        width: 11
+        height: 11
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: cc6cc80753f6a8a80800000000000000
+      internalID: -8463830274377201972
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Vampires1_Attack_magic_48
+      rect:
+        serializedVersion: 2
+        x: 660
+        y: 100
+        width: 11
+        height: 11
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b60c77d22d0019c60800000000000000
+      internalID: 7823034930425217131
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Vampires1_Attack_magic_49
+      rect:
+        serializedVersion: 2
+        x: 660
+        y: 80
+        width: 11
+        height: 11
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f793de33aa63fa530800000000000000
+      internalID: 3868370709578070399
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Vampires1_Attack_magic_50
+      rect:
+        serializedVersion: 2
+        x: 672
+        y: 36
+        width: 11
+        height: 11
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 27474435b9c03b420800000000000000
+      internalID: 2644471267453072498
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Vampires1_Attack_magic_51
+      rect:
+        serializedVersion: 2
+        x: 672
+        y: 16
+        width: 11
+        height: 11
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 9d4a14244a5270260800000000000000
+      internalID: 7063655927970374873
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Vampires1_Attack_magic_52
+      rect:
+        serializedVersion: 2
+        x: 676
+        y: 15
+        width: 92
+        height: 225
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: fbebe63aba27564d0800000000000000
+      internalID: -3141979083514134849
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Vampires1_Attack_magic_53
+      rect:
+        serializedVersion: 2
+        x: 676
+        y: 208
+        width: 11
+        height: 11
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b86c568904a0d13d0800000000000000
+      internalID: -3234417684831156597
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Vampires1_Attack_magic_54
+      rect:
+        serializedVersion: 2
+        x: 676
+        y: 172
+        width: 11
+        height: 11
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: cd4458157c3053460800000000000000
+      internalID: 7220681732159522012
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Vampires1_Attack_magic_55
+      rect:
+        serializedVersion: 2
+        x: 676
+        y: 152
+        width: 11
+        height: 11
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 034d44b46a2ed02b0800000000000000
+      internalID: -5616583956405890000
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Vampires1_Attack_magic_56
+      rect:
+        serializedVersion: 2
+        x: 692
+        y: 36
+        width: 11
+        height: 11
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f32c535f3ed3a1f20800000000000000
+      internalID: 3394093318457901631
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Vampires1_Attack_magic_57
+      rect:
+        serializedVersion: 2
+        x: 692
+        y: 16
+        width: 11
+        height: 11
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: de1b77c7ee6030610800000000000000
+      internalID: 1586119115124748781
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      Vampires1_Attack_magic_0: 2992058213408355102
+      Vampires1_Attack_magic_1: 7903287882452010929
+      Vampires1_Attack_magic_10: 6199993756965886014
+      Vampires1_Attack_magic_11: 2455041702358514772
+      Vampires1_Attack_magic_12: -4750466791259177976
+      Vampires1_Attack_magic_13: -1117050407976811252
+      Vampires1_Attack_magic_14: 4067869667645475796
+      Vampires1_Attack_magic_15: 6298987659396267432
+      Vampires1_Attack_magic_16: 3150545497199009761
+      Vampires1_Attack_magic_17: -6259373520882765415
+      Vampires1_Attack_magic_18: 8954679098220159844
+      Vampires1_Attack_magic_19: 6941004671708514665
+      Vampires1_Attack_magic_2: 7856965777738171615
+      Vampires1_Attack_magic_20: -3602206509826159542
+      Vampires1_Attack_magic_21: -100539359855507490
+      Vampires1_Attack_magic_22: -3259481281432342192
+      Vampires1_Attack_magic_23: 1903475617942947731
+      Vampires1_Attack_magic_24: 8880202842664639535
+      Vampires1_Attack_magic_25: 8710513133990107542
+      Vampires1_Attack_magic_26: -3804885971500949574
+      Vampires1_Attack_magic_27: -2761035656055962724
+      Vampires1_Attack_magic_28: -6439718554426479919
+      Vampires1_Attack_magic_29: -8900459621309140287
+      Vampires1_Attack_magic_3: 3710907855355268946
+      Vampires1_Attack_magic_30: -5142975406153160877
+      Vampires1_Attack_magic_31: -4520478440680975972
+      Vampires1_Attack_magic_32: 168035727980964742
+      Vampires1_Attack_magic_33: 2566066631149434419
+      Vampires1_Attack_magic_34: -2793938513474812717
+      Vampires1_Attack_magic_35: 4663530303310482157
+      Vampires1_Attack_magic_36: 4511744463626129518
+      Vampires1_Attack_magic_37: 6577930221821848688
+      Vampires1_Attack_magic_38: 8291567090512790066
+      Vampires1_Attack_magic_39: 4642034763881575013
+      Vampires1_Attack_magic_4: 2760411469204462739
+      Vampires1_Attack_magic_40: -5166088894157163118
+      Vampires1_Attack_magic_41: 1227853370291542204
+      Vampires1_Attack_magic_42: 5326966022045801668
+      Vampires1_Attack_magic_43: -263937302591543568
+      Vampires1_Attack_magic_44: 7074861334331439563
+      Vampires1_Attack_magic_45: -1105548614652448183
+      Vampires1_Attack_magic_46: -6988944392623272832
+      Vampires1_Attack_magic_47: -8463830274377201972
+      Vampires1_Attack_magic_48: 7823034930425217131
+      Vampires1_Attack_magic_49: 3868370709578070399
+      Vampires1_Attack_magic_5: 859682741371540980
+      Vampires1_Attack_magic_50: 2644471267453072498
+      Vampires1_Attack_magic_51: 7063655927970374873
+      Vampires1_Attack_magic_52: -3141979083514134849
+      Vampires1_Attack_magic_53: -3234417684831156597
+      Vampires1_Attack_magic_54: 7220681732159522012
+      Vampires1_Attack_magic_55: -5616583956405890000
+      Vampires1_Attack_magic_56: 3394093318457901631
+      Vampires1_Attack_magic_57: 1586119115124748781
+      Vampires1_Attack_magic_6: -2403388837714815046
+      Vampires1_Attack_magic_7: 3424231945940972894
+      Vampires1_Attack_magic_8: 8468570046910799857
+      Vampires1_Attack_magic_9: 2691513162449011249
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

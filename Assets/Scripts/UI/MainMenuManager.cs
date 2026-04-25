@@ -192,44 +192,17 @@ public class MainMenuManager : MonoBehaviour
     {
         GameObject panel = MakeFullPanel(parent, "HomePanel");
 
-        VerticalLayoutGroup vl = panel.AddComponent<VerticalLayoutGroup>();
-        vl.padding             = new RectOffset(0, 0, 0, 0);
-        vl.childControlHeight  = true;
-        vl.childControlWidth   = true;
-        vl.childForceExpandHeight = true;
-        vl.childForceExpandWidth  = true;
-
-        // Centre column
-        GameObject col   = new GameObject("Col");
-        col.transform.SetParent(panel.transform, false);
-        col.AddComponent<RectTransform>();
-        VerticalLayoutGroup colVL  = col.AddComponent<VerticalLayoutGroup>();
-        colVL.padding              = new RectOffset(0, 260, 0, 0);
-        colVL.spacing              = 28f;
-        colVL.childControlHeight   = false;
-        colVL.childControlWidth    = false;
-        colVL.childForceExpandWidth  = false;
-        colVL.childForceExpandHeight = false;
-        colVL.childAlignment       = TextAnchor.MiddleCenter;
-
-        var title       = MakeLabel(col.transform, "Title", "VAMPIRE SURVIVALZ", 68f);
-        title.color     = AccentRed;
-        title.fontStyle = FontStyles.Bold;
-        SetSizeDelta(title, 860f, 84f);
-
-        int bestWave    = PersistentDataManager.Instance?.BestWave ?? 0;
-        var best        = MakeLabel(col.transform, "Best", $"Best Wave:  {bestWave}", 30f);
-        best.color      = new Color(0.62f, 0.62f, 0.66f);
-        SetSizeDelta(best, 400f, 44f);
-
-        int coins       = PersistentDataManager.Instance?.TotalCurrency ?? 0;
-        _homeCurrencyLabel       = MakeLabel(col.transform, "Coins", $"Coins:  {coins}", 26f);
+        int coins = PersistentDataManager.Instance?.TotalCurrency ?? 0;
+        _homeCurrencyLabel       = MakeLabel(panel.transform, "Coins", $"Coins:  {coins}", 26f);
         _homeCurrencyLabel.color = new Color(1f, 0.85f, 0.2f);
-        SetSizeDelta(_homeCurrencyLabel, 400f, 38f);
+        _homeCurrencyLabel.alignment = TextAlignmentOptions.Right;
 
-        var playBtn     = MakeLargeButton(col.transform, "PLAY",
-                          new Color(0.14f, 0.52f, 0.14f), OnPlayClicked);
-        SetSizeDelta(playBtn, 280f, 70f);
+        RectTransform rt = _homeCurrencyLabel.GetComponent<RectTransform>();
+        rt.anchorMin        = new Vector2(1f, 1f);
+        rt.anchorMax        = new Vector2(1f, 1f);
+        rt.pivot            = new Vector2(1f, 1f);
+        rt.anchoredPosition = new Vector2(-20f, -16f);
+        rt.sizeDelta        = new Vector2(240f, 40f);
 
         return panel;
     }
@@ -890,7 +863,7 @@ public class MainMenuManager : MonoBehaviour
         btnGO.transform.SetParent(row.transform, false);
         btnGO.AddComponent<LayoutElement>().preferredWidth = 100f;
         Image btnImg     = btnGO.AddComponent<Image>();
-        UIHelper.ApplyImage(btnImg, _theme?.buttonSecondary,
+        UIHelper.ApplyImage(btnImg, _theme?.buttonNav,
             isFS ? new Color(0.14f, 0.52f, 0.14f) : new Color(0.36f, 0.14f, 0.14f));
         Button btn       = btnGO.AddComponent<Button>();
         btn.targetGraphic = btnImg;

@@ -14,6 +14,7 @@ GameObject:
   - component: {fileID: 5627748856076104716}
   - component: {fileID: 6710654032271347214}
   - component: {fileID: 5995712942476766601}
+  - component: {fileID: 5200045949114384609}
   m_Layer: 7
   m_Name: Enemy
   m_TagString: Enemy
@@ -144,10 +145,12 @@ MonoBehaviour:
   attackDamage: 10
   attackInterval: 2
   attackRange: 1.5
-  enemyAnimator: {fileID: 0}
+  enemyAnimator: {fileID: 5200045949114384609}
   contactDamage: 10
   contactCooldown: 1
   resourceDestroyTime: 3
+  hurtSfx: {fileID: 0}
+  deathSfx: {fileID: 0}
   pathRefreshInterval: 0.5
   siegeMode: 0
 --- !u!50 &6710654032271347214
@@ -196,3 +199,25 @@ MonoBehaviour:
   bgColor: {r: 0.1, g: 0.1, b: 0.1, a: 0.8}
   hideWhenFull: 1
   sortingOrder: 50
+--- !u!95 &5200045949114384609
+Animator:
+  serializedVersion: 7
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8368466745619319268}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: 8ff09effa0426b6498b2d7fe97ff19d0, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0

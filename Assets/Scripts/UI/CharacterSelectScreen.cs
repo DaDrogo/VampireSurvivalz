@@ -156,7 +156,7 @@ public class CharacterSelectScreen : MonoBehaviour
         card.transform.SetParent(content, false);
 
         Image cardBg            = card.AddComponent<Image>();
-        UIHelper.ApplyImage(cardBg, _theme?.cardBackground, CardNormal);
+        UIHelper.ApplyImage(cardBg, _theme?.cardBackground, CardNormal, Image.Type.Tiled);
         _cardBgs[i]             = cardBg;
 
         Button btn              = card.AddComponent<Button>();

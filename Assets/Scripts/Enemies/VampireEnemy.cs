@@ -43,6 +43,7 @@ public class VampireEnemy : MonoBehaviour, IDamageable
     public event Action<int>          OnLevelChanged;      // new level
     public event Action               OnPermanentlyKilled;
     public event Action               OnBanished;
+    public event Action               OnAttackPerformed;
 
     // ── IDamageable ───────────────────────────────────────────────────────────
 
@@ -409,6 +410,7 @@ public class VampireEnemy : MonoBehaviour, IDamageable
         if (_attackTimer > 0f) return;
 
         _attackTimer = attackInterval;
+        OnAttackPerformed?.Invoke();
         _attackTarget.ReceiveEnemyAttack(attackDamage, attackInterval);
         GainXP(xpPerAttackHit);
 

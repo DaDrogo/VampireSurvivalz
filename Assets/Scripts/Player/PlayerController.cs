@@ -306,6 +306,7 @@ public class PlayerController : MonoBehaviour, IDamageable
         _autoHolding         = autoHold;
         _holdBarRoot.SetActive(true);
         SetHoldBarFill(0f);
+        _anim?.SetHarvesting(true);
         _holdTarget.OnHoldStart();
     }
 
@@ -332,6 +333,7 @@ public class PlayerController : MonoBehaviour, IDamageable
             _holdTimer           = 0f;
             _autoHolding         = false;
             _holdBarRoot.SetActive(false);
+            _anim?.SetHarvesting(false);
             completed.OnHoldCompleted();
         }
     }
@@ -344,6 +346,7 @@ public class PlayerController : MonoBehaviour, IDamageable
         _holdTimer           = 0f;
         _autoHolding         = false;
         _holdBarRoot.SetActive(false);
+        _anim?.SetHarvesting(false);
     }
 
     // ── Character stats ───────────────────────────────────────────────────────

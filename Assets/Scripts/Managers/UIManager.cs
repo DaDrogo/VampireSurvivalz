@@ -580,7 +580,7 @@ public class UIManager : MonoBehaviour
         hlg.childControlHeight     = true;
         hlg.childControlWidth      = true;
         hlg.childForceExpandHeight = true;
-        hlg.childForceExpandWidth  = true;
+        hlg.childForceExpandWidth  = false;
 
         // Left: resources
         GameObject leftGO  = MakeGroup(bar.transform, "Resources");
@@ -635,26 +635,18 @@ public class UIManager : MonoBehaviour
         pauseBtnGO.transform.SetParent(bar.transform, false);
 
         LayoutElement pauseLE   = pauseBtnGO.AddComponent<LayoutElement>();
-        pauseLE.minWidth        = 68f;
-        pauseLE.preferredWidth  = 68f;
+        pauseLE.minWidth        = 52f;
+        pauseLE.preferredWidth  = 52f;
         pauseLE.flexibleWidth   = 0f;
 
         Image pauseImg          = pauseBtnGO.AddComponent<Image>();
-        UIHelper.ApplyImage(pauseImg, _theme?.buttonSecondary, new Color(0.18f, 0.18f, 0.22f, 0.85f));
+        UIHelper.ApplyImage(pauseImg, _theme?.buttonSetting, new Color(0.18f, 0.18f, 0.22f, 0.85f));
 
         Button pauseBtn         = pauseBtnGO.AddComponent<Button>();
         pauseBtn.targetGraphic  = pauseImg;
         pauseBtn.colors         = UIHelper.BtnColors(_theme?.buttonSecondary,
                                       Color.white, new Color(0.7f, 0.85f, 1f), new Color(0.45f, 0.55f, 0.7f));
         pauseBtn.onClick.AddListener(() => PauseMenuManager.Instance?.Pause());
-
-        var pauseLabel          = MakeLabel(pauseBtnGO.transform, "Label", "⏸", font, 28f,
-                                           Color.white, TextAlignmentOptions.Center);
-        var pauseLabelRT        = pauseLabel.GetComponent<RectTransform>();
-        pauseLabelRT.anchorMin  = Vector2.zero;
-        pauseLabelRT.anchorMax  = Vector2.one;
-        pauseLabelRT.offsetMin  = Vector2.zero;
-        pauseLabelRT.offsetMax  = Vector2.zero;
     }
 
     // ── Hotbar ────────────────────────────────────────────────────────────────

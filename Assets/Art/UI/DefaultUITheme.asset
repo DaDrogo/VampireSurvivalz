@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b29b1fb8ee18c084db4cc38841431b41, type: 3}
+  m_Name: DefaultUITheme
+  m_EditorClassIdentifier: 
+  font: {fileID: 0}
+  buttonNav: {fileID: -5216735785913309417, guid: d6ce1ac047ffce148a1342cb77e7a9f2, type: 3}
+  buttonPrimary: {fileID: 2007947246514426862, guid: d6ce1ac047ffce148a1342cb77e7a9f2, type: 3}
+  buttonDanger: {fileID: -4484845934196736321, guid: d6ce1ac047ffce148a1342cb77e7a9f2, type: 3}
+  buttonSecondary: {fileID: -3311064258506998824, guid: d6ce1ac047ffce148a1342cb77e7a9f2, type: 3}
+  buttonGold: {fileID: -592775949279342828, guid: d6ce1ac047ffce148a1342cb77e7a9f2, type: 3}
+  cardBackground: {fileID: -4696651564343105306, guid: d6ce1ac047ffce148a1342cb77e7a9f2, type: 3}
+  panelBackground: {fileID: -4696651564343105306, guid: d6ce1ac047ffce148a1342cb77e7a9f2, type: 3}
+  dayNightDay: {fileID: 8943299168362265071, guid: 3d7ae4167fe85ab41bd886a3cbcfe30c, type: 3}
+  dayNightDusk: {fileID: -8660367416592716896, guid: 745f9bd937bc7d54bb79bcc4bf81a249, type: 3}
+  dayNightNight: {fileID: -7954753313157245522, guid: 6182c465d0d772e4a8722c617e393984, type: 3}
+  dayNightDawn: {fileID: 7248196742253567109, guid: 5377a1d1707d6ea4fb84cddb22daf637, type: 3}
+  stepBarBackground: {fileID: 0}
+  stepChip: {fileID: 0}
+  stepDivider: {fileID: 0}
+  sliderBackground: {fileID: 0}
+  sliderFill: {fileID: 0}
+  sliderHandle: {fileID: 0}

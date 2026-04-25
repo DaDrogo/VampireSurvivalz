@@ -80,8 +80,9 @@ public class DayNightManager : MonoBehaviour
     // Visual
     private Image            _overlayImage;
     private Image            _cycleArc;
-    private Image            _iconImage;
-    private TextMeshProUGUI  _iconLabel;
+    private Image            _phaseImage;       // full-bleed background of the widget
+    private Image            _dimOverlay;       // semi-transparent overlay on the phase image
+    private TextMeshProUGUI  _phaseNameLabel;
     private TextMeshProUGUI  _timeLabel;
 
     private static readonly Color DayOverlay   = new Color(1f,    0.95f, 0.80f, 0.00f);
@@ -245,14 +246,13 @@ public class DayNightManager : MonoBehaviour
         // Arc fill: progress within the full cycle, clockwise
         if (_cycleArc != null)
         {
-            float totalCycle  = fullDayDuration + transitionDuration * 2f + fullNightDuration;
-            float elapsed     = CycleElapsed();
-            _cycleArc.fillAmount = 1f - (elapsed / totalCycle);
+            float totalCycle     = fullDayDuration + transitionDuration * 2f + fullNightDuration;
+            _cycleArc.fillAmount = 1f - (CycleElapsed() / totalCycle);
             _cycleArc.color      = Color.Lerp(ArcDay, ArcNight, nightT);
         }
 
-        // Icon: prefer themed sprite, fall back to emoji label
-        if (_iconImage != null)
+        // Phase image (full-bleed widget background)
+        if (_phaseImage != null)
         {
             Sprite phaseSprite = CurrentPhase switch
             {
@@ -265,35 +265,42 @@ public class DayNightManager : MonoBehaviour
 
             if (phaseSprite != null)
             {
-                _iconImage.sprite  = phaseSprite;
-                _iconImage.color   = Color.white;
-                _iconImage.enabled = true;
-                if (_iconLabel != null) _iconLabel.enabled = false;
+                _phaseImage.sprite  = phaseSprite;
+                _phaseImage.color   = Color.white;
             }
             else
             {
-                _iconImage.enabled = false;
-                if (_iconLabel != null)
-                {
-                    _iconLabel.enabled = true;
-                    _iconLabel.text    = nightT > 0.5f ? "☽" : "☀";
-                }
+                // Colour-only fallback when no theme sprite is assigned
+                _phaseImage.sprite = null;
+                _phaseImage.color  = Color.Lerp(
+                    new Color(0.90f, 0.75f, 0.25f, 1f),
+                    new Color(0.05f, 0.05f, 0.22f, 1f),
+                    nightT);
             }
         }
-        else if (_iconLabel != null)
-            _iconLabel.text = nightT > 0.5f ? "☽" : "☀";
 
+        // Dim overlay: deepen slightly at night so text stays readable
+        if (_dimOverlay != null)
+            _dimOverlay.color = new Color(0f, 0f, 0f, Mathf.Lerp(0.30f, 0.55f, nightT));
+
+        // Phase name
+        if (_phaseNameLabel != null)
+        {
+            _phaseNameLabel.text = CurrentPhase switch
+            {
+                Phase.Day            => "Day",
+                Phase.DuskTransition => "Dusk",
+                Phase.Night          => "Night",
+                Phase.DawnTransition => "Dawn",
+                _                    => ""
+            };
+        }
+
+        // Time remaining
         if (_timeLabel != null)
         {
             float remaining = CurrentPhaseDuration() - _phaseTimer;
-            _timeLabel.text = CurrentPhase switch
-            {
-                Phase.Day            => $"Day\n{Mathf.CeilToInt(remaining)}s",
-                Phase.DuskTransition => $"Dusk\n{Mathf.CeilToInt(remaining)}s",
-                Phase.Night          => $"Night\n{Mathf.CeilToInt(remaining)}s",
-                Phase.DawnTransition => $"Dawn\n{Mathf.CeilToInt(remaining)}s",
-                _                    => ""
-            };
+            _timeLabel.text = $"{Mathf.CeilToInt(remaining)}s";
         }
     }
 
@@ -348,84 +355,47 @@ public class DayNightManager : MonoBehaviour
 
     private void BuildWidget(Transform parent, TMP_FontAsset font)
     {
-        // Root — centred, directly below the 68 px top bar
-        GameObject root = new GameObject("DayNightWidget");
+        // ── Root — top-centre, below the 68 px HUD bar ───────────────────
+        GameObject root       = new GameObject("DayNightWidget");
         root.transform.SetParent(parent, false);
-        RectTransform rrt    = root.AddComponent<RectTransform>();
-        rrt.anchorMin        = new Vector2(0.5f, 1f);
-        rrt.anchorMax        = new Vector2(0.5f, 1f);
-        rrt.pivot            = new Vector2(0.5f, 1f);
-        rrt.anchoredPosition = new Vector2(0f, -74f);   // 6 px gap below 68 px top bar
-        rrt.sizeDelta        = new Vector2(200f, 80f);
+        RectTransform rrt     = root.AddComponent<RectTransform>();
+        rrt.anchorMin         = new Vector2(1f, 1f);
+        rrt.anchorMax         = new Vector2(1f, 1f);
+        rrt.pivot             = new Vector2(0.5f, 1f);
+        rrt.anchoredPosition  = new Vector2(-60f, -74f);
+        rrt.sizeDelta         = new Vector2(120f, 120f);
 
-        Image bg             = root.AddComponent<Image>();
-        bg.color             = new Color(0f, 0f, 0f, 0.55f);
-        bg.raycastTarget     = false;
+        // ── Phase image (full-bleed background) ──────────────────────────
+        GameObject imgGO          = new GameObject("PhaseImage");
+        imgGO.transform.SetParent(root.transform, false);
+        Stretch(imgGO.AddComponent<RectTransform>());
+        _phaseImage               = imgGO.AddComponent<Image>();
+        _phaseImage.preserveAspect = false;
+        _phaseImage.raycastTarget  = false;
+        _phaseImage.color          = new Color(0.90f, 0.75f, 0.25f, 1f); // day fallback
 
-        HorizontalLayoutGroup hlg  = root.AddComponent<HorizontalLayoutGroup>();
-        hlg.padding                = new RectOffset(4, 8, 4, 4);
-        hlg.spacing                = 6f;
-        hlg.childAlignment         = TextAnchor.MiddleLeft;
-        hlg.childControlWidth      = true;
-        hlg.childForceExpandWidth  = false;
-        hlg.childControlHeight     = true;
-        hlg.childForceExpandHeight = true;
+        // ── Dim overlay ───────────────────────────────────────────────────
+        GameObject dimGO      = new GameObject("DimOverlay");
+        dimGO.transform.SetParent(root.transform, false);
+        Stretch(dimGO.AddComponent<RectTransform>());
+        _dimOverlay               = dimGO.AddComponent<Image>();
+        _dimOverlay.color         = new Color(0f, 0f, 0f, 0.35f);
+        _dimOverlay.raycastTarget = false;
 
-        // ── Arc disc (left column, 72 × 72) ──────────────────────────────
-        GameObject arcRoot  = new GameObject("ArcRoot");
-        arcRoot.transform.SetParent(root.transform, false);
-        arcRoot.AddComponent<LayoutElement>().preferredWidth = 72f;
+        // ── Text block (left portion, leaves 90 px for the arc) ──────────
+        GameObject textGO         = new GameObject("TextBlock");
+        textGO.transform.SetParent(root.transform, false);
+        Stretch(textGO.AddComponent<RectTransform>());
 
-        // Radial arc ring
-        GameObject arcGO    = new GameObject("Arc");
-        arcGO.transform.SetParent(arcRoot.transform, false);
-        RectTransform arcRT = arcGO.AddComponent<RectTransform>();
-        arcRT.anchorMin     = Vector2.zero;
-        arcRT.anchorMax     = Vector2.one;
-        arcRT.offsetMin     = new Vector2(3f,  3f);
-        arcRT.offsetMax     = new Vector2(-3f, -3f);
-        _cycleArc               = arcGO.AddComponent<Image>();
-        _cycleArc.type          = Image.Type.Filled;
-        _cycleArc.fillMethod    = Image.FillMethod.Radial360;
-        _cycleArc.fillOrigin    = (int)Image.Origin360.Top;
-        _cycleArc.fillClockwise = true;
-        _cycleArc.fillAmount    = 1f;
-        _cycleArc.color         = ArcDay;
-        _cycleArc.raycastTarget = false;
-
-        // Phase sprite icon (themed) — inner 70 % of the disc
-        GameObject iconGO    = new GameObject("Icon");
-        iconGO.transform.SetParent(arcRoot.transform, false);
-        RectTransform iconRT = iconGO.AddComponent<RectTransform>();
-        iconRT.anchorMin     = new Vector2(0.15f, 0.15f);
-        iconRT.anchorMax     = new Vector2(0.85f, 0.85f);
-        iconRT.offsetMin     = iconRT.offsetMax = Vector2.zero;
-        _iconImage                = iconGO.AddComponent<Image>();
-        _iconImage.raycastTarget  = false;
-        _iconImage.preserveAspect = true;
-
-        // Emoji fallback label (hidden when a sprite is assigned)
-        GameObject labelGO    = new GameObject("IconLabel");
-        labelGO.transform.SetParent(arcRoot.transform, false);
-        RectTransform labelRT = labelGO.AddComponent<RectTransform>();
-        labelRT.anchorMin     = new Vector2(0.05f, 0.05f);
-        labelRT.anchorMax     = new Vector2(0.95f, 0.95f);
-        labelRT.offsetMin     = labelRT.offsetMax = Vector2.zero;
-        _iconLabel            = labelGO.AddComponent<TextMeshProUGUI>();
-        _iconLabel.text       = "☀";
-        _iconLabel.fontSize   = 30f;
-        _iconLabel.alignment  = TextAlignmentOptions.Center;
-        _iconLabel.color      = Color.white;
-        if (font != null) _iconLabel.font = font;
-
-        // ── Phase + time label (right column) ────────────────────────────
-        GameObject timeGO   = new GameObject("TimeLabel");
-        timeGO.transform.SetParent(root.transform, false);
-        timeGO.AddComponent<LayoutElement>().preferredWidth = 104f;
+        GameObject timeGO    = new GameObject("TimeLabel");
+        timeGO.transform.SetParent(textGO.transform, false);
+        RectTransform textRT      = timeGO.AddComponent<RectTransform>();
+        textRT.anchorMin          = new Vector2(0.5f, 0f);
+        textRT.anchorMax          = new Vector2(0.5f, 0f);
         _timeLabel           = timeGO.AddComponent<TextMeshProUGUI>();
-        _timeLabel.fontSize  = 16f;
-        _timeLabel.alignment = TextAlignmentOptions.MidlineLeft;
-        _timeLabel.color     = new Color(0.9f, 0.9f, 0.9f, 1f);
+        _timeLabel.fontSize  = 28f;
+        _timeLabel.alignment = TextAlignmentOptions.Center;
+        _timeLabel.color     = new Color(0.85f, 0.85f, 0.85f, 1f);
         if (font != null) _timeLabel.font = font;
     }
 

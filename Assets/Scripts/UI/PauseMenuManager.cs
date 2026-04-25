@@ -129,13 +129,12 @@ public class PauseMenuManager : MonoBehaviour
         dimRT.anchorMax       = Vector2.one;
         dimRT.offsetMin       = Vector2.zero;
         dimRT.offsetMax       = Vector2.zero;
-        dim.AddComponent<Image>().color = new Color(0f, 0f, 0f, 0.6f);
 
         _pausePanel    = BuildPanel("PausePanel", new Vector2(360f, 320f), _pauseCanvas.transform,
             p => {
                 AddTitle(p,  "PAUSED", 46f, new Color(0.9f, 0.9f, 0.9f));
-                AddButton(p, "Resume",      "Resume",      BtnGreen, Resume,            _theme?.buttonPrimary);
-                AddButton(p, "Settings",    "Settings",    BtnBlue,  ShowSettingsPanel,  _theme?.buttonSecondary);
+                AddButton(p, "Resume",      "Resume",      BtnGreen, Resume,            _theme?.buttonNav);
+                AddButton(p, "Settings",    "Settings",    BtnBlue,  ShowSettingsPanel,  _theme?.buttonNav);
                 AddButton(p, "MainMenu",    "Main Menu",   BtnRed,   ReturnToMainMenu,   _theme?.buttonDanger);
             });
 
@@ -167,7 +166,8 @@ public class PauseMenuManager : MonoBehaviour
         rt.anchorMax          = new Vector2(0.5f, 0.5f);
         rt.pivot              = new Vector2(0.5f, 0.5f);
         rt.sizeDelta          = size;
-        panel.AddComponent<Image>().color = BgDark;
+        Image pauseImg        = panel.AddComponent<Image>();
+        UIHelper.ApplyImage(pauseImg, _theme?.menuBackground, new Color(0.18f, 0.55f, 0.18f));
 
         VerticalLayoutGroup vl  = panel.AddComponent<VerticalLayoutGroup>();
         vl.padding              = new RectOffset(30, 30, 28, 28);

@@ -28,12 +28,18 @@ public class UITheme : ScriptableObject
     [Tooltip("Economy action: Unlock, Purchase (gold).")]
     public Sprite buttonGold;
 
+    [Tooltip("Setting Button")]
+    public Sprite buttonSetting;
+
     [Header("Card & Panel")]
     [Tooltip("Hotbar slots, character cards, loadout cards, level cards.")]
     public Sprite cardBackground;
 
     [Tooltip("Modal panel backdrop (pause, info panel, etc.).")]
     public Sprite panelBackground;
+
+    [Tooltip("Modal panel backdrop (Wooden).")]
+    public Sprite menuBackground;
 
     [Header("Day/Night Widget")]
     [Tooltip("Button icon during full day.")]

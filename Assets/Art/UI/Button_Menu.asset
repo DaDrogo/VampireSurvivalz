@@ -13,13 +13,22 @@ MonoBehaviour:
   m_Name: Button_Menu
   m_EditorClassIdentifier: 
   font: {fileID: 11400000, guid: 1c2fdcead8f8292478714c2fc1eef14e, type: 2}
-  buttonNav: {fileID: 4308510075684986452, guid: ddd532d1c454beb428653e5c595e1708, type: 3}
-  buttonPrimary: {fileID: 4308510075684986452, guid: ddd532d1c454beb428653e5c595e1708, type: 3}
-  buttonDanger: {fileID: 4308510075684986452, guid: ddd532d1c454beb428653e5c595e1708, type: 3}
-  buttonSecondary: {fileID: 0}
-  buttonGold: {fileID: 0}
-  cardBackground: {fileID: 0}
-  panelBackground: {fileID: 0}
-  sliderBackground: {fileID: 1294554391194801996, guid: ddd532d1c454beb428653e5c595e1708, type: 3}
-  sliderFill: {fileID: -5210660370525581307, guid: 3db406fa44e588a4a83d56211004c631, type: 3}
-  sliderHandle: {fileID: -1904349589002811397, guid: ddd532d1c454beb428653e5c595e1708, type: 3}
+  buttonNav: {fileID: 2007947246514426862, guid: d6ce1ac047ffce148a1342cb77e7a9f2, type: 3}
+  buttonPrimary: {fileID: 1427748655437642682, guid: 492d58a0d2052c5408318aca80c87bc0, type: 3}
+  buttonDanger: {fileID: -5216735785913309417, guid: d6ce1ac047ffce148a1342cb77e7a9f2, type: 3}
+  buttonSecondary: {fileID: -4125517351103491291, guid: 492d58a0d2052c5408318aca80c87bc0, type: 3}
+  buttonGold: {fileID: -3160130328679482939, guid: ddd532d1c454beb428653e5c595e1708, type: 3}
+  buttonSetting: {fileID: -8813406801978007011, guid: d6ce1ac047ffce148a1342cb77e7a9f2, type: 3}
+  cardBackground: {fileID: -1508923039, guid: 9997c44b0a9cf5649b7c9147725c2e8d, type: 3}
+  panelBackground: {fileID: 1341818515, guid: 9997c44b0a9cf5649b7c9147725c2e8d, type: 3}
+  menuBackground: {fileID: -4453254662758481598, guid: d6ce1ac047ffce148a1342cb77e7a9f2, type: 3}
+  dayNightDay: {fileID: 7248196742253567109, guid: 5377a1d1707d6ea4fb84cddb22daf637, type: 3}
+  dayNightDusk: {fileID: -8660367416592716896, guid: 745f9bd937bc7d54bb79bcc4bf81a249, type: 3}
+  dayNightNight: {fileID: -7954753313157245522, guid: 6182c465d0d772e4a8722c617e393984, type: 3}
+  dayNightDawn: {fileID: 8943299168362265071, guid: 3d7ae4167fe85ab41bd886a3cbcfe30c, type: 3}
+  stepBarBackground: {fileID: 2051483521, guid: 9997c44b0a9cf5649b7c9147725c2e8d, type: 3}
+  stepChip: {fileID: -1591133115, guid: 9997c44b0a9cf5649b7c9147725c2e8d, type: 3}
+  stepDivider: {fileID: -1812961988, guid: 9997c44b0a9cf5649b7c9147725c2e8d, type: 3}
+  sliderBackground: {fileID: 1514073853490403208, guid: d6ce1ac047ffce148a1342cb77e7a9f2, type: 3}
+  sliderFill: {fileID: -7904285823810203936, guid: 492d58a0d2052c5408318aca80c87bc0, type: 3}
+  sliderHandle: {fileID: -2743947241941205161, guid: 492d58a0d2052c5408318aca80c87bc0, type: 3}

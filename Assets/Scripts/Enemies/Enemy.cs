@@ -350,6 +350,19 @@ public class Enemy : MonoBehaviour, IDamageable, ILexikonSource
         // ── Linecast block check then move ────────────────────────────────────
         if (CheckLinecastBlock()) return;
         Navigate(wallContact, wallNormal);
+
+        // ── Animator movement parameters ──────────────────────────────────────
+        if (enemyAnimator != null)
+        {
+            Vector2 vel    = _rb.linearVelocity;
+            bool    moving = vel.sqrMagnitude > 0.04f;
+            enemyAnimator.SetBool("IsMoving", moving);
+            if (moving)
+            {
+                enemyAnimator.SetFloat("MoveX", vel.x);
+                enemyAnimator.SetFloat("MoveY", vel.y);
+            }
+        }
     }
 
     // ── Room-BFS navigation ───────────────────────────────────────────────────
@@ -834,7 +847,11 @@ public class Enemy : MonoBehaviour, IDamageable, ILexikonSource
     {
         CurrentHealth = Mathf.Max(0f, CurrentHealth - damage);
         if (CurrentHealth <= 0f) Die();
-        else AudioManager.Instance?.PlaySFX(hurtSfx);
+        else
+        {
+            AudioManager.Instance?.PlaySFX(hurtSfx);
+            enemyAnimator?.SetTrigger("Hurt");
+        }
     }
 
     public List<StatLine> GetLexikonStats() => new()
@@ -874,6 +891,7 @@ public class Enemy : MonoBehaviour, IDamageable, ILexikonSource
 
     private void Die()
     {
+        enemyAnimator?.SetTrigger("Death");
         AudioManager.Instance?.PlaySFX(deathSfx);
         GameManager.Instance?.OnEnemyDied();
         if (PoolManager.Instance != null)

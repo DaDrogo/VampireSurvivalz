@@ -12,12 +12,13 @@ public static class UIHelper
     /// Applies <paramref name="sprite"/> to <paramref name="img"/> if non-null,
     /// otherwise sets <paramref name="fallback"/> as the solid colour.
     /// </summary>
-    public static void ApplyImage(Image img, Sprite sprite, Color fallback)
+    public static void ApplyImage(Image img, Sprite sprite, Color fallback,
+                                  Image.Type spriteType = Image.Type.Sliced)
     {
         if (sprite != null)
         {
             img.sprite = sprite;
-            img.type   = Image.Type.Sliced;
+            img.type   = spriteType;
             img.color  = Color.white;
         }
         else

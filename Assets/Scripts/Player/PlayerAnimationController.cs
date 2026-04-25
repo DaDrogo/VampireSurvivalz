@@ -1,27 +1,32 @@
+using System.Collections;
 using UnityEngine;
 
-/// <summary>
-/// Drives the Animator on the player based on movement and game events.
-/// Attach alongside PlayerController. Requires an Animator component.
-/// </summary>
 [RequireComponent(typeof(Animator))]
 public class PlayerAnimationController : MonoBehaviour
 {
-    // Cached parameter hashes — avoids string lookup every frame
-    private static readonly int ParamMoveX    = Animator.StringToHash("MoveX");
-    private static readonly int ParamMoveY    = Animator.StringToHash("MoveY");
-    private static readonly int ParamIsMoving = Animator.StringToHash("IsMoving");
-    private static readonly int ParamHurt     = Animator.StringToHash("Hurt");
-    private static readonly int ParamDeath    = Animator.StringToHash("Death");
+    private static readonly int ParamMoveX        = Animator.StringToHash("MoveX");
+    private static readonly int ParamMoveY        = Animator.StringToHash("MoveY");
+    private static readonly int ParamIsMoving     = Animator.StringToHash("IsMoving");
+    private static readonly int ParamDeath        = Animator.StringToHash("Death");
+    private static readonly int ParamIsHarvesting = Animator.StringToHash("IsHarvesting");
 
-    private Animator _animator;
+    [SerializeField] private Color hurtFlashColor    = Color.red;
+    [SerializeField] private float hurtFlashDuration = 0.15f;
 
-    // Last non-zero direction — used to hold the correct idle facing
+    private Animator        _animator;
+    private SpriteRenderer  _sprite;
+    private Color           _originalColor;
+    private Coroutine       _flashCoroutine;
+
     private Vector2 _lastDir = Vector2.down;
 
-    private void Awake() => _animator = GetComponent<Animator>();
+    private void Awake()
+    {
+        _animator      = GetComponent<Animator>();
+        _sprite        = GetComponent<SpriteRenderer>();
+        _originalColor = _sprite != null ? _sprite.color : Color.white;
+    }
 
-    /// <summary>Call every FixedUpdate with the player's current velocity.</summary>
     public void SetMovement(Vector2 velocity)
     {
         bool moving = velocity.sqrMagnitude > 0.01f;
@@ -35,16 +40,29 @@ public class PlayerAnimationController : MonoBehaviour
         }
         else
         {
-            // Hold last facing direction so idle uses the right directional clip
             _animator.SetFloat(ParamMoveX, _lastDir.x);
             _animator.SetFloat(ParamMoveY, _lastDir.y);
         }
     }
 
-    public void TriggerHurt()  => _animator.SetTrigger(ParamHurt);
-    public void TriggerDeath() => _animator.SetTrigger(ParamDeath);
+    public void TriggerHurt()
+    {
+        if (_sprite == null) return;
+        if (_flashCoroutine != null) StopCoroutine(_flashCoroutine);
+        _flashCoroutine = StartCoroutine(HurtFlash());
+    }
 
-    /// <summary>Swaps animation clips for the selected character without changing the state machine.</summary>
+    private IEnumerator HurtFlash()
+    {
+        _sprite.color = hurtFlashColor;
+        yield return new WaitForSeconds(hurtFlashDuration);
+        _sprite.color = _originalColor;
+        _flashCoroutine = null;
+    }
+
+    public void TriggerDeath()            => _animator.SetTrigger(ParamDeath);
+    public void SetHarvesting(bool value) => _animator.SetBool(ParamIsHarvesting, value);
+
     public void ApplyOverride(AnimatorOverrideController overrideController)
     {
         if (overrideController != null)
