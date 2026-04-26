@@ -1,7 +1,10 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.EnhancedTouch;
+using Touch = UnityEngine.InputSystem.EnhancedTouch.Touch;
 
 /// <summary>One upgrade tier for a building. Assign in the Inspector on each BuildingDefinition.</summary>
 [Serializable]
@@ -110,6 +113,8 @@ public class BuildingManager : MonoBehaviour
     // Tile-coordinate set — one entry per occupied 1×1 cell
     private readonly HashSet<Vector2Int> _occupiedTiles = new();
 
+    private Vector2 _lastPointerScreenPos;
+
     private static readonly Key[] Hotkeys =
         { Key.Digit1, Key.Digit2, Key.Digit3, Key.Digit4, Key.Digit5 };
 
@@ -119,6 +124,7 @@ public class BuildingManager : MonoBehaviour
     {
         if (Instance != null) { Destroy(gameObject); return; }
         Instance = this;
+        EnhancedTouchSupport.Enable();
     }
 
     private void Start()
@@ -152,19 +158,45 @@ public class BuildingManager : MonoBehaviour
 
     private void Update()
     {
-        // Don't process input during Game Over
         if (GameManager.Instance?.CurrentState == GameManager.GameState.GameOver) return;
 
         HandleHotkeys();
 
         if (!_isPlacing) return;
 
+        // Track pointer — mouse takes priority, fall back to first active touch
+        if (Mouse.current != null)
+            _lastPointerScreenPos = Mouse.current.position.ReadValue();
+        foreach (Touch touch in Touch.activeTouches)
+        {
+            _lastPointerScreenPos = touch.screenPosition;
+            break;
+        }
+
         MoveGhost();
         UpdateGhostColor();
 
-        if (Mouse.current.leftButton.wasPressedThisFrame)  TryPlace();
-        if (Mouse.current.rightButton.wasPressedThisFrame) CancelPlacement();
-        if (Keyboard.current.escapeKey.wasPressedThisFrame) CancelPlacement();
+        // Mouse: left click = place, right click = cancel
+        if (Mouse.current != null)
+        {
+            if (Mouse.current.leftButton.wasPressedThisFrame &&
+                (EventSystem.current == null || !EventSystem.current.IsPointerOverGameObject()))
+                TryPlace();
+            if (Mouse.current.rightButton.wasPressedThisFrame)
+                CancelPlacement();
+        }
+
+        // Touch: lift finger off world = place
+        foreach (Touch touch in Touch.activeTouches)
+        {
+            if (touch.phase == UnityEngine.InputSystem.TouchPhase.Ended &&
+                (EventSystem.current == null || !EventSystem.current.IsPointerOverGameObject(touch.touchId)))
+                TryPlace();
+            break;
+        }
+
+        if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
+            CancelPlacement();
     }
 
     // ── Hotkeys ───────────────────────────────────────────────────────────────
@@ -219,7 +251,7 @@ public class BuildingManager : MonoBehaviour
 
     private void TryPlace()
     {
-        Vector2 pos = SnappedMouseWorldPos();
+        Vector2 pos = SnappedPointerWorldPos();
 
         if (CitadelRequiredAndMissing())
         {
@@ -319,11 +351,15 @@ public class BuildingManager : MonoBehaviour
         return go;
     }
 
-    private void MoveGhost() => _ghost.transform.position = SnappedMouseWorldPos();
+    private void MoveGhost()
+    {
+        if (Camera.main == null) return;
+        _ghost.transform.position = SnappedPointerWorldPos();
+    }
 
     private void UpdateGhostColor()
     {
-        Vector2 pos   = SnappedMouseWorldPos();
+        Vector2 pos   = SnappedPointerWorldPos();
         bool    valid = !CitadelRequiredAndMissing()
                      && CanAfford(_active)
                      && IsAreaClear(pos, _active.footprint)
@@ -401,15 +437,27 @@ public class BuildingManager : MonoBehaviour
             0f);
     }
 
-    /// <summary>Raw screen-to-world mouse position (z = 0).</summary>
+    /// <summary>Current pointer (mouse or last touch) world position snapped to the nearest tile centre.</summary>
+    private Vector2 SnappedPointerWorldPos() => GetNearestTileCenter(PointerWorldPos());
+
+    private Vector3 PointerWorldPos()
+    {
+        if (Camera.main == null) return Vector3.zero;
+        Vector3 p = Camera.main.ScreenToWorldPoint(
+            new Vector3(_lastPointerScreenPos.x, _lastPointerScreenPos.y, Camera.main.nearClipPlane));
+        p.z = 0f;
+        return p;
+    }
+
+    // Kept for editor gizmos only (requires Mouse.current which is always present in Editor)
     private static Vector3 MouseWorldPos()
     {
+        if (Mouse.current == null || Camera.main == null) return Vector3.zero;
         Vector3 p = Camera.main.ScreenToWorldPoint(Mouse.current.position.ReadValue());
         p.z = 0f;
         return p;
     }
 
-    /// <summary>Mouse world position snapped to the nearest tile centre.</summary>
     private Vector2 SnappedMouseWorldPos() => GetNearestTileCenter(MouseWorldPos());
 
     // ── Tile occupancy ────────────────────────────────────────────────────────

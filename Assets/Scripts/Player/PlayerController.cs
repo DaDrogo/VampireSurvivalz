@@ -211,6 +211,9 @@ public class PlayerController : MonoBehaviour, IDamageable
             if (overUI) return;
         }
 
+        // Building placement consumes world taps — BuildingManager handles them
+        if (BuildingManager.Instance != null && BuildingManager.Instance.IsPlacing) return;
+
         if (rightClick)
             ProcessRightClick(screenPos);
         else
@@ -261,10 +264,19 @@ public class PlayerController : MonoBehaviour, IDamageable
         if (hit == null || !hit.TryGetComponent<Building>(out _)
                         || !hit.TryGetComponent(out IHoldInteractable holdTarget)) return;
 
+        StartRepair(holdTarget, hit.transform);
+    }
+
+    /// <summary>
+    /// Starts the auto-hold repair interaction on a building.
+    /// Called by right-click on desktop and the Repair button in the UI on mobile.
+    /// </summary>
+    public void StartRepair(IHoldInteractable target, Transform targetTransform)
+    {
         if (_holdTarget != null) CancelHold();
-        _pendingHoldTarget    = holdTarget;
-        _pendingHoldTransform = hit.transform;
-        SetPathTo(hit.transform.position);
+        _pendingHoldTarget    = target;
+        _pendingHoldTransform = targetTransform;
+        SetPathTo(targetTransform.position);
     }
 
     private void SetPathTo(Vector2 worldTarget)

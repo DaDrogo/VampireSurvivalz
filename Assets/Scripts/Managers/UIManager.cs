@@ -45,6 +45,15 @@ public class UIManager : MonoBehaviour
     private TextMeshProUGUI[] _hotbarNames;
     private TextMeshProUGUI[] _hotbarCosts;
     private Image[]           _hotbarLockOverlays;
+    private GameObject        _cancelBuildSlot;
+
+    // ── Info drawer animation ─────────────────────────────────────────────────
+
+    private RectTransform _drawerRT;
+    private Coroutine     _drawerAnim;
+    private float         _drawerShownY;
+    private float         _drawerHiddenY;
+    private bool          _drawerVisible;
 
     // ── Info / upgrade panel ──────────────────────────────────────────────────
 
@@ -52,6 +61,10 @@ public class UIManager : MonoBehaviour
     private TextMeshProUGUI _infoBuildingName;
     private TextMeshProUGUI _infoDescription;
     private TextMeshProUGUI _infoStats;
+
+    // Repair button
+    private Button          _repairButton;
+    private TextMeshProUGUI _repairButtonText;
 
     // Standard tier-upgrade section
     private GameObject      _upgradeSection;
@@ -66,10 +79,15 @@ public class UIManager : MonoBehaviour
     private TextMeshProUGUI[] _choiceNameTexts  = new TextMeshProUGUI[MaxChoices];
     private TextMeshProUGUI[] _choiceCostTexts  = new TextMeshProUGUI[MaxChoices];
 
+    // ── Player reference ──────────────────────────────────────────────────────
+
+    private PlayerController _player;
+
     // ── Selection state ───────────────────────────────────────────────────────
 
     private int            _selectedHotbarIndex = -1;
     private PlacedBuilding _selectedPlaced;
+    private Building       _selectedBuildingHpWatcher;
 
     private TextMeshProUGUI _toastText;
     private CanvasGroup     _toastGroup;
@@ -119,6 +137,8 @@ public class UIManager : MonoBehaviour
             _boundVampire.OnHealthChanged -= OnVampireHealthChanged;
             _boundVampire.OnLevelChanged  -= OnVampireLevelChanged;
         }
+        if (_selectedBuildingHpWatcher != null)
+            _selectedBuildingHpWatcher.OnHealthChanged -= OnSelectedBuildingHealthChanged;
     }
 
     // ── Subscription ─────────────────────────────────────────────────────────
@@ -176,13 +196,13 @@ public class UIManager : MonoBehaviour
     private void HandleWoodChanged(int amount)
     {
         _woodText?.SetText("Wood: {0}", amount);
-        if (_infoPanel != null && _infoPanel.activeSelf) RefreshInfoPanel();
+        if (_drawerVisible) RefreshInfoPanel();
     }
 
     private void HandleMetalChanged(int amount)
     {
         _metalText?.SetText("Metal: {0}", amount);
-        if (_infoPanel != null && _infoPanel.activeSelf) RefreshInfoPanel();
+        if (_drawerVisible) RefreshInfoPanel();
     }
 
     private void HandleStateChanged(GameManager.GameState state)
@@ -231,16 +251,31 @@ public class UIManager : MonoBehaviour
     {
         _selectedHotbarIndex = index;
         if (index >= 0) _selectedPlaced = null;  // new hotbar selection clears placed-building info
+        if (_cancelBuildSlot != null) _cancelBuildSlot.SetActive(index >= 0);
         RefreshHotbar();
         RefreshInfoPanel();
     }
 
     private void HandlePlacedBuildingSelected(PlacedBuilding pb)
     {
+        if (_selectedBuildingHpWatcher != null)
+            _selectedBuildingHpWatcher.OnHealthChanged -= OnSelectedBuildingHealthChanged;
+
         _selectedPlaced      = pb;
         _selectedHotbarIndex = -1;
+
+        _selectedBuildingHpWatcher = pb != null ? pb.GetComponent<Building>() : null;
+        if (_selectedBuildingHpWatcher != null)
+            _selectedBuildingHpWatcher.OnHealthChanged += OnSelectedBuildingHealthChanged;
+
         RefreshHotbar();
         RefreshInfoPanel();
+    }
+
+    private void OnSelectedBuildingHealthChanged(float _, float __)
+    {
+        if (_drawerVisible)
+            RefreshRepairButton();
     }
 
     // ── Health bar ────────────────────────────────────────────────────────────
@@ -248,6 +283,7 @@ public class UIManager : MonoBehaviour
     private void BindHPLabel(PlayerController player)
     {
         if (player == null) return;
+        _player = player;
 
         // Remove any previous listener to avoid duplicate subscriptions on restart
         player.OnHealthChanged -= UpdateHPText;
@@ -288,87 +324,73 @@ public class UIManager : MonoBehaviour
     {
         if (_infoPanel == null) return;
 
-        BuildingDefinition def       = null;
-        int                level     = 0;
-        bool               showStats = false;
-
-        if (_selectedPlaced != null && _selectedPlaced.Definition != null)
+        if (_selectedPlaced == null
+            || (BuildingManager.Instance != null && BuildingManager.Instance.IsPlacing))
         {
-            def       = _selectedPlaced.Definition;
-            level     = _selectedPlaced.Level;
-            showStats = true;
-        }
-        else if (_selectedHotbarIndex >= 0 && BuildingManager.Instance != null &&
-                 _selectedHotbarIndex < BuildingManager.Instance.BuildingCount)
-        {
-            def = BuildingManager.Instance.GetDefinition(_selectedHotbarIndex);
+            HideDrawer();
+            return;
         }
 
-        if (def == null) { _infoPanel.SetActive(false); return; }
+        BuildingDefinition def   = _selectedPlaced.Definition;
+        int                level = _selectedPlaced.Level;
 
         _infoPanel.SetActive(true);
-        _infoBuildingName?.SetText(def.buildingName);
-        _infoDescription?.SetText(def.description);
+        _infoBuildingName?.SetText(def != null ? def.buildingName : "");
+        _infoDescription?.SetText(def?.description ?? "");
 
         // Stats
         var sb = new StringBuilder();
-        sb.AppendLine($"Cost: {def.woodCost}W / {def.metalCost}M");
-        if (showStats && _selectedPlaced != null)
+        if (def != null) sb.AppendLine($"Cost: {def.woodCost}W / {def.metalCost}M");
+        if (_selectedPlaced.TryGetComponent(out Citadel citadel))
         {
-            if (_selectedPlaced.TryGetComponent(out Citadel citadel))
+            sb.AppendLine($"HP:       {citadel.CurrentHealth:0} / {citadel.MaxHealth:0}");
+            sb.AppendLine($"Tier:     {citadel.Tier} / {citadel.MaxTier}");
+            sb.AppendLine($"Output:   {citadel.ProductionOutput}");
+            sb.AppendLine($"Amount:   {citadel.ProductionAmount} / {citadel.ProductionInterval:0.0}s");
+        }
+        else
+        {
+            if (_selectedPlaced.TryGetComponent(out Barricade b))
+                sb.AppendLine($"HP: {b.CurrentHealth:0} / {b.MaxHealth:0}");
+            if (_selectedPlaced.TryGetComponent(out Turret t))
             {
-                sb.AppendLine($"HP:       {citadel.CurrentHealth:0} / {citadel.MaxHealth:0}");
-                sb.AppendLine($"Tier:     {citadel.Tier} / {citadel.MaxTier}");
-                sb.AppendLine($"Output:   {citadel.ProductionOutput}");
-                sb.AppendLine($"Amount:   {citadel.ProductionAmount} / {citadel.ProductionInterval:0.0}s");
+                sb.AppendLine($"HP:        {t.CurrentHealth:0} / {t.MaxHealth:0}");
+                sb.AppendLine($"Range:     {t.DetectionRange:0.0}");
+                sb.AppendLine($"Fire rate: {t.FireRate:0.00}/s");
             }
-            else
+            if (_selectedPlaced.TryGetComponent(out ResourceProducer rp))
             {
-                if (_selectedPlaced.TryGetComponent(out Barricade b))
-                    sb.AppendLine($"HP: {b.CurrentHealth:0} / {b.MaxHealth:0}");
-                if (_selectedPlaced.TryGetComponent(out Turret t))
-                {
-                    sb.AppendLine($"HP:        {t.CurrentHealth:0} / {t.MaxHealth:0}");
-                    sb.AppendLine($"Range:     {t.DetectionRange:0.0}");
-                    sb.AppendLine($"Fire rate: {t.FireRate:0.00}/s");
-                }
-                if (_selectedPlaced.TryGetComponent(out ResourceProducer rp))
-                {
-                    sb.AppendLine($"HP:       {rp.CurrentHealth:0} / {rp.MaxHealth:0}");
-                    sb.AppendLine($"Output:   {rp.OutputType}");
-                    sb.AppendLine($"Amount:   {rp.AmountPerCycle} / cycle");
-                    sb.AppendLine($"Interval: {rp.ProductionInterval:0.0}s");
-                }
+                sb.AppendLine($"HP:       {rp.CurrentHealth:0} / {rp.MaxHealth:0}");
+                sb.AppendLine($"Output:   {rp.OutputType}");
+                sb.AppendLine($"Amount:   {rp.AmountPerCycle} / cycle");
+                sb.AppendLine($"Interval: {rp.ProductionInterval:0.0}s");
             }
         }
         _infoStats?.SetText(sb.ToString());
 
-        // Decide which upgrade section to show
-        bool hasChoices = showStats
+        RefreshRepairButton();
+
+        bool hasChoices = def != null
                        && def.upgradeChoices != null
                        && def.upgradeChoices.Length > 0;
 
-        if (_upgradeSection != null) _upgradeSection.SetActive(!hasChoices);
+        if (_upgradeSection != null) _upgradeSection.SetActive(!hasChoices && def != null);
         if (_choiceSection   != null) _choiceSection.SetActive(hasChoices);
 
         if (hasChoices)
         {
-            // Populate choice buttons
             for (int i = 0; i < MaxChoices; i++)
             {
                 if (_choiceButtons[i] == null) continue;
-
                 if (i < def.upgradeChoices.Length)
                 {
                     BuildingUpgradeChoice ch = def.upgradeChoices[i];
                     _choiceButtons[i].gameObject.SetActive(true);
-
                     bool canAfford = ResourceManager.Instance != null
                         && ResourceManager.Instance.Wood  >= ch.woodCost
                         && ResourceManager.Instance.Metal >= ch.metalCost;
                     _choiceButtons[i].interactable = canAfford;
-
-                    string desc = string.IsNullOrEmpty(ch.description) ? "" : $"\n<size=14><color=#aaaaaa>{ch.description}</color></size>";
+                    string desc = string.IsNullOrEmpty(ch.description) ? "" : $"\n<size=12><color=#aaaaaa>{ch.description}</color></size>";
                     _choiceNameTexts[i]?.SetText($"{ch.label}{desc}");
                     _choiceCostTexts[i]?.SetText($"{ch.woodCost}W / {ch.metalCost}M");
                 }
@@ -378,11 +400,9 @@ public class UIManager : MonoBehaviour
                 }
             }
         }
-        else
+        else if (def != null)
         {
-            // Citadel uses its own tier system, not BuildingDefinition.upgrades
-            if (showStats && _selectedPlaced != null &&
-                _selectedPlaced.TryGetComponent(out Citadel cit))
+            if (_selectedPlaced.TryGetComponent(out Citadel cit))
             {
                 _infoLevel?.SetText($"Tier {cit.Tier} / {cit.MaxTier}");
                 if (_upgradeButton != null)
@@ -401,24 +421,17 @@ public class UIManager : MonoBehaviour
                             && ResourceManager.Instance.Metal >= next.metalCost;
                         _upgradeButton.gameObject.SetActive(true);
                         _upgradeButton.interactable = canAfford;
-                        _upgradeButtonText?.SetText(
-                            $"Upgrade  [{next.label}]\n{next.woodCost}W / {next.metalCost}M");
+                        _upgradeButtonText?.SetText($"Upgrade  [{next.label}]\n{next.woodCost}W / {next.metalCost}M");
                     }
                 }
             }
             else
             {
-                // Normal tier-upgrade section
                 int maxLevel = def.upgrades?.Length ?? 0;
                 _infoLevel?.SetText($"Level {level} / {maxLevel}");
-
                 if (_upgradeButton != null)
                 {
-                    if (!showStats)
-                    {
-                        _upgradeButton.gameObject.SetActive(false);
-                    }
-                    else if (level >= maxLevel)
+                    if (level >= maxLevel)
                     {
                         _upgradeButton.gameObject.SetActive(true);
                         _upgradeButtonText?.SetText("MAX LEVEL");
@@ -430,14 +443,36 @@ public class UIManager : MonoBehaviour
                         bool canAfford = ResourceManager.Instance != null
                             && ResourceManager.Instance.Wood  >= tier.woodCost
                             && ResourceManager.Instance.Metal >= tier.metalCost;
-
                         _upgradeButton.gameObject.SetActive(true);
                         _upgradeButton.interactable = canAfford;
-                        _upgradeButtonText?.SetText(
-                            $"Upgrade  [{tier.label}]\n{tier.woodCost}W / {tier.metalCost}M");
+                        _upgradeButtonText?.SetText($"Upgrade  [{tier.label}]\n{tier.woodCost}W / {tier.metalCost}M");
                     }
                 }
             }
+        }
+
+        if (!_drawerVisible) ShowDrawer();
+    }
+
+    private void OnRepairClicked()
+    {
+        if (_selectedPlaced == null || _player == null) return;
+        if (_selectedPlaced.TryGetComponent(out IHoldInteractable holdTarget))
+            _player.StartRepair(holdTarget, _selectedPlaced.transform);
+    }
+
+    private void RefreshRepairButton()
+    {
+        if (_repairButton == null) return;
+        Building bldg = null;
+        bool show = _selectedPlaced != null
+                 && _selectedPlaced.TryGetComponent(out bldg);
+        _repairButton.gameObject.SetActive(show);
+        if (show && bldg != null)
+        {
+            bool damaged = bldg.CurrentHealth < bldg.MaxHealth;
+            _repairButton.interactable = damaged;
+            _repairButtonText?.SetText(damaged ? "Repair" : "Full HP");
         }
     }
 
@@ -454,6 +489,53 @@ public class UIManager : MonoBehaviour
         if (choices == null || index >= choices.Length) return;
         _selectedPlaced.TryUpgradeToChoice(choices[index]);
         // TryUpgradeToChoice destroys the building → OnSelected(null) → panel closes
+    }
+
+    // ── Drawer animation ─────────────────────────────────────────────────────
+
+    private void ShowDrawer()
+    {
+        if (_drawerRT == null) return;
+        _drawerVisible = true;
+        _infoPanel.SetActive(true);
+        AnimateDrawerTo(_drawerShownY);
+    }
+
+    private void HideDrawer()
+    {
+        if (_drawerRT == null || !_drawerVisible) return;
+        _drawerVisible = false;
+        AnimateDrawerToAndDeactivate(_drawerHiddenY);
+    }
+
+    private void AnimateDrawerTo(float targetY)
+    {
+        if (_drawerAnim != null) StopCoroutine(_drawerAnim);
+        _drawerAnim = StartCoroutine(DrawerCoroutine(targetY, false));
+    }
+
+    private void AnimateDrawerToAndDeactivate(float targetY)
+    {
+        if (_drawerAnim != null) StopCoroutine(_drawerAnim);
+        _drawerAnim = StartCoroutine(DrawerCoroutine(targetY, true));
+    }
+
+    private IEnumerator DrawerCoroutine(float targetY, bool deactivateAfter)
+    {
+        float startY   = _drawerRT.anchoredPosition.y;
+        float elapsed  = 0f;
+        const float duration = 0.2f;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float t  = Mathf.SmoothStep(0f, 1f, elapsed / duration);
+            _drawerRT.anchoredPosition = new Vector2(0f, Mathf.LerpUnclamped(startY, targetY, t));
+            yield return null;
+        }
+        _drawerRT.anchoredPosition = new Vector2(0f, targetY);
+        if (deactivateAfter) _infoPanel.SetActive(false);
+        _drawerAnim = null;
     }
 
     // ── Citadel lock ──────────────────────────────────────────────────────────
@@ -555,15 +637,25 @@ public class UIManager : MonoBehaviour
         CanvasScaler scaler        = canvasGO.AddComponent<CanvasScaler>();
         scaler.uiScaleMode         = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         scaler.referenceResolution = new Vector2(1920f, 1080f);
-        scaler.matchWidthOrHeight  = 0.5f;
+        scaler.matchWidthOrHeight  = 1f;   // match height — correct for landscape
 
         canvasGO.AddComponent<GraphicRaycaster>();
 
-        BuildTopBar(canvasGO.transform, font);
-        BuildHotbar(canvasGO.transform, font);
-        BuildInfoPanel(canvasGO.transform, font);
-        BuildBossHealthBar(canvasGO.transform, font);
-        BuildToast(canvasGO.transform, font);
+        // Safe-area container — insets UI away from notches and gesture bars
+        GameObject safeAreaGO  = new GameObject("SafeArea");
+        safeAreaGO.transform.SetParent(canvasGO.transform, false);
+        RectTransform safeRT   = safeAreaGO.AddComponent<RectTransform>();
+        safeRT.anchorMin       = Vector2.zero;
+        safeRT.anchorMax       = Vector2.one;
+        safeRT.offsetMin       = safeRT.offsetMax = Vector2.zero;
+        safeAreaGO.AddComponent<SafeAreaFitter>();
+        Transform root = safeAreaGO.transform;
+
+        BuildTopBar(root, font);
+        BuildHotbar(root, font);
+        BuildInfoPanel(root, font);
+        BuildBossHealthBar(root, font);
+        BuildToast(root, font);
     }
 
     // ── Boss health bar ───────────────────────────────────────────────────────
@@ -575,10 +667,10 @@ public class UIManager : MonoBehaviour
         _bossPanel.transform.SetParent(canvas, false);
 
         RectTransform rt  = _bossPanel.AddComponent<RectTransform>();
-        rt.anchorMin      = new Vector2(0.5f, 0f);
-        rt.anchorMax      = new Vector2(0.5f, 0f);
-        rt.pivot          = new Vector2(0.5f, 0f);
-        rt.anchoredPosition = new Vector2(0f, 120f);   // above hotbar
+        rt.anchorMin      = new Vector2(0.5f, 1f);
+        rt.anchorMax      = new Vector2(0.5f, 1f);
+        rt.pivot          = new Vector2(0.5f, 1f);
+        rt.anchoredPosition = new Vector2(0f, -(68f + 6f));   // below top bar
         rt.sizeDelta      = new Vector2(500f, 60f);
 
         _bossPanel.AddComponent<Image>().color = new Color(0.05f, 0f, 0.1f, 0.85f);
@@ -862,53 +954,200 @@ public class UIManager : MonoBehaviour
             _hotbarLockOverlays[i] = lockImg;
             lockGO.SetActive(false);
         }
+
+        // Cancel placement button — shown only while placement mode is active
+        _cancelBuildSlot = new GameObject("CancelBuildSlot");
+        _cancelBuildSlot.transform.SetParent(hotbar.transform, false);
+
+        LayoutElement cancelLE  = _cancelBuildSlot.AddComponent<LayoutElement>();
+        cancelLE.minWidth       = 88f;
+        cancelLE.preferredWidth = 88f;
+        cancelLE.flexibleWidth  = 0f;
+
+        Image cancelBg          = _cancelBuildSlot.AddComponent<Image>();
+        UIHelper.ApplyImage(cancelBg, _theme?.buttonNav, new Color(0.55f, 0.06f, 0.06f, 0.90f));
+
+        Button cancelBtn        = _cancelBuildSlot.AddComponent<Button>();
+        cancelBtn.targetGraphic = cancelBg;
+        cancelBtn.colors        = UIHelper.BtnColors(_theme?.buttonNav,
+            new Color(0.55f, 0.06f, 0.06f), new Color(0.80f, 0.15f, 0.15f), new Color(0.38f, 0.04f, 0.04f));
+        cancelBtn.onClick.AddListener(() => BuildingManager.Instance?.CancelPlacement());
+
+        VerticalLayoutGroup cancelVLG    = _cancelBuildSlot.AddComponent<VerticalLayoutGroup>();
+        cancelVLG.padding                = new RectOffset(4, 4, 4, 4);
+        cancelVLG.childAlignment         = TextAnchor.MiddleCenter;
+        cancelVLG.childControlHeight     = true;
+        cancelVLG.childControlWidth      = true;
+        cancelVLG.childForceExpandHeight = true;
+        cancelVLG.childForceExpandWidth  = true;
+
+        MakeLabel(_cancelBuildSlot.transform, "CancelText", "✕\nCancel", font, 19f,
+                  Color.white, TextAlignmentOptions.Center);
+
+        _cancelBuildSlot.SetActive(false);
     }
 
-    // ── Info panel ────────────────────────────────────────────────────────────
+    // ── Info panel (bottom drawer) ────────────────────────────────────────────
 
     private void BuildInfoPanel(Transform canvas, TMP_FontAsset font)
     {
-        GameObject panel   = new GameObject("InfoPanel");
+        const float drawerH = 280f;
+        const float hotbarH = 108f;
+        const float headerH = 42f;
+        _drawerShownY  = hotbarH;
+        _drawerHiddenY = -(drawerH - hotbarH);   // slides down behind the hotbar
+
+        GameObject panel = new GameObject("InfoPanel");
         panel.transform.SetParent(canvas, false);
         _infoPanel = panel;
 
-        RectTransform rt   = panel.AddComponent<RectTransform>();
-        rt.anchorMin        = new Vector2(1f, 0.5f);
-        rt.anchorMax        = new Vector2(1f, 0.5f);
-        rt.pivot            = new Vector2(1f, 0.5f);
-        rt.anchoredPosition = new Vector2(-8f, 0f);
-        rt.sizeDelta        = new Vector2(280f, 480f);
+        RectTransform rt = panel.AddComponent<RectTransform>();
+        rt.anchorMin        = new Vector2(0f, 0f);
+        rt.anchorMax        = new Vector2(1f, 0f);
+        rt.pivot            = new Vector2(0.5f, 0f);
+        rt.anchoredPosition = new Vector2(0f, _drawerHiddenY);
+        rt.sizeDelta        = new Vector2(0f, drawerH);
+        _drawerRT = rt;
 
-        panel.AddComponent<Image>().color = new Color(0.04f, 0.04f, 0.10f, 0.88f);
+        panel.AddComponent<Image>().color = new Color(0.04f, 0.04f, 0.10f, 0.92f);
 
-        VerticalLayoutGroup vlg    = panel.AddComponent<VerticalLayoutGroup>();
-        vlg.padding                = new RectOffset(14, 14, 14, 14);
-        vlg.spacing                = 6f;
-        vlg.childAlignment         = TextAnchor.UpperCenter;
-        vlg.childControlHeight     = false;
-        vlg.childControlWidth      = true;
-        vlg.childForceExpandHeight = false;
-        vlg.childForceExpandWidth  = true;
+        // ── Header ────────────────────────────────────────────────────────────
+        GameObject headerGO = new GameObject("Header");
+        headerGO.transform.SetParent(panel.transform, false);
+        RectTransform headerRT    = headerGO.AddComponent<RectTransform>();
+        headerRT.anchorMin        = new Vector2(0f, 1f);
+        headerRT.anchorMax        = new Vector2(1f, 1f);
+        headerRT.pivot            = new Vector2(0.5f, 1f);
+        headerRT.anchoredPosition = Vector2.zero;
+        headerRT.sizeDelta        = new Vector2(0f, headerH);
+        headerGO.AddComponent<Image>().color = new Color(0f, 0f, 0f, 0.40f);
 
-        // Title
-        _infoBuildingName = MakeLabel(panel.transform, "InfoName", "", font, 24f,
-                                     new Color(1f, 0.85f, 0.3f), TextAlignmentOptions.Center);
-        SetPrefHeight(_infoBuildingName.gameObject, 32f);
+        HorizontalLayoutGroup headerHLG  = headerGO.AddComponent<HorizontalLayoutGroup>();
+        headerHLG.padding                = new RectOffset(14, 8, 0, 0);
+        headerHLG.spacing                = 8f;
+        headerHLG.childAlignment         = TextAnchor.MiddleLeft;
+        headerHLG.childControlHeight     = true;
+        headerHLG.childControlWidth      = true;
+        headerHLG.childForceExpandHeight = true;
+        headerHLG.childForceExpandWidth  = false;
 
-        // Description
-        _infoDescription = MakeLabel(panel.transform, "InfoDesc", "", font, 17f,
+        _infoBuildingName = MakeLabel(headerGO.transform, "InfoName", "", font, 22f,
+                                      new Color(1f, 0.85f, 0.3f), TextAlignmentOptions.MidlineLeft);
+        _infoBuildingName.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1f;
+
+        // Close button (✕)
+        GameObject closeBtnGO = new GameObject("CloseBtn");
+        closeBtnGO.transform.SetParent(headerGO.transform, false);
+        LayoutElement closeLE  = closeBtnGO.AddComponent<LayoutElement>();
+        closeLE.minWidth       = 42f;
+        closeLE.preferredWidth = 42f;
+        closeLE.flexibleWidth  = 0f;
+        Image closeImg         = closeBtnGO.AddComponent<Image>();
+        UIHelper.ApplyImage(closeImg, _theme?.buttonNav, new Color(0.25f, 0.06f, 0.06f, 0.90f));
+        Button closeBtn        = closeBtnGO.AddComponent<Button>();
+        closeBtn.targetGraphic = closeImg;
+        closeBtn.colors        = UIHelper.BtnColors(_theme?.buttonNav,
+            new Color(0.3f, 0.08f, 0.08f), new Color(0.55f, 0.15f, 0.15f), new Color(0.2f, 0.05f, 0.05f));
+        closeBtn.onClick.AddListener(() => PlacedBuilding.Deselect());
+        GameObject closeTxtGO    = new GameObject("CloseText");
+        closeTxtGO.transform.SetParent(closeBtnGO.transform, false);
+        RectTransform closeTxtRT = closeTxtGO.AddComponent<RectTransform>();
+        closeTxtRT.anchorMin     = Vector2.zero;
+        closeTxtRT.anchorMax     = Vector2.one;
+        closeTxtRT.offsetMin     = closeTxtRT.offsetMax = Vector2.zero;
+        TextMeshProUGUI closeTxt = closeTxtGO.AddComponent<TextMeshProUGUI>();
+        closeTxt.text      = "✕";
+        closeTxt.fontSize  = 22f;
+        closeTxt.alignment = TextAlignmentOptions.Center;
+        closeTxt.color     = Color.white;
+        if (font != null) closeTxt.font = font;
+
+        // ── Body (two-column layout below header) ─────────────────────────────
+        GameObject bodyGO = new GameObject("Body");
+        bodyGO.transform.SetParent(panel.transform, false);
+        RectTransform bodyRT = bodyGO.AddComponent<RectTransform>();
+        bodyRT.anchorMin     = new Vector2(0f, 0f);
+        bodyRT.anchorMax     = new Vector2(1f, 1f);
+        bodyRT.offsetMin     = Vector2.zero;
+        bodyRT.offsetMax     = new Vector2(0f, -headerH);
+
+        HorizontalLayoutGroup bodyHLG  = bodyGO.AddComponent<HorizontalLayoutGroup>();
+        bodyHLG.padding                = new RectOffset(8, 8, 8, 8);
+        bodyHLG.spacing                = 8f;
+        bodyHLG.childAlignment         = TextAnchor.UpperLeft;
+        bodyHLG.childControlHeight     = true;
+        bodyHLG.childControlWidth      = true;
+        bodyHLG.childForceExpandHeight = true;
+        bodyHLG.childForceExpandWidth  = false;
+
+        // Left column — description + stats (flexible)
+        GameObject leftCol = MakeGroup(bodyGO.transform, "LeftCol");
+        leftCol.AddComponent<LayoutElement>().flexibleWidth = 1f;
+        VerticalLayoutGroup leftVLG    = leftCol.AddComponent<VerticalLayoutGroup>();
+        leftVLG.spacing                = 6f;
+        leftVLG.childAlignment         = TextAnchor.UpperLeft;
+        leftVLG.childControlHeight     = false;
+        leftVLG.childControlWidth      = true;
+        leftVLG.childForceExpandHeight = false;
+        leftVLG.childForceExpandWidth  = true;
+
+        _infoDescription = MakeLabel(leftCol.transform, "InfoDesc", "", font, 16f,
                                      new Color(0.72f, 0.72f, 0.72f), TextAlignmentOptions.Left);
         _infoDescription.enableWordWrapping = true;
-        SetPrefHeight(_infoDescription.gameObject, 56f);
+        SetPrefHeight(_infoDescription.gameObject, 48f);
 
-        // Stats
-        _infoStats = MakeLabel(panel.transform, "InfoStats", "", font, 17f,
+        _infoStats = MakeLabel(leftCol.transform, "InfoStats", "", font, 16f,
                                Color.white, TextAlignmentOptions.Left);
         _infoStats.enableWordWrapping = false;
-        SetPrefHeight(_infoStats.gameObject, 100f);
+        SetPrefHeight(_infoStats.gameObject, 120f);
+
+        // Right column — 190px fixed: repair + upgrade/choice
+        GameObject rightCol = MakeGroup(bodyGO.transform, "RightCol");
+        LayoutElement rightLE = rightCol.AddComponent<LayoutElement>();
+        rightLE.minWidth       = 190f;
+        rightLE.preferredWidth = 190f;
+        rightLE.flexibleWidth  = 0f;
+        VerticalLayoutGroup rightVLG    = rightCol.AddComponent<VerticalLayoutGroup>();
+        rightVLG.spacing                = 6f;
+        rightVLG.childAlignment         = TextAnchor.UpperCenter;
+        rightVLG.childControlHeight     = false;
+        rightVLG.childControlWidth      = true;
+        rightVLG.childForceExpandHeight = false;
+        rightVLG.childForceExpandWidth  = true;
+
+        // Repair button
+        {
+            GameObject repairGO = new GameObject("RepairBtn");
+            repairGO.transform.SetParent(rightCol.transform, false);
+            Image repairImg         = repairGO.AddComponent<Image>();
+            UIHelper.ApplyImage(repairImg, _theme?.buttonNav, new Color(0.12f, 0.45f, 0.12f, 1f));
+            _repairButton           = repairGO.AddComponent<Button>();
+            _repairButton.targetGraphic = repairImg;
+            _repairButton.onClick.AddListener(OnRepairClicked);
+            ColorBlock repairCB     = UIHelper.BtnColors(_theme?.buttonNav,
+                new Color(0.12f, 0.45f, 0.12f), new Color(0.18f, 0.65f, 0.18f), new Color(0.08f, 0.30f, 0.08f));
+            repairCB.disabledColor  = new Color(0.30f, 0.30f, 0.30f);
+            _repairButton.colors    = repairCB;
+            repairGO.AddComponent<LayoutElement>().preferredHeight = 44f;
+
+            GameObject repairTextGO    = new GameObject("RepairText");
+            repairTextGO.transform.SetParent(repairGO.transform, false);
+            RectTransform repairTextRT = repairTextGO.AddComponent<RectTransform>();
+            repairTextRT.anchorMin     = Vector2.zero;
+            repairTextRT.anchorMax     = Vector2.one;
+            repairTextRT.offsetMin     = repairTextRT.offsetMax = Vector2.zero;
+            _repairButtonText          = repairTextGO.AddComponent<TextMeshProUGUI>();
+            _repairButtonText.text     = "Repair";
+            _repairButtonText.fontSize = 19f;
+            _repairButtonText.alignment = TextAlignmentOptions.Center;
+            _repairButtonText.color    = Color.white;
+            if (font != null) _repairButtonText.font = font;
+
+            repairGO.SetActive(false);
+        }
 
         // ── Standard tier-upgrade section ─────────────────────────────────────
-        _upgradeSection = MakeGroup(panel.transform, "UpgradeSection");
+        _upgradeSection = MakeGroup(rightCol.transform, "UpgradeSection");
         {
             VerticalLayoutGroup uVLG    = _upgradeSection.AddComponent<VerticalLayoutGroup>();
             uVLG.spacing                = 6f;
@@ -917,9 +1156,9 @@ public class UIManager : MonoBehaviour
             uVLG.childControlWidth      = true;
             uVLG.childForceExpandHeight = false;
             uVLG.childForceExpandWidth  = true;
-            SetPrefHeight(_upgradeSection, 88f);   // 26 + 6 + 56
+            SetPrefHeight(_upgradeSection, 88f);
 
-            _infoLevel = MakeLabel(_upgradeSection.transform, "InfoLevel", "", font, 18f,
+            _infoLevel = MakeLabel(_upgradeSection.transform, "InfoLevel", "", font, 16f,
                                    new Color(0.45f, 0.85f, 1f), TextAlignmentOptions.Center);
             SetPrefHeight(_infoLevel.gameObject, 26f);
 
@@ -952,7 +1191,7 @@ public class UIManager : MonoBehaviour
         }
 
         // ── Choice-upgrade section ────────────────────────────────────────────
-        _choiceSection = MakeGroup(panel.transform, "ChoiceSection");
+        _choiceSection = MakeGroup(rightCol.transform, "ChoiceSection");
         {
             VerticalLayoutGroup cVLG    = _choiceSection.AddComponent<VerticalLayoutGroup>();
             cVLG.spacing                = 5f;
@@ -961,14 +1200,14 @@ public class UIManager : MonoBehaviour
             cVLG.childControlWidth      = true;
             cVLG.childForceExpandHeight = false;
             cVLG.childForceExpandWidth  = true;
-            SetPrefHeight(_choiceSection, 24f + MaxChoices * (62f + 5f));
+            SetPrefHeight(_choiceSection, 24f + MaxChoices * (56f + 5f));
 
-            MakeLabel(_choiceSection.transform, "ChoiceHeader", "Upgrade to:", font, 16f,
+            MakeLabel(_choiceSection.transform, "ChoiceHeader", "Upgrade to:", font, 14f,
                       new Color(0.6f, 0.6f, 0.6f), TextAlignmentOptions.Center);
 
             for (int i = 0; i < MaxChoices; i++)
             {
-                int idx = i;   // capture for lambda
+                int idx = i;
 
                 GameObject cBtn   = new GameObject($"ChoiceBtn_{i}");
                 cBtn.transform.SetParent(_choiceSection.transform, false);
@@ -981,7 +1220,7 @@ public class UIManager : MonoBehaviour
                     new Color(0.12f, 0.38f, 0.55f), new Color(0.18f, 0.52f, 0.75f), new Color(0.08f, 0.25f, 0.38f));
                 cb.disabledColor  = new Color(0.25f, 0.25f, 0.25f);
                 btn.colors        = cb;
-                cBtn.AddComponent<LayoutElement>().preferredHeight = 62f;
+                cBtn.AddComponent<LayoutElement>().preferredHeight = 56f;
                 _choiceButtons[i] = btn;
 
                 VerticalLayoutGroup bVLG    = cBtn.AddComponent<VerticalLayoutGroup>();
@@ -993,11 +1232,11 @@ public class UIManager : MonoBehaviour
                 bVLG.childForceExpandHeight = true;
                 bVLG.childForceExpandWidth  = true;
 
-                _choiceNameTexts[i] = MakeLabel(cBtn.transform, "ChoiceName", "", font, 16f,
+                _choiceNameTexts[i] = MakeLabel(cBtn.transform, "ChoiceName", "", font, 14f,
                                                 Color.white, TextAlignmentOptions.Left);
                 _choiceNameTexts[i].enableWordWrapping = true;
 
-                _choiceCostTexts[i] = MakeLabel(cBtn.transform, "ChoiceCost", "", font, 14f,
+                _choiceCostTexts[i] = MakeLabel(cBtn.transform, "ChoiceCost", "", font, 12f,
                                                 new Color(0.8f, 0.9f, 0.55f), TextAlignmentOptions.Left);
             }
         }

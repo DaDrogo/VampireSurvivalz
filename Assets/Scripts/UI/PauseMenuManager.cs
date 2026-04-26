@@ -118,7 +118,7 @@ public class PauseMenuManager : MonoBehaviour
         CanvasScaler scaler        = _pauseCanvas.AddComponent<CanvasScaler>();
         scaler.uiScaleMode         = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         scaler.referenceResolution = new Vector2(1920f, 1080f);
-        scaler.matchWidthOrHeight  = 0.5f;
+        scaler.matchWidthOrHeight  = 1f;
         _pauseCanvas.AddComponent<GraphicRaycaster>();
 
         // Full-screen dim

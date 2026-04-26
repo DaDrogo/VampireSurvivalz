@@ -15942,9 +15942,9 @@ MonoBehaviour:
   baseEnemyCount: 10
   enemyCountIncreasePerWave: 5
   timeBetweenSpawns: 0.4
-  healthScalePerWave: 0.1
-  speedScalePerWave: 0.1
-  damageScalePerWave: 0.1
+  healthScalePerWave: 0.2
+  speedScalePerWave: 0.2
+  damageScalePerWave: 0.2
   enemyPrefab: {fileID: 8368466745619319268, guid: 8df70025dbfafde4d8dff617b7a640a6, type: 3}
   vampireCoffinPrefab: {fileID: 6456108297847423121, guid: 981fbee82114e894e965ad7b49724ff0, type: 3}
   citadelPrefab: {fileID: 0}
@@ -15997,7 +15997,7 @@ MonoBehaviour:
   nightEnemySpeedMult: 1.3
   nightEnemyDamageMult: 1.5
   dayPlayerSpeedMult: 1.25
-  permanentBuffPerCycle: 0.05
+  permanentBuffPerCycle: 0.1
 --- !u!114 &1243210257
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -16741,7 +16741,7 @@ MonoBehaviour:
   minRoomSize: 8
   splitDepth: 4
   doorWidth: 2
-  doorCornerMargin: 3
+  doorCornerMargin: 2
   useRandomSeed: 1
   seed: 0
 --- !u!4 &1656504982

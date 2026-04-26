@@ -51,7 +51,10 @@ public class FloatingTextManager : MonoBehaviour
         _canvas = go.AddComponent<Canvas>();
         _canvas.renderMode   = RenderMode.ScreenSpaceOverlay;
         _canvas.sortingOrder = 150;
-        go.AddComponent<CanvasScaler>().uiScaleMode = CanvasScaler.ScaleMode.ConstantPixelSize;
+        CanvasScaler scaler        = go.AddComponent<CanvasScaler>();
+        scaler.uiScaleMode         = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.referenceResolution = new Vector2(1920f, 1080f);
+        scaler.matchWidthOrHeight  = 1f;
     }
 
     // ── Public API ────────────────────────────────────────────────────────────
@@ -94,9 +97,10 @@ public class FloatingTextManager : MonoBehaviour
                 ? (Vector2)cam.WorldToScreenPoint(worldPos)
                 : new Vector2(Screen.width * 0.5f, Screen.height * 0.5f);
 
+            float scaleFactor = Screen.height / 1080f;
             rt.anchoredPosition = new Vector2(
-                screenPos.x - Screen.width  * 0.5f + xDrift,
-                screenPos.y - Screen.height * 0.5f + floatPixels * t);
+                (screenPos.x - Screen.width  * 0.5f) / scaleFactor + xDrift,
+                (screenPos.y - Screen.height * 0.5f) / scaleFactor + floatPixels * t);
 
             // Scale punch on spawn
             float scaleMult = 1f;
