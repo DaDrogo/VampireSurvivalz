@@ -406,7 +406,7 @@ public class BuildingManager : MonoBehaviour
     private static bool IsOnWall(Vector2 snappedPos)
     {
         PathNode node = PathfindingGrid.Instance?.NodeFromWorld(snappedPos);
-        return node != null && node.IsWall;
+        return node == null || node.IsWall;   // null = outside map bounds
     }
 
     private static void SpendResources(BuildingDefinition def)

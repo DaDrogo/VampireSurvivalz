@@ -147,7 +147,7 @@ public class PauseMenuManager : MonoBehaviour
                 AddVolumeSlider(p, "SFX Volume",
                     PersistentDataManager.Instance?.SFXVolume ?? 0.8f,
                     v => PersistentDataManager.Instance?.SetSFXVolume(v));
-                AddButton(p, "Back", "Back", BtnGray, ShowPausePanel, _theme?.buttonSecondary);
+                AddButton(p, "Back", "Back", BtnGray, ShowPausePanel, _theme?.buttonNav);
             });
 
         _settingsPanel.SetActive(false);
@@ -273,6 +273,8 @@ public class PauseMenuManager : MonoBehaviour
         RectTransform fillRT = fill.AddComponent<RectTransform>();
         fillRT.anchorMin = Vector2.zero;
         fillRT.anchorMax = new Vector2(1f, 1f);
+        fillRT.offsetMin = Vector2.zero;
+        fillRT.offsetMax = Vector2.zero;
         Image fillImg    = fill.AddComponent<Image>();
         UIHelper.ApplyImage(fillImg, theme?.sliderFill, new Color(0.2f, 0.6f, 1f));
 

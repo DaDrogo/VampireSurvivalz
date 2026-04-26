@@ -23,16 +23,64 @@ public class PlacedBuilding : MonoBehaviour
     /// <summary>0 = base level; equals Definition.upgrades.Length when fully upgraded.</summary>
     public int Level { get; private set; }
 
-    private Vector2Int _tile;
-    private bool       _skipFreeTile;
+    private Vector2Int    _tile;
+    private bool          _skipFreeTile;
+
+    // ── Selection glow ────────────────────────────────────────────────────────
+
+    private SpriteRenderer _glowSR;
+    private static readonly Color GlowTint = new Color(1f, 0.82f, 0.2f);
 
     // ── Init ──────────────────────────────────────────────────────────────────
+
+    private void Awake()
+    {
+        BuildGlow();
+        OnSelected += HandleGlobalSelected;
+    }
 
     public void Init(Vector2Int tile, BuildingDefinition def = null)
     {
         _tile      = tile;
         Definition = def;
         Level      = 0;
+    }
+
+    private void Update()
+    {
+        if (_glowSR == null || !_glowSR.gameObject.activeSelf) return;
+        float alpha = 0.4f + 0.35f * Mathf.Sin(Time.time * 5f);
+        _glowSR.color = new Color(GlowTint.r, GlowTint.g, GlowTint.b, alpha);
+    }
+
+    private void BuildGlow()
+    {
+        SpriteRenderer src = GetComponentInChildren<SpriteRenderer>();
+
+        GameObject go      = new GameObject("Glow");
+        go.transform.SetParent(transform, false);
+        go.transform.localScale = Vector3.one * 1.3f;
+
+        _glowSR                = go.AddComponent<SpriteRenderer>();
+        _glowSR.sprite         = src != null ? src.sprite : MakeWhiteSquare();
+        _glowSR.sortingLayerID = src != null ? src.sortingLayerID : 0;
+        _glowSR.sortingOrder   = src != null ? src.sortingOrder - 1 : -1;
+        _glowSR.color          = new Color(GlowTint.r, GlowTint.g, GlowTint.b, 0f);
+        go.SetActive(false);
+    }
+
+    private void HandleGlobalSelected(PlacedBuilding pb)
+    {
+        if (_glowSR == null) return;
+        _glowSR.gameObject.SetActive(pb == this);
+    }
+
+    private static Sprite MakeWhiteSquare()
+    {
+        var tex = new Texture2D(1, 1);
+        tex.SetPixel(0, 0, Color.white);
+        tex.Apply();
+        return Sprite.Create(tex, new Rect(0, 0, 1, 1), new Vector2(0.5f, 0.5f), 1f);
     }
 
     // ── Selection ─────────────────────────────────────────────────────────────
@@ -127,6 +175,8 @@ public class PlacedBuilding : MonoBehaviour
 
     private void OnDestroy()
     {
+        OnSelected -= HandleGlobalSelected;
+
         if (Current == this)
         {
             Current = null;

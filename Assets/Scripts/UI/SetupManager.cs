@@ -38,6 +38,7 @@ public class SetupManager : MonoBehaviour
     private int                _charIndex;
     private CharacterDefinition _selectedChar;
     private Image[]            _charCardBgs;
+    private Image[]            _charPortraitBgs;
     private TextMeshProUGUI    _detailName;
     private Image              _detailColorBar;
     private TextMeshProUGUI    _detailDescription;
@@ -241,156 +242,205 @@ public class SetupManager : MonoBehaviour
         var panel = GroupGO(parent, "CharStep");
         panel.AddComponent<Image>().color = Color.clear;
 
-        var hlg = panel.AddComponent<HorizontalLayoutGroup>();
-        hlg.childControlHeight     = true;
-        hlg.childControlWidth      = true;
-        hlg.childForceExpandHeight = true;
-        hlg.childForceExpandWidth  = true;
+        var vlg = panel.AddComponent<VerticalLayoutGroup>();
+        vlg.padding                = new RectOffset(24, 24, 16, 12);
+        vlg.spacing                = 12f;
+        vlg.childControlHeight     = true;
+        vlg.childControlWidth      = true;
+        vlg.childForceExpandHeight = false;
+        vlg.childForceExpandWidth  = true;
 
-        // ── Left list (400px) ─────────────────────────────────────────────
-        var left  = GroupGO(panel.transform, "Left");
-        UIHelper.ApplyImage(left.AddComponent<Image>(), _theme?.panelBackground, C_Surface, Image.Type.Tiled);
-        left.AddComponent<LayoutElement>().preferredWidth = 400f;
-
-        var leftVLG = left.AddComponent<VerticalLayoutGroup>();
-        leftVLG.padding  = new RectOffset(24, 24, 28, 24);
-        leftVLG.spacing  = 12f;
-        leftVLG.childControlHeight     = true;
-        leftVLG.childControlWidth      = true;
-        leftVLG.childForceExpandHeight = false;
-        leftVLG.childForceExpandWidth  = true;
-
-        var hdr = Lbl(left.transform, "SELECT CHARACTER", 13f, C_TxtMid);
+        // Sub-header
+        var hdr = Lbl(panel.transform, "SELECT YOUR CHARACTER", 13f, C_TxtDim);
         hdr.fontStyle = FontStyles.Bold;
-        hdr.gameObject.AddComponent<LayoutElement>().preferredHeight = 20f;
+        hdr.alignment = TextAlignmentOptions.Center;
+        hdr.gameObject.AddComponent<LayoutElement>().preferredHeight = 18f;
 
-        var scroll  = MakeScrollView(left.transform, vertical: true);
-        scroll.GetComponent<LayoutElement>().flexibleHeight = 1f;
-        var listContent = scroll.transform.Find("Viewport/Content");
+        // Cards row — one portrait card per character
+        var cardsRow = GroupGO(panel.transform, "CardsRow");
+        cardsRow.AddComponent<LayoutElement>().flexibleHeight = 1f;
+        var cardsHLG = cardsRow.AddComponent<HorizontalLayoutGroup>();
+        cardsHLG.spacing                = 16f;
+        cardsHLG.childAlignment         = TextAnchor.MiddleCenter;
+        cardsHLG.childControlHeight     = true;
+        cardsHLG.childControlWidth      = true;
+        cardsHLG.childForceExpandHeight = true;
+        cardsHLG.childForceExpandWidth  = true;
 
         _charCardBgs = new Image[characters?.Length ?? 0];
         if (characters != null)
-        {
             for (int i = 0; i < characters.Length; i++)
-            {
-                if (characters[i] == null) continue;
-                var def = characters[i];
-                var idx = i;
+                if (characters[i] != null)
+                    BuildCharacterCard(cardsRow.transform, i);
 
-                var card    = GroupGO(listContent, $"CC{i}");
-                card.AddComponent<LayoutElement>().preferredHeight = 72f;
-                var cardImg = card.AddComponent<Image>();
-                UIHelper.ApplyImage(cardImg, _theme?.cardBackground, CardNormal, Image.Type.Tiled);
-                _charCardBgs[i] = cardImg;
+        // Passives strip at the bottom
+        var strip = GroupGO(panel.transform, "PassivesStrip");
+        UIHelper.ApplyImage(strip.AddComponent<Image>(), _theme?.panelBackground, C_Surface, Image.Type.Tiled);
+        strip.AddComponent<LayoutElement>().preferredHeight = 120f;
 
-                var btn = card.AddComponent<Button>();
-                btn.targetGraphic = cardImg;
-                SetBtn(btn, Color.white, new Color(1.08f, 1.08f, 1.08f), new Color(0.88f, 0.88f, 0.88f));
-                btn.onClick.AddListener(() => SelectCharacter(idx));
+        var stripVLG = strip.AddComponent<VerticalLayoutGroup>();
+        stripVLG.padding                = new RectOffset(20, 20, 8, 8);
+        stripVLG.spacing                = 6f;
+        stripVLG.childControlHeight     = true;
+        stripVLG.childControlWidth      = true;
+        stripVLG.childForceExpandHeight = false;
+        stripVLG.childForceExpandWidth  = true;
 
-                var cardHLG = card.AddComponent<HorizontalLayoutGroup>();
-                cardHLG.spacing                = 0f;
-                cardHLG.childControlHeight     = true;
-                cardHLG.childControlWidth      = true;
-                cardHLG.childForceExpandHeight = true;
-                cardHLG.childForceExpandWidth  = false;
+        var passHdr = Lbl(strip.transform, "PASSIVE EFFECTS", 11f, C_TxtDim);
+        passHdr.fontStyle = FontStyles.Bold;
+        passHdr.gameObject.AddComponent<LayoutElement>().preferredHeight = 16f;
 
-                // Colour swatch (left strip)
-                var sw = GroupGO(card.transform, "Swatch");
-                sw.AddComponent<Image>().color = def.color;
-                sw.AddComponent<LayoutElement>().preferredWidth = 6f;
-
-                // Text col
-                var col = GroupGO(card.transform, "Col");
-                col.AddComponent<LayoutElement>().flexibleWidth = 1f;
-                var colVLG = col.AddComponent<VerticalLayoutGroup>();
-                colVLG.padding = new RectOffset(14, 14, 12, 12);
-                colVLG.childControlHeight     = true;
-                colVLG.childControlWidth      = true;
-                colVLG.childForceExpandHeight = true;
-                colVLG.childForceExpandWidth  = true;
-
-                var nm = Lbl(col.transform, def.characterName, 18f, C_TxtHi);
-                nm.fontStyle = FontStyles.Bold;
-                Lbl(col.transform,
-                    $"HP ×{def.healthMultiplier:0.0}   SPD ×{def.speedMultiplier:0.0}   DMG ×{def.damageMultiplier:0.0}",
-                    12f, C_TxtMid);
-            }
-        }
-
-        // ── Divider ───────────────────────────────────────────────────────
-        var div = GroupGO(panel.transform, "Div");
-        UIHelper.ApplyImage(div.AddComponent<Image>(), _theme?.stepBarBackground, C_Panel, Image.Type.Tiled);
-        div.AddComponent<LayoutElement>().preferredWidth = 1f;
-        
-
-        // ── Right detail (flex) ───────────────────────────────────────────
-        var right = GroupGO(panel.transform, "Right");
-        UIHelper.ApplyImage(right.AddComponent<Image>(), _theme?.panelBackground, C_Panel, Image.Type.Tiled);
-        right.AddComponent<LayoutElement>().flexibleWidth = 1f;
-
-        var rightVLG = right.AddComponent<VerticalLayoutGroup>();
-        rightVLG.padding = new RectOffset(52, 52, 36, 36);
-        rightVLG.spacing = 16f;
-        rightVLG.childControlHeight     = false;
-        rightVLG.childControlWidth      = true;
-        rightVLG.childForceExpandHeight = false;
-        rightVLG.childForceExpandWidth  = true;
-
-        // Name + colour bar row
-        var nameRow = GroupGO(right.transform, "NameRow");
-        nameRow.AddComponent<LayoutElement>().preferredHeight = 72f;
-        var nameHLG = nameRow.AddComponent<HorizontalLayoutGroup>();
-        nameHLG.spacing                = 18f;
-        nameHLG.childAlignment         = TextAnchor.MiddleLeft;
-        nameHLG.childControlHeight     = true;
-        nameHLG.childControlWidth      = false;
-        nameHLG.childForceExpandHeight = true;
-        nameHLG.childForceExpandWidth  = false;
-
-        var cb = GroupGO(nameRow.transform, "ColorBar");
-        _detailColorBar = cb.AddComponent<Image>();
-        cb.AddComponent<LayoutElement>().preferredWidth = 6f;
-
-        var nw = GroupGO(nameRow.transform, "NameWrap");
-        nw.AddComponent<LayoutElement>().flexibleWidth = 1f;
-        _detailName = Lbl(nw.transform, "", 48f, C_TxtHi);
-        _detailName.fontStyle = FontStyles.Bold;
-        StretchRT(_detailName.GetComponent<RectTransform>());
-
-        // Description
-        _detailDescription = Lbl(right.transform, "", 17f, C_TxtMid);
-        _detailDescription.enableWordWrapping = true;
-        _detailDescription.alignment = TextAlignmentOptions.TopLeft;
-        _detailDescription.gameObject.AddComponent<LayoutElement>().preferredHeight = 56f;
-
-        Sep(right.transform);
-
-        var sh = Lbl(right.transform, "STATS", 12f, C_TxtDim);
-        sh.fontStyle = FontStyles.Bold;
-        sh.gameObject.AddComponent<LayoutElement>().preferredHeight = 18f;
-
-        var sc = GroupGO(right.transform, "Stats");
-        sc.AddComponent<LayoutElement>().preferredHeight = 200f;
-        var scVLG = sc.AddComponent<VerticalLayoutGroup>();
-        scVLG.spacing = 8f;
-        scVLG.childControlHeight     = false;
-        scVLG.childControlWidth      = true;
-        scVLG.childForceExpandHeight = false;
-        scVLG.childForceExpandWidth  = true;
-        _statsContainer = sc.transform;
-
-        Sep(right.transform);
-
-        var ph = Lbl(right.transform, "PASSIVES", 12f, C_TxtDim);
-        ph.fontStyle = FontStyles.Bold;
-        ph.gameObject.AddComponent<LayoutElement>().preferredHeight = 18f;
-
-        var ps = MakeScrollView(right.transform, vertical: true);
-        ps.GetComponent<LayoutElement>().flexibleHeight = 1f;
-        _passivesContainer = ps.transform.Find("Viewport/Content");
+        var psScroll = MakeScrollView(strip.transform, vertical: true);
+        var psContent = psScroll.transform.Find("Viewport/Content");
+        DestroyImmediate(psContent.GetComponent<VerticalLayoutGroup>());
+        DestroyImmediate(psContent.GetComponent<ContentSizeFitter>());
+        var psHLG = psContent.gameObject.AddComponent<HorizontalLayoutGroup>();
+        psHLG.spacing                = 12f;
+        psHLG.childControlHeight     = true;
+        psHLG.childControlWidth      = false;
+        psHLG.childForceExpandHeight = true;
+        psHLG.childForceExpandWidth  = false;
+        psContent.gameObject.AddComponent<ContentSizeFitter>().horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
+        var psSR = psScroll.GetComponent<ScrollRect>();
+        psSR.horizontal = true;
+        psSR.vertical   = false;
+        psScroll.GetComponent<LayoutElement>().flexibleHeight = 1f;
+        _passivesContainer = psContent;
 
         return panel;
+    }
+
+    private void BuildCharacterCard(Transform parent, int i)
+    {
+        var def = characters[i];
+        var idx = i;
+
+        var card    = GroupGO(parent, $"CharCard{i}");
+        var cardImg = card.AddComponent<Image>();
+        UIHelper.ApplyImage(cardImg, _theme?.cardBackground, C_CardNorm, Image.Type.Tiled);
+        _charCardBgs[i] = cardImg;
+
+        var btn = card.AddComponent<Button>();
+        btn.targetGraphic = cardImg;
+        SetBtn(btn, Color.white, new Color(1.05f, 1.05f, 1.05f), new Color(0.92f, 0.92f, 0.92f));
+        btn.onClick.AddListener(() => SelectCharacter(idx));
+
+        var cardVLG = card.AddComponent<VerticalLayoutGroup>();
+        cardVLG.spacing                = 0f;
+        cardVLG.childControlHeight     = true;
+        cardVLG.childControlWidth      = true;
+        cardVLG.childForceExpandHeight = false;
+        cardVLG.childForceExpandWidth  = true;
+
+        // ── Portrait area (flexible, takes most height) ───────────────────
+        var portrait = GroupGO(card.transform, "Portrait");
+        portrait.AddComponent<LayoutElement>().flexibleHeight = 1f;
+        portrait.AddComponent<Image>().color =
+            new Color(def.color.r, def.color.g, def.color.b, 0.28f);
+
+        // Avatar circle — anchored, ignores layout
+        var avatar   = GroupGO(portrait.transform, "Avatar");
+        avatar.AddComponent<LayoutElement>().ignoreLayout = true;
+        var avatarRT = avatar.GetComponent<RectTransform>();
+        avatarRT.anchorMin        = new Vector2(0.5f, 0.52f);
+        avatarRT.anchorMax        = new Vector2(0.5f, 0.52f);
+        avatarRT.pivot            = new Vector2(0.5f, 0.5f);
+        avatarRT.anchoredPosition = Vector2.zero;
+        avatarRT.sizeDelta        = new Vector2(108f, 108f);
+        avatar.AddComponent<Image>().color =
+            new Color(def.color.r, def.color.g, def.color.b, 0.88f);
+
+        var initGO  = GroupGO(avatar.transform, "Initial");
+        StretchRT(initGO.GetComponent<RectTransform>());
+        var initTxt = Lbl(initGO.transform,
+            def.characterName.Length > 0 ? def.characterName.Substring(0, 1).ToUpper() : "?",
+            50f, Color.white);
+        initTxt.fontStyle = FontStyles.Bold;
+        initTxt.alignment = TextAlignmentOptions.Center;
+        StretchRT(initTxt.GetComponent<RectTransform>());
+
+        // Name bar pinned to portrait bottom — ignores layout
+        var nameBar   = GroupGO(portrait.transform, "NameBar");
+        nameBar.AddComponent<LayoutElement>().ignoreLayout = true;
+        var nameBarRT = nameBar.GetComponent<RectTransform>();
+        nameBarRT.anchorMin        = new Vector2(0f, 0f);
+        nameBarRT.anchorMax        = new Vector2(1f, 0f);
+        nameBarRT.pivot            = new Vector2(0.5f, 0f);
+        nameBarRT.anchoredPosition = Vector2.zero;
+        nameBarRT.sizeDelta        = new Vector2(0f, 46f);
+        nameBar.AddComponent<Image>().color = new Color(0f, 0f, 0f, 0.62f);
+        var nameTxt = Lbl(nameBar.transform, def.characterName.ToUpper(), 21f, Color.white);
+        nameTxt.fontStyle = FontStyles.Bold;
+        nameTxt.alignment = TextAlignmentOptions.Center;
+        StretchRT(nameTxt.GetComponent<RectTransform>());
+
+        // ── Info area (fixed height below portrait) ───────────────────────
+        var info = GroupGO(card.transform, "Info");
+        info.AddComponent<Image>().color = C_Panel;
+        info.AddComponent<LayoutElement>().preferredHeight = 230f;
+
+        var infoVLG = info.AddComponent<VerticalLayoutGroup>();
+        infoVLG.padding                = new RectOffset(16, 16, 12, 12);
+        infoVLG.spacing                = 7f;
+        infoVLG.childControlHeight     = false;
+        infoVLG.childControlWidth      = true;
+        infoVLG.childForceExpandHeight = false;
+        infoVLG.childForceExpandWidth  = true;
+
+        var desc = Lbl(info.transform, def.description ?? "", 13f, C_TxtMid);
+        desc.enableWordWrapping = true;
+        desc.gameObject.AddComponent<LayoutElement>().preferredHeight = 34f;
+
+        Sep(info.transform);
+
+        StatRowCompact(info.transform, "HP",  def.color, def.healthMultiplier);
+        StatRowCompact(info.transform, "SPD", def.color, def.speedMultiplier);
+        StatRowCompact(info.transform, "DMG", def.color, def.damageMultiplier);
+
+        var res = Lbl(info.transform,
+            $"{def.startingWood}W  ·  {def.startingMetal}M  starting",
+            12f, new Color(0.58f, 0.74f, 0.38f));
+        res.gameObject.AddComponent<LayoutElement>().preferredHeight = 18f;
+    }
+
+    private void StatRowCompact(Transform parent, string label, Color barColor, float multiplier)
+    {
+        float  fill  = Mathf.Clamp01(multiplier / 2f);
+        string delta = multiplier > 1.005f ? $"+{(multiplier-1f)*100f:0}%"
+                     : multiplier < 0.995f ? $"-{(1f-multiplier)*100f:0}%"
+                     : "base";
+        Color  dCol  = multiplier > 1.005f ? C_Green
+                     : multiplier < 0.995f ? C_Red
+                     : C_TxtDim;
+
+        var row = GroupGO(parent, label + "Row");
+        row.AddComponent<LayoutElement>().preferredHeight = 20f;
+        var hlg = row.AddComponent<HorizontalLayoutGroup>();
+        hlg.childAlignment         = TextAnchor.MiddleLeft;
+        hlg.spacing                = 8f;
+        hlg.childControlHeight     = true;
+        hlg.childControlWidth      = false;
+        hlg.childForceExpandHeight = true;
+        hlg.childForceExpandWidth  = false;
+
+        var nl = Lbl(row.transform, label, 13f, C_TxtMid);
+        nl.alignment = TextAlignmentOptions.Right;
+        nl.gameObject.AddComponent<LayoutElement>().preferredWidth = 32f;
+
+        var barBG = GroupGO(row.transform, "Bar");
+        barBG.AddComponent<Image>().color = new Color(0.10f, 0.10f, 0.14f);
+        barBG.AddComponent<LayoutElement>().flexibleWidth = 1f;
+
+        var fillGO = GroupGO(barBG.transform, "Fill");
+        fillGO.AddComponent<Image>().color = barColor;
+        var fRT    = fillGO.GetComponent<RectTransform>();
+        fRT.anchorMin = new Vector2(0f,   0.1f);
+        fRT.anchorMax = new Vector2(fill, 0.9f);
+        fRT.offsetMin = fRT.offsetMax = Vector2.zero;
+
+        var dL = Lbl(row.transform, delta, 11f, dCol);
+        dL.alignment = TextAlignmentOptions.Right;
+        dL.gameObject.AddComponent<LayoutElement>().preferredWidth = 40f;
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -941,12 +991,12 @@ public class SetupManager : MonoBehaviour
             bool has = def.passiveEffects != null && def.passiveEffects.Length > 0;
             if (has)
                 foreach (var p in def.passiveEffects)
-                    PassiveRow(_passivesContainer, p, def.color);
+                    PassivePill(_passivesContainer, p, def.color);
             else
             {
-                var none = Lbl(_passivesContainer, "No passive effects.", 16f,
+                var none = Lbl(_passivesContainer, "No passive effects.", 13f,
                                new Color(0.30f, 0.30f, 0.36f));
-                none.gameObject.AddComponent<LayoutElement>().preferredHeight = 28f;
+                none.gameObject.AddComponent<LayoutElement>().preferredWidth = 220f;
             }
         }
     }
@@ -1095,6 +1145,48 @@ public class SetupManager : MonoBehaviour
         n.fontStyle = FontStyles.Bold;
         var d = Lbl(col.transform, passive.effectDescription ?? "", 13f, C_TxtMid);
         d.enableWordWrapping = true;
+    }
+
+    private void PassivePill(Transform parent, PassiveEffect passive, Color accent)
+    {
+        if (passive == null) return;
+
+        var pill = GroupGO(parent, "Pill");
+        UIHelper.ApplyImage(pill.AddComponent<Image>(), _theme?.cardBackground,
+            new Color(0.09f, 0.09f, 0.12f), Image.Type.Tiled);
+        pill.AddComponent<LayoutElement>().preferredWidth = 260f;
+
+        var vlg = pill.AddComponent<VerticalLayoutGroup>();
+        vlg.spacing                = 0f;
+        vlg.childControlHeight     = true;
+        vlg.childControlWidth      = true;
+        vlg.childForceExpandHeight = false;
+        vlg.childForceExpandWidth  = true;
+
+        // Top accent bar
+        var bar = GroupGO(pill.transform, "AccentBar");
+        bar.AddComponent<Image>().color = accent;
+        bar.AddComponent<LayoutElement>().preferredHeight = 3f;
+
+        // Content
+        var content = GroupGO(pill.transform, "Content");
+        content.AddComponent<LayoutElement>().flexibleHeight = 1f;
+        var cVLG = content.AddComponent<VerticalLayoutGroup>();
+        cVLG.padding                = new RectOffset(10, 10, 8, 8);
+        cVLG.spacing                = 4f;
+        cVLG.childControlHeight     = false;
+        cVLG.childControlWidth      = true;
+        cVLG.childForceExpandHeight = false;
+        cVLG.childForceExpandWidth  = true;
+
+        var nameLbl = Lbl(content.transform, passive.effectName ?? "", 13f,
+            new Color(0.88f, 0.84f, 0.38f));
+        nameLbl.fontStyle = FontStyles.Bold;
+        nameLbl.gameObject.AddComponent<LayoutElement>().preferredHeight = 18f;
+
+        var descLbl = Lbl(content.transform, passive.effectDescription ?? "", 11f, C_TxtMid);
+        descLbl.enableWordWrapping = true;
+        descLbl.gameObject.AddComponent<LayoutElement>().preferredHeight = 36f;
     }
 
     // ═════════════════════════════════════════════════════════════════════════

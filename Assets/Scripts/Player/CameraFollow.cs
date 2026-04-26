@@ -9,6 +9,12 @@ public class CameraFollow : MonoBehaviour
     [SerializeField] private float smoothSpeed = 8f;
     [SerializeField] private Vector3 offset = new Vector3(0f, 0f, -10f);
 
+    private void Awake()
+    {
+        if (TryGetComponent(out Camera cam))
+            cam.backgroundColor = Color.black;
+    }
+
     private void LateUpdate()
     {
         if (target == null)

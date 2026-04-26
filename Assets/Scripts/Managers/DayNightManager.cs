@@ -362,7 +362,7 @@ public class DayNightManager : MonoBehaviour
         rrt.anchorMin         = new Vector2(1f, 1f);
         rrt.anchorMax         = new Vector2(1f, 1f);
         rrt.pivot             = new Vector2(0.5f, 1f);
-        rrt.anchoredPosition  = new Vector2(-60f, -74f);
+        rrt.anchoredPosition  = new Vector2(-130f, -74f);
         rrt.sizeDelta         = new Vector2(120f, 120f);
 
         // ── Phase image (full-bleed background) ──────────────────────────
