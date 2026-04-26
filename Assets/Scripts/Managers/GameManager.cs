@@ -421,7 +421,9 @@ public class GameManager : MonoBehaviour
         pr.anchorMax             = new Vector2(0.5f, 0.5f);
         pr.pivot                 = new Vector2(0.5f, 0.5f);
         pr.sizeDelta             = new Vector2(420f, 320f);
-        panel.AddComponent<Image>().color = new Color(0.05f, 0.08f, 0.05f, 0.96f);
+        Image gameWonImg        = panel.AddComponent<Image>();
+        UIHelper.ApplyImage(gameWonImg, _theme?.menuBackground, new Color(0.18f, 0.55f, 0.18f));
+
 
         VerticalLayoutGroup layout    = panel.AddComponent<VerticalLayoutGroup>();
         layout.padding                = new RectOffset(30, 30, 30, 30);
@@ -446,7 +448,7 @@ public class GameManager : MonoBehaviour
         btnGO.transform.SetParent(panel.transform, false);
         btnGO.AddComponent<RectTransform>();
         Image victoryMenuImg = btnGO.AddComponent<Image>();
-        UIHelper.ApplyImage(victoryMenuImg, _theme?.buttonSecondary, new Color(0.18f, 0.18f, 0.55f));
+        UIHelper.ApplyImage(victoryMenuImg, _theme?.buttonNav, new Color(0.18f, 0.18f, 0.55f));
         Button btn = btnGO.AddComponent<Button>();
         btn.targetGraphic = victoryMenuImg;
         btn.colors = UIHelper.BtnColors(_theme?.buttonSecondary,
@@ -724,7 +726,7 @@ public class GameManager : MonoBehaviour
         title.fontStyle = FontStyles.Bold;
 
         var waveLine    = MakeLabel(panel.transform, "WaveLine", $"You survived {WaveNumber} wave(s)", font, 26f);
-        waveLine.color  = new Color(0.8f, 0.8f, 0.8f);
+        waveLine.color = new Color(0f, 0f, 0f, 1f);
 
         int totalCoins  = PersistentDataManager.Instance?.TotalCurrency ?? 0;
         var coinLine    = MakeLabel(panel.transform, "CoinLine",
@@ -756,7 +758,7 @@ public class GameManager : MonoBehaviour
         menuBtnGO.transform.SetParent(panel.transform, false);
         menuBtnGO.AddComponent<RectTransform>();
         Image menuImg               = menuBtnGO.AddComponent<Image>();
-        UIHelper.ApplyImage(menuImg, _theme?.buttonSecondary, new Color(0.15f, 0.32f, 0.62f));
+        UIHelper.ApplyImage(menuImg, _theme?.buttonDanger, new Color(0.15f, 0.32f, 0.62f));
 
         Button menuBtn              = menuBtnGO.AddComponent<Button>();
         menuBtn.targetGraphic       = menuImg;

@@ -167,11 +167,22 @@ public class PlayerController : MonoBehaviour, IDamageable
         bool    clicked   = false;
         int     pointerId = -1;   // -1 = mouse
 
+        bool rightClick = false;
+
         // Mouse
-        if (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
+        if (Mouse.current != null)
         {
-            screenPos = Mouse.current.position.ReadValue();
-            clicked   = true;
+            if (Mouse.current.leftButton.wasPressedThisFrame)
+            {
+                screenPos  = Mouse.current.position.ReadValue();
+                clicked    = true;
+            }
+            else if (Mouse.current.rightButton.wasPressedThisFrame)
+            {
+                screenPos  = Mouse.current.position.ReadValue();
+                clicked    = true;
+                rightClick = true;
+            }
         }
 
         // Touch (mobile — first finger that just touched down)
@@ -200,7 +211,10 @@ public class PlayerController : MonoBehaviour, IDamageable
             if (overUI) return;
         }
 
-        ProcessWorldClick(screenPos);
+        if (rightClick)
+            ProcessRightClick(screenPos);
+        else
+            ProcessWorldClick(screenPos);
     }
 
     private void ProcessWorldClick(Vector2 screenPos)
@@ -215,7 +229,16 @@ public class PlayerController : MonoBehaviour, IDamageable
         // Check for an interactable at the tapped position
         Collider2D hit = Physics2D.OverlapCircle(worldPos, 0.4f, interactableMask);
 
-        if (hit != null && hit.TryGetComponent(out IHoldInteractable holdTarget))
+        // Select any placed building at the click position to open the upgrade panel
+        if (hit != null)
+            hit.GetComponent<PlacedBuilding>()?.Select();
+        else
+            PlacedBuilding.Deselect();
+
+        // Left-click only auto-holds non-building interactables (harvesting).
+        // Buildings require right-click to repair.
+        if (hit != null && hit.TryGetComponent(out IHoldInteractable holdTarget)
+                        && !hit.TryGetComponent<Building>(out _))
         {
             _pendingHoldTarget    = holdTarget;
             _pendingHoldTransform = hit.transform;
@@ -226,6 +249,22 @@ public class PlayerController : MonoBehaviour, IDamageable
             ClearPendingInteract();
             SetPathTo(worldPos);
         }
+    }
+
+    private void ProcessRightClick(Vector2 screenPos)
+    {
+        if (Camera.main == null) return;
+
+        Vector2    worldPos = Camera.main.ScreenToWorldPoint(screenPos);
+        Collider2D hit      = Physics2D.OverlapCircle(worldPos, 0.4f, interactableMask);
+
+        if (hit == null || !hit.TryGetComponent<Building>(out _)
+                        || !hit.TryGetComponent(out IHoldInteractable holdTarget)) return;
+
+        if (_holdTarget != null) CancelHold();
+        _pendingHoldTarget    = holdTarget;
+        _pendingHoldTransform = hit.transform;
+        SetPathTo(hit.transform.position);
     }
 
     private void SetPathTo(Vector2 worldTarget)
@@ -398,8 +437,8 @@ public class PlayerController : MonoBehaviour, IDamageable
 
         _holdBarRoot = new GameObject("HoldProgressBar");
         _holdBarRoot.transform.SetParent(transform);
-        _holdBarRoot.transform.localPosition = new Vector3(0f, -0.2f, 0f);
-        _holdBarRoot.transform.localScale    = new Vector3(0.5f, 0.05f, 1f);
+        _holdBarRoot.transform.localPosition = new Vector3(0f, -0.3f, 0f);
+        _holdBarRoot.transform.localScale    = new Vector3(1.0f, 0.14f, 1f);
 
         SpriteRenderer bg = _holdBarRoot.AddComponent<SpriteRenderer>();
         bg.sprite       = white;

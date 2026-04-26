@@ -35,17 +35,18 @@ public class PlacedBuilding : MonoBehaviour
         Level      = 0;
     }
 
-    // ── Click selection ───────────────────────────────────────────────────────
+    // ── Selection ─────────────────────────────────────────────────────────────
 
-    private void OnMouseDown()
+    public void Select()
     {
-        // Ignore clicks that land on a UI element (hotbar, panels, etc.)
-        if (UnityEngine.EventSystems.EventSystem.current != null &&
-            UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject())
-            return;
-
         Current = this;
         OnSelected?.Invoke(this);
+    }
+
+    public static void Deselect()
+    {
+        Current = null;
+        OnSelected?.Invoke(null);
     }
 
     // ── Upgrading ─────────────────────────────────────────────────────────────
@@ -57,6 +58,14 @@ public class PlacedBuilding : MonoBehaviour
     /// </summary>
     public bool TryUpgrade()
     {
+        // Citadel manages its own tier system and costs
+        if (TryGetComponent(out Citadel citadel))
+        {
+            bool ok = citadel.TryUpgrade();
+            if (ok) OnSelected?.Invoke(this);
+            return ok;
+        }
+
         if (Definition?.upgrades == null || Level >= Definition.upgrades.Length)
             return false;
 

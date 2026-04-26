@@ -181,14 +181,17 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   musicSource: {fileID: 0}
   sfxSource: {fileID: 0}
+  menuPlaylist: []
   dayPlaylist:
-  - {fileID: 8300000, guid: d275a7feb10dfbd468da012268c6dd99, type: 3}
-  - {fileID: 8300000, guid: 5486d04fda126b84196f38ab14447477, type: 3}
-  - {fileID: 8300000, guid: 0697f0144d34b374196065e9a9989689, type: 3}
-  - {fileID: 8300000, guid: a720f1e762886d7428397eccdfc9acc0, type: 3}
+  - {fileID: 8300000, guid: 0d230f80370bb1448894539db5c4603a, type: 3}
+  - {fileID: 8300000, guid: 45bbe1b26423235439d3ce2e43467e0f, type: 3}
+  - {fileID: 8300000, guid: acbd3bbf574fd364883289edb64f76ad, type: 3}
+  - {fileID: 8300000, guid: e97647bb29e3b9543b14ffb89f61ea5a, type: 3}
+  - {fileID: 8300000, guid: 03e81782932df2541978725ae80df19e, type: 3}
+  - {fileID: 8300000, guid: 303b52525e92c8c40a7cbb6939be4d3a, type: 3}
   nightPlaylist:
-  - {fileID: 8300000, guid: 10abd3bd7e5621c47859671e18bad5e1, type: 3}
-  - {fileID: 8300000, guid: 783de272d6237c340b61f353ac9d8054, type: 3}
+  - {fileID: 8300000, guid: da608988c288de84294c64bf44cf276a, type: 3}
+  - {fileID: 8300000, guid: 3763cf975bd9c7844b7cc3a053d0940e, type: 3}
   musicFadeInDuration: 2
   waveStartSfx: {fileID: 0}
   waveSurvivedSfx: {fileID: 0}
@@ -207,7 +210,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4a29e5eec54062f46a7cd8762a0afe8c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  menuMusic: {fileID: 8300000, guid: 38069de709ce6934899883756fe915e3, type: 3}
+  menuMusic: {fileID: 8300000, guid: a6676ffd21e83814ba3cb3eb468a185f, type: 3}
+  menuPlaylist: []
   _theme: {fileID: 11400000, guid: d73d985f196e4c14190280d8661a373c, type: 2}
   backgroundSprite: {fileID: -60501695457147688, guid: 0bfb1b72953e8e247b2e1cd2faf0792b, type: 3}
   overlayAlpha: 0.55

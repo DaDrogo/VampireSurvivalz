@@ -187,19 +187,22 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 25ac1a721e12f8d48bae9f7c8d0c0936, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  baseMaxHealth: 200
-  baseMoveSpeed: 2.2
+  baseMaxHealth: 500
+  baseMoveSpeed: 4.5
   attackDamage: 20
   attackInterval: 1.5
   attackRange: 1.2
   contactDamage: 15
   contactCooldown: 1
+  contactRange: 1.2
   xpThresholds:
   - 30
-  - 70
-  - 130
-  - 200
-  - 280
+  - 90
+  - 150
+  - 250
+  - 375
+  - 525
+  - 700
   xpPerAttackHit: 5
   xpPerBuildingKill: 25
   availableUpgrades:

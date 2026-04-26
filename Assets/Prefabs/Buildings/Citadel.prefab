@@ -168,11 +168,26 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   maxHealth: 500
+  repairDuration: 3
+  repairTickPercent: 0.05
+  repairBonusPercent: 0.3
+  repairSfx: {fileID: 0}
+  hitSfx: {fileID: 0}
+  destroySfx: {fileID: 0}
+  _theme: {fileID: 11400000, guid: d73d985f196e4c14190280d8661a373c, type: 2}
   tierUpgrades:
   - label: Tier 2
     woodCost: 60
     metalCost: 40
+    buildRadiusBonus: 4
+    productionMult: 1.3
   - label: Tier 3
     woodCost: 120
     metalCost: 80
+    buildRadiusBonus: 4
+    productionMult: 1.3
   buildRadius: 12
+  radiusLineWidth: 0.08
+  outputType: Both
+  amountPerCycle: 10
+  productionInterval: 15

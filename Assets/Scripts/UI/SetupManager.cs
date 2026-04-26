@@ -175,7 +175,6 @@ public class SetupManager : MonoBehaviour
         var bar    = GroupGO(parent, "StepBar");
         var barImg = bar.AddComponent<Image>();
         UIHelper.ApplyImage(barImg, _theme?.stepBarBackground, C_Surface, Image.Type.Tiled);
-        barImg.color = C_Surface;
         bar.AddComponent<LayoutElement>().preferredHeight = 44f;
 
         // Thin accent line at the very bottom of the step bar
@@ -321,8 +320,9 @@ public class SetupManager : MonoBehaviour
 
         // ── Divider ───────────────────────────────────────────────────────
         var div = GroupGO(panel.transform, "Div");
-        div.AddComponent<Image>().color = C_Div;
+        UIHelper.ApplyImage(div.AddComponent<Image>(), _theme?.stepBarBackground, C_Panel, Image.Type.Tiled);
         div.AddComponent<LayoutElement>().preferredWidth = 1f;
+        
 
         // ── Right detail (flex) ───────────────────────────────────────────
         var right = GroupGO(panel.transform, "Right");
@@ -721,7 +721,7 @@ public class SetupManager : MonoBehaviour
 
         // Divider
         var dv = GroupGO(info.transform, "Div");
-        dv.AddComponent<Image>().color = C_Div;
+        UIHelper.ApplyImage(dv.AddComponent<Image>(), _theme?.stepBarBackground, C_Panel, Image.Type.Tiled);
         dv.GetComponent<RectTransform>().sizeDelta = new Vector2(0f, 1f);
 
         var dl = Lbl(info.transform, lvl.description, 14f, new Color(0.46f, 0.46f, 0.54f));
@@ -761,7 +761,6 @@ public class SetupManager : MonoBehaviour
         var bar    = GroupGO(parent, "NavBar");
         var barImg = bar.AddComponent<Image>();
         UIHelper.ApplyImage(barImg, _theme?.stepBarBackground, C_Surface, Image.Type.Tiled);
-        barImg.color = C_Surface;
         bar.AddComponent<LayoutElement>().preferredHeight = 56f;
 
         var hlg = bar.AddComponent<HorizontalLayoutGroup>();

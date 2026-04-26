@@ -185,9 +185,18 @@ public class BuildingManager : MonoBehaviour
     {
         if (index < 0 || index >= buildings.Length) return;
         if (_isPlacing && _active == buildings[index])
-            CancelPlacement();
-        else
-            BeginPlacement(buildings[index]);
+        { CancelPlacement(); return; }
+
+        BuildingDefinition def = buildings[index];
+        if (Citadel.Instance == null && !def.isCitadel)
+        {
+            int    citadelIdx = System.Array.FindIndex(buildings, b => b != null && b.isCitadel);
+            string hint       = citadelIdx >= 0 ? $"  [Key {citadelIdx + 1}]" : "";
+            UIManager.Instance?.ShowToast($"Place the Citadel first!{hint}", new Color(1f, 0.45f, 0.15f));
+            return;
+        }
+
+        BeginPlacement(def);
     }
 
     // ── Placement flow ────────────────────────────────────────────────────────
@@ -211,6 +220,14 @@ public class BuildingManager : MonoBehaviour
     private void TryPlace()
     {
         Vector2 pos = SnappedMouseWorldPos();
+
+        if (CitadelRequiredAndMissing())
+        {
+            int    citadelIdx = System.Array.FindIndex(buildings, b => b != null && b.isCitadel);
+            string hint       = citadelIdx >= 0 ? $"  [Key {citadelIdx + 1}]" : "";
+            UIManager.Instance?.ShowToast($"Place the Citadel first!{hint}", new Color(1f, 0.45f, 0.15f));
+            return;
+        }
 
         if (!CanAfford(_active))
         {
@@ -307,7 +324,8 @@ public class BuildingManager : MonoBehaviour
     private void UpdateGhostColor()
     {
         Vector2 pos   = SnappedMouseWorldPos();
-        bool    valid = CanAfford(_active)
+        bool    valid = !CitadelRequiredAndMissing()
+                     && CanAfford(_active)
                      && IsAreaClear(pos, _active.footprint)
                      && !IsOnWall(pos)
                      && !IsTileOccupied(pos)
@@ -345,6 +363,9 @@ public class BuildingManager : MonoBehaviour
         if (Citadel.Instance == null) return true;
         return Vector2.Distance(pos, Citadel.Instance.transform.position) <= Citadel.Instance.BuildRadius;
     }
+
+    private bool CitadelRequiredAndMissing()
+        => Citadel.Instance == null && !(_active?.isCitadel ?? false);
 
     private static bool IsOnWall(Vector2 snappedPos)
     {

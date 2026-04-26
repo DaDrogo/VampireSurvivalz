@@ -99,8 +99,12 @@ public class RoomResourceSpawner : MonoBehaviour
         // Harvestables placed here would block the entrance.
         HashSet<Vector2Int> doorBlocked = BuildDoorBlockedSet();
 
+        Room enemyRoom = HouseManager.Instance.EnemyRoom;
+
         foreach (Room room in HouseManager.Instance.Rooms)
         {
+            if (room == enemyRoom) continue;
+
             // Shared occupancy set prevents both passes from placing on the same tile
             var occupied = new HashSet<Vector2Int>();
             SpawnWallRing(room, occupied, doorBlocked);

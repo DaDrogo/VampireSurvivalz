@@ -23,7 +23,7 @@ using UnityEngine.UI;
 ///   BuildingManager refuses placement outside CitadelBuildRadius.
 /// </summary>
 [RequireComponent(typeof(BoxCollider2D))]
-public class Citadel : Building, IHoldInteractable
+public class Citadel : Building
 {
     public static Citadel Instance { get; private set; }
 
@@ -43,28 +43,14 @@ public class Citadel : Building, IHoldInteractable
     [Header("Build Radius")]
     [Tooltip("Max world-space distance from the Citadel at which buildings can be placed.")]
     [SerializeField] private float buildRadius = 12f;
+    [Tooltip("Width of the radius indicator circle line in world units.")]
+    [SerializeField] private float radiusLineWidth = 0.08f;
 
-    // ── IHoldInteractable — hold to upgrade ───────────────────────────────────
-
-    public float HoldDuration => 3f;
-
-    public void OnHoldStart()
-    {
-        if (Tier >= MaxTier)
-        { ShowHint("Citadel already at maximum tier."); return; }
-        var cost = tierUpgrades[Tier - 1];
-        ShowHint($"Upgrading to {cost.label}…  ({cost.woodCost} Wood / {cost.metalCost} Metal)");
-    }
-
-    public void OnHoldTick(float progress) { }
-
-    public void OnHoldCancelled() => HideHint();
-
-    public void OnHoldCompleted()
-    {
-        HideHint();
-        TryUpgrade();
-    }
+    [Header("Production")]
+    [Tooltip("\"Wood\", \"Metal\", or \"Both\"")]
+    [SerializeField] private string outputType         = "Both";
+    [SerializeField] private int    amountPerCycle     = 3;
+    [SerializeField] private float  productionInterval = 15f;
 
     // ── Events ────────────────────────────────────────────────────────────────
 
@@ -78,7 +64,23 @@ public class Citadel : Building, IHoldInteractable
     /// <summary>Buildings may only be upgraded up to this level (0-based). Tier-1.</summary>
     public int MaxBuildingLevel => Tier - 1;
 
-    public float BuildRadius => buildRadius;
+    public float BuildRadius
+    {
+        get
+        {
+            float r = buildRadius;
+            for (int i = 0; i < Tier - 1 && i < tierUpgrades.Length; i++)
+                r += tierUpgrades[i].buildRadiusBonus;
+            return r;
+        }
+    }
+
+    public string ProductionOutput   => outputType;
+    public int    ProductionAmount   => amountPerCycle;
+    public float  ProductionInterval => productionInterval;
+
+    public CitadelTierData GetNextTierData() =>
+        Tier < MaxTier ? tierUpgrades[Tier - 1] : null;
 
     // ── Private ───────────────────────────────────────────────────────────────
 
@@ -88,6 +90,13 @@ public class Citadel : Building, IHoldInteractable
     // UI hint
     private GameObject      _hintGO;
     private TextMeshProUGUI _hintText;
+
+    // Radius indicator
+    private LineRenderer _radiusLine;
+    private const int    RADIUS_SEGMENTS = 64;
+
+    // Production
+    private float _productionTimer;
 
     // ── Unity lifecycle ───────────────────────────────────────────────────────
 
@@ -104,12 +113,45 @@ public class Citadel : Building, IHoldInteractable
     {
         BuildingManager.OnBuildingPlaced += OnNewBuildingPlaced;
         BuildHint();
+        BuildRadiusIndicator();
     }
 
     private void OnDestroy()
     {
         BuildingManager.OnBuildingPlaced -= OnNewBuildingPlaced;
         if (Instance == this) Instance = null;
+    }
+
+    private void Update()
+    {
+        if (ResourceManager.Instance == null) return;
+        _productionTimer += Time.deltaTime;
+        if (_productionTimer >= productionInterval)
+        {
+            _productionTimer -= productionInterval;
+            Produce();
+        }
+    }
+
+    private void Produce()
+    {
+        switch (outputType.ToLowerInvariant())
+        {
+            case "wood":
+                ResourceManager.Instance.AddResource("Wood", amountPerCycle);
+                FloatingTextManager.Instance?.Spawn(transform.position, amountPerCycle, FloatingTextManager.ResourceKind.Wood);
+                break;
+            case "metal":
+                ResourceManager.Instance.AddResource("Metal", amountPerCycle);
+                FloatingTextManager.Instance?.Spawn(transform.position, amountPerCycle, FloatingTextManager.ResourceKind.Metal);
+                break;
+            default: // "both"
+                ResourceManager.Instance.AddResource("Wood",  amountPerCycle);
+                ResourceManager.Instance.AddResource("Metal", amountPerCycle);
+                FloatingTextManager.Instance?.Spawn(transform.position + new Vector3(-0.2f, 0f, 0f), amountPerCycle, FloatingTextManager.ResourceKind.Wood);
+                FloatingTextManager.Instance?.Spawn(transform.position + new Vector3( 0.2f, 0f, 0f), amountPerCycle, FloatingTextManager.ResourceKind.Metal);
+                break;
+        }
     }
 
     // ── Upgrade ───────────────────────────────────────────────────────────────
@@ -122,15 +164,15 @@ public class Citadel : Building, IHoldInteractable
         ResourceManager rm = ResourceManager.Instance;
         if (rm == null) return false;
         if (rm.Wood < cost.woodCost || rm.Metal < cost.metalCost)
-        {
-            ShowHint($"Not enough resources! Need {cost.woodCost} Wood / {cost.metalCost} Metal.");
             return false;
-        }
 
         rm.AddResource("Wood",  -cost.woodCost);
         rm.AddResource("Metal", -cost.metalCost);
         Tier++;
         OnTierChanged?.Invoke(Tier);
+
+        amountPerCycle     = Mathf.Max(1, Mathf.RoundToInt(amountPerCycle * cost.productionMult));
+        productionInterval = Mathf.Max(1f, productionInterval / cost.productionMult);
 
         ApplyAuraToRoomBuildings();
         UpdateVisual();
@@ -227,6 +269,53 @@ public class Citadel : Building, IHoldInteractable
             3 => new Color(0.3f, 1f, 0.5f),
             _ => Color.white,
         };
+        UpdateRadiusIndicator();
+    }
+
+    // ── Radius indicator ──────────────────────────────────────────────────────
+
+    private void BuildRadiusIndicator()
+    {
+        var go = new GameObject("RadiusIndicator");
+        go.transform.SetParent(transform, false);
+        go.transform.localPosition = Vector3.zero;
+
+        _radiusLine                  = go.AddComponent<LineRenderer>();
+        _radiusLine.useWorldSpace    = false;
+        _radiusLine.loop             = true;
+        _radiusLine.positionCount    = RADIUS_SEGMENTS;
+        _radiusLine.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        _radiusLine.receiveShadows   = false;
+
+        // Use a plain unlit material so it works without a texture
+        _radiusLine.material         = new Material(Shader.Find("Sprites/Default"));
+        _radiusLine.sortingOrder     = 2;
+
+        UpdateRadiusIndicator();
+    }
+
+    private void UpdateRadiusIndicator()
+    {
+        if (_radiusLine == null) return;
+
+        float r = BuildRadius;
+        _radiusLine.startWidth = radiusLineWidth;
+        _radiusLine.endWidth   = radiusLineWidth;
+
+        Color c = Tier switch
+        {
+            2 => new Color(1f, 0.85f, 0.3f, 0.65f),
+            3 => new Color(0.3f, 1f, 0.5f, 0.65f),
+            _ => new Color(0.4f, 0.8f, 1f, 0.55f),
+        };
+        _radiusLine.startColor = c;
+        _radiusLine.endColor   = c;
+
+        for (int i = 0; i < RADIUS_SEGMENTS; i++)
+        {
+            float angle = i * (2f * Mathf.PI / RADIUS_SEGMENTS);
+            _radiusLine.SetPosition(i, new Vector3(Mathf.Cos(angle) * r, Mathf.Sin(angle) * r, 0f));
+        }
     }
 
     // ── World-space hint label ────────────────────────────────────────────────
@@ -271,14 +360,18 @@ public class Citadel : Building, IHoldInteractable
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = new Color(0.3f, 1f, 0.3f, 0.25f);
-        Gizmos.DrawWireSphere(transform.position, buildRadius);
+        Gizmos.DrawWireSphere(transform.position, BuildRadius);
     }
 }
 
 [Serializable]
 public class CitadelTierData
 {
-    public string label    = "Upgrade";
+    public string label            = "Upgrade";
     public int    woodCost;
     public int    metalCost;
+    [Tooltip("How much the build radius grows when this tier is reached.")]
+    public float  buildRadiusBonus  = 4f;
+    [Tooltip("Multiplier applied to production amount and interval on reaching this tier (1.3 = +30% more, 30% faster).")]
+    public float  productionMult    = 1.3f;
 }

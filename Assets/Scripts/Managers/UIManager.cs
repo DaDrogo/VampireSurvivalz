@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Text;
 using TMPro;
 using UnityEngine;
@@ -43,6 +44,7 @@ public class UIManager : MonoBehaviour
     private Image[]           _hotbarBgs;
     private TextMeshProUGUI[] _hotbarNames;
     private TextMeshProUGUI[] _hotbarCosts;
+    private Image[]           _hotbarLockOverlays;
 
     // ── Info / upgrade panel ──────────────────────────────────────────────────
 
@@ -68,6 +70,10 @@ public class UIManager : MonoBehaviour
 
     private int            _selectedHotbarIndex = -1;
     private PlacedBuilding _selectedPlaced;
+
+    private TextMeshProUGUI _toastText;
+    private CanvasGroup     _toastGroup;
+    private Coroutine       _toastCoroutine;
 
     private static readonly Color SlotNormal   = new Color(0.05f, 0.05f, 0.1f,  0.75f);
     private static readonly Color SlotSelected = new Color(0.15f, 0.50f, 1.00f, 0.85f);
@@ -105,6 +111,7 @@ public class UIManager : MonoBehaviour
         if (PersistentDataManager.Instance != null)
             PersistentDataManager.Instance.OnCurrencyChanged -= HandleCurrencyChanged;
         BuildingManager.OnSelectionChanged -= HandleHotbarSelectionChanged;
+        BuildingManager.OnBuildingPlaced   -= OnAnyBuildingPlaced;
         PlacedBuilding.OnSelected          -= HandlePlacedBuildingSelected;
 
         if (_boundVampire != null)
@@ -140,6 +147,7 @@ public class UIManager : MonoBehaviour
             HandleCurrencyChanged(PersistentDataManager.Instance.TotalCurrency);
         }
         BuildingManager.OnSelectionChanged += HandleHotbarSelectionChanged;
+        BuildingManager.OnBuildingPlaced   += OnAnyBuildingPlaced;
         PlacedBuilding.OnSelected          += HandlePlacedBuildingSelected;
     }
 
@@ -159,6 +167,7 @@ public class UIManager : MonoBehaviour
                 HandleEnemiesRemainingChanged(GameManager.Instance.EnemiesRemaining);
         }
         RefreshHotbar();
+        RefreshHotbarLocks();
         RefreshInfoPanel();
     }
 
@@ -306,20 +315,30 @@ public class UIManager : MonoBehaviour
         sb.AppendLine($"Cost: {def.woodCost}W / {def.metalCost}M");
         if (showStats && _selectedPlaced != null)
         {
-            if (_selectedPlaced.TryGetComponent(out Barricade b))
-                sb.AppendLine($"HP: {b.CurrentHealth:0} / {b.MaxHealth:0}");
-            if (_selectedPlaced.TryGetComponent(out Turret t))
+            if (_selectedPlaced.TryGetComponent(out Citadel citadel))
             {
-                sb.AppendLine($"HP:        {t.CurrentHealth:0} / {t.MaxHealth:0}");
-                sb.AppendLine($"Range:     {t.DetectionRange:0.0}");
-                sb.AppendLine($"Fire rate: {t.FireRate:0.00}/s");
+                sb.AppendLine($"HP:       {citadel.CurrentHealth:0} / {citadel.MaxHealth:0}");
+                sb.AppendLine($"Tier:     {citadel.Tier} / {citadel.MaxTier}");
+                sb.AppendLine($"Output:   {citadel.ProductionOutput}");
+                sb.AppendLine($"Amount:   {citadel.ProductionAmount} / {citadel.ProductionInterval:0.0}s");
             }
-            if (_selectedPlaced.TryGetComponent(out ResourceProducer rp))
+            else
             {
-                sb.AppendLine($"HP:       {rp.CurrentHealth:0} / {rp.MaxHealth:0}");
-                sb.AppendLine($"Output:   {rp.OutputType}");
-                sb.AppendLine($"Amount:   {rp.AmountPerCycle} / cycle");
-                sb.AppendLine($"Interval: {rp.ProductionInterval:0.0}s");
+                if (_selectedPlaced.TryGetComponent(out Barricade b))
+                    sb.AppendLine($"HP: {b.CurrentHealth:0} / {b.MaxHealth:0}");
+                if (_selectedPlaced.TryGetComponent(out Turret t))
+                {
+                    sb.AppendLine($"HP:        {t.CurrentHealth:0} / {t.MaxHealth:0}");
+                    sb.AppendLine($"Range:     {t.DetectionRange:0.0}");
+                    sb.AppendLine($"Fire rate: {t.FireRate:0.00}/s");
+                }
+                if (_selectedPlaced.TryGetComponent(out ResourceProducer rp))
+                {
+                    sb.AppendLine($"HP:       {rp.CurrentHealth:0} / {rp.MaxHealth:0}");
+                    sb.AppendLine($"Output:   {rp.OutputType}");
+                    sb.AppendLine($"Amount:   {rp.AmountPerCycle} / cycle");
+                    sb.AppendLine($"Interval: {rp.ProductionInterval:0.0}s");
+                }
             }
         }
         _infoStats?.SetText(sb.ToString());
@@ -361,33 +380,62 @@ public class UIManager : MonoBehaviour
         }
         else
         {
-            // Normal tier-upgrade section
-            int maxLevel = def.upgrades?.Length ?? 0;
-            _infoLevel?.SetText($"Level {level} / {maxLevel}");
-
-            if (_upgradeButton != null)
+            // Citadel uses its own tier system, not BuildingDefinition.upgrades
+            if (showStats && _selectedPlaced != null &&
+                _selectedPlaced.TryGetComponent(out Citadel cit))
             {
-                if (!showStats)
+                _infoLevel?.SetText($"Tier {cit.Tier} / {cit.MaxTier}");
+                if (_upgradeButton != null)
                 {
-                    _upgradeButton.gameObject.SetActive(false);
+                    CitadelTierData next = cit.GetNextTierData();
+                    if (next == null)
+                    {
+                        _upgradeButton.gameObject.SetActive(true);
+                        _upgradeButtonText?.SetText("MAX TIER");
+                        _upgradeButton.interactable = false;
+                    }
+                    else
+                    {
+                        bool canAfford = ResourceManager.Instance != null
+                            && ResourceManager.Instance.Wood  >= next.woodCost
+                            && ResourceManager.Instance.Metal >= next.metalCost;
+                        _upgradeButton.gameObject.SetActive(true);
+                        _upgradeButton.interactable = canAfford;
+                        _upgradeButtonText?.SetText(
+                            $"Upgrade  [{next.label}]\n{next.woodCost}W / {next.metalCost}M");
+                    }
                 }
-                else if (level >= maxLevel)
-                {
-                    _upgradeButton.gameObject.SetActive(true);
-                    _upgradeButtonText?.SetText("MAX LEVEL");
-                    _upgradeButton.interactable = false;
-                }
-                else
-                {
-                    BuildingUpgradeTier tier = def.upgrades[level];
-                    bool canAfford = ResourceManager.Instance != null
-                        && ResourceManager.Instance.Wood  >= tier.woodCost
-                        && ResourceManager.Instance.Metal >= tier.metalCost;
+            }
+            else
+            {
+                // Normal tier-upgrade section
+                int maxLevel = def.upgrades?.Length ?? 0;
+                _infoLevel?.SetText($"Level {level} / {maxLevel}");
 
-                    _upgradeButton.gameObject.SetActive(true);
-                    _upgradeButton.interactable = canAfford;
-                    _upgradeButtonText?.SetText(
-                        $"Upgrade  [{tier.label}]\n{tier.woodCost}W / {tier.metalCost}M");
+                if (_upgradeButton != null)
+                {
+                    if (!showStats)
+                    {
+                        _upgradeButton.gameObject.SetActive(false);
+                    }
+                    else if (level >= maxLevel)
+                    {
+                        _upgradeButton.gameObject.SetActive(true);
+                        _upgradeButtonText?.SetText("MAX LEVEL");
+                        _upgradeButton.interactable = false;
+                    }
+                    else
+                    {
+                        BuildingUpgradeTier tier = def.upgrades[level];
+                        bool canAfford = ResourceManager.Instance != null
+                            && ResourceManager.Instance.Wood  >= tier.woodCost
+                            && ResourceManager.Instance.Metal >= tier.metalCost;
+
+                        _upgradeButton.gameObject.SetActive(true);
+                        _upgradeButton.interactable = canAfford;
+                        _upgradeButtonText?.SetText(
+                            $"Upgrade  [{tier.label}]\n{tier.woodCost}W / {tier.metalCost}M");
+                    }
                 }
             }
         }
@@ -406,6 +454,85 @@ public class UIManager : MonoBehaviour
         if (choices == null || index >= choices.Length) return;
         _selectedPlaced.TryUpgradeToChoice(choices[index]);
         // TryUpgradeToChoice destroys the building → OnSelected(null) → panel closes
+    }
+
+    // ── Citadel lock ──────────────────────────────────────────────────────────
+
+    private void OnAnyBuildingPlaced(PlacedBuilding _) => RefreshHotbarLocks();
+
+    private void RefreshHotbarLocks()
+    {
+        if (_hotbarLockOverlays == null || BuildingManager.Instance == null) return;
+        bool citadelMissing = Citadel.Instance == null;
+        for (int i = 0; i < _hotbarLockOverlays.Length; i++)
+        {
+            if (_hotbarLockOverlays[i] == null) continue;
+            bool locked = citadelMissing
+                       && i < BuildingManager.Instance.BuildingCount
+                       && !BuildingManager.Instance.GetDefinition(i).isCitadel;
+            _hotbarLockOverlays[i].gameObject.SetActive(locked);
+        }
+    }
+
+    // ── Toast notification ────────────────────────────────────────────────────
+
+    public void ShowToast(string message, Color color)
+    {
+        if (_toastGroup == null) return;
+        if (_toastCoroutine != null) StopCoroutine(_toastCoroutine);
+        _toastCoroutine = StartCoroutine(ToastRoutine(message, color));
+    }
+
+    private IEnumerator ToastRoutine(string message, Color color)
+    {
+        _toastText.text   = message;
+        _toastText.color  = color;
+        _toastGroup.alpha = 1f;
+
+        float elapsed = 0f;
+        while (elapsed < 1.8f) { elapsed += Time.unscaledDeltaTime; yield return null; }
+
+        elapsed = 0f;
+        while (elapsed < 0.5f)
+        {
+            _toastGroup.alpha = 1f - elapsed / 0.5f;
+            elapsed += Time.unscaledDeltaTime;
+            yield return null;
+        }
+        _toastGroup.alpha = 0f;
+        _toastCoroutine   = null;
+    }
+
+    private void BuildToast(Transform canvas, TMP_FontAsset font)
+    {
+        GameObject toastGO  = new GameObject("Toast");
+        toastGO.transform.SetParent(canvas, false);
+
+        RectTransform rt    = toastGO.AddComponent<RectTransform>();
+        rt.anchorMin        = new Vector2(0.5f, 0.5f);
+        rt.anchorMax        = new Vector2(0.5f, 0.5f);
+        rt.pivot            = new Vector2(0.5f, 0.5f);
+        rt.anchoredPosition = new Vector2(0f, 120f);
+        rt.sizeDelta        = new Vector2(700f, 64f);
+
+        toastGO.AddComponent<Image>().color = new Color(0f, 0f, 0f, 0.80f);
+        _toastGroup       = toastGO.AddComponent<CanvasGroup>();
+        _toastGroup.alpha = 0f;
+
+        GameObject textGO    = new GameObject("ToastText");
+        textGO.transform.SetParent(toastGO.transform, false);
+        RectTransform textRT = textGO.AddComponent<RectTransform>();
+        textRT.anchorMin     = Vector2.zero;
+        textRT.anchorMax     = Vector2.one;
+        textRT.offsetMin     = new Vector2(20f, 0f);
+        textRT.offsetMax     = new Vector2(-20f, 0f);
+
+        _toastText           = textGO.AddComponent<TextMeshProUGUI>();
+        _toastText.fontSize  = 28f;
+        _toastText.alignment = TextAlignmentOptions.Center;
+        _toastText.fontStyle = FontStyles.Bold;
+        _toastText.color     = Color.white;
+        if (font != null) _toastText.font = font;
     }
 
     // ── HUD builder ───────────────────────────────────────────────────────────
@@ -436,6 +563,7 @@ public class UIManager : MonoBehaviour
         BuildHotbar(canvasGO.transform, font);
         BuildInfoPanel(canvasGO.transform, font);
         BuildBossHealthBar(canvasGO.transform, font);
+        BuildToast(canvasGO.transform, font);
     }
 
     // ── Boss health bar ───────────────────────────────────────────────────────
@@ -535,8 +663,12 @@ public class UIManager : MonoBehaviour
 
         if (_bossPanel == null) return;
 
+        bool wasVisible    = _bossPanel.activeSelf;
         bool vampireActive = _boundVampire != null && _boundVampire.gameObject.activeSelf;
         _bossPanel.SetActive(vampireActive);
+
+        if (vampireActive && !wasVisible)
+            OnVampireHealthChanged(_boundVampire.CurrentHealth, _boundVampire.MaxHealth);
 
         if (vampireActive && _bossVulnGlow != null)
         {
@@ -654,9 +786,10 @@ public class UIManager : MonoBehaviour
     private void BuildHotbar(Transform canvas, TMP_FontAsset font)
     {
         const int slots = 5;   // matches BuildingManager.Hotkeys.Length
-        _hotbarBgs   = new Image[slots];
-        _hotbarNames = new TextMeshProUGUI[slots];
-        _hotbarCosts = new TextMeshProUGUI[slots];
+        _hotbarBgs          = new Image[slots];
+        _hotbarNames        = new TextMeshProUGUI[slots];
+        _hotbarCosts        = new TextMeshProUGUI[slots];
+        _hotbarLockOverlays = new Image[slots];
 
         GameObject hotbar   = new GameObject("Hotbar");
         hotbar.transform.SetParent(canvas, false);
@@ -714,6 +847,20 @@ public class UIManager : MonoBehaviour
                                         Color.white, TextAlignmentOptions.Center);
             _hotbarCosts[i] = MakeLabel(slot.transform, "Cost", "",      font, 15f,
                                         new Color(0.8f, 0.9f, 0.55f), TextAlignmentOptions.Center);
+
+            // Dark overlay shown when this slot is locked (citadel not yet placed)
+            GameObject lockGO    = new GameObject("LockOverlay");
+            lockGO.transform.SetParent(slot.transform, false);
+            RectTransform lockRT = lockGO.AddComponent<RectTransform>();
+            lockRT.anchorMin     = Vector2.zero;
+            lockRT.anchorMax     = Vector2.one;
+            lockRT.offsetMin     = lockRT.offsetMax = Vector2.zero;
+            lockGO.AddComponent<LayoutElement>().ignoreLayout = true;
+            Image lockImg         = lockGO.AddComponent<Image>();
+            lockImg.color         = new Color(0f, 0f, 0f, 0.60f);
+            lockImg.raycastTarget = false;
+            _hotbarLockOverlays[i] = lockImg;
+            lockGO.SetActive(false);
         }
     }
 
@@ -748,12 +895,6 @@ public class UIManager : MonoBehaviour
                                      new Color(1f, 0.85f, 0.3f), TextAlignmentOptions.Center);
         SetPrefHeight(_infoBuildingName.gameObject, 32f);
 
-        // Separator
-        GameObject sep    = new GameObject("Separator");
-        sep.transform.SetParent(panel.transform, false);
-        sep.AddComponent<Image>().color = new Color(0.35f, 0.35f, 0.35f);
-        sep.AddComponent<LayoutElement>().preferredHeight = 1f;
-
         // Description
         _infoDescription = MakeLabel(panel.transform, "InfoDesc", "", font, 17f,
                                      new Color(0.72f, 0.72f, 0.72f), TextAlignmentOptions.Left);
@@ -785,11 +926,11 @@ public class UIManager : MonoBehaviour
             GameObject btnGO = new GameObject("UpgradeBtn");
             btnGO.transform.SetParent(_upgradeSection.transform, false);
             Image btnImg         = btnGO.AddComponent<Image>();
-            UIHelper.ApplyImage(btnImg, _theme?.buttonPrimary, new Color(0.12f, 0.55f, 0.12f, 1f));
+            UIHelper.ApplyImage(btnImg, _theme?.buttonNav, new Color(0.12f, 0.55f, 0.12f, 1f));
             _upgradeButton       = btnGO.AddComponent<Button>();
             _upgradeButton.targetGraphic = btnImg;
             _upgradeButton.onClick.AddListener(OnUpgradeClicked);
-            ColorBlock upgCB     = UIHelper.BtnColors(_theme?.buttonPrimary,
+            ColorBlock upgCB     = UIHelper.BtnColors(_theme?.buttonNav,
                 new Color(0.12f, 0.55f, 0.12f), new Color(0.18f, 0.75f, 0.18f), new Color(0.08f, 0.38f, 0.08f));
             upgCB.disabledColor  = new Color(0.35f, 0.35f, 0.35f);
             _upgradeButton.colors = upgCB;
@@ -832,11 +973,11 @@ public class UIManager : MonoBehaviour
                 GameObject cBtn   = new GameObject($"ChoiceBtn_{i}");
                 cBtn.transform.SetParent(_choiceSection.transform, false);
                 Image cImg        = cBtn.AddComponent<Image>();
-                UIHelper.ApplyImage(cImg, _theme?.buttonSecondary, new Color(0.12f, 0.38f, 0.55f, 1f));
+                UIHelper.ApplyImage(cImg, _theme?.buttonNav, new Color(0.12f, 0.38f, 0.55f, 1f));
                 Button btn        = cBtn.AddComponent<Button>();
                 btn.targetGraphic = cImg;
                 btn.onClick.AddListener(() => OnChoiceClicked(idx));
-                ColorBlock cb     = UIHelper.BtnColors(_theme?.buttonSecondary,
+                ColorBlock cb     = UIHelper.BtnColors(_theme?.buttonNav,
                     new Color(0.12f, 0.38f, 0.55f), new Color(0.18f, 0.52f, 0.75f), new Color(0.08f, 0.25f, 0.38f));
                 cb.disabledColor  = new Color(0.25f, 0.25f, 0.25f);
                 btn.colors        = cb;

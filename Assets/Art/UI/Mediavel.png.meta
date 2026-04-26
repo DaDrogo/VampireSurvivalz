@@ -12527,7 +12527,7 @@ TextureImporter:
         height: 24
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
-      border: {x: 0, y: 0, z: 0, w: 0}
+      border: {x: 16, y: 4, z: 5, w: 4}
       customData: 
       outline: []
       physicsShape: []
@@ -12549,7 +12549,7 @@ TextureImporter:
         height: 24
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
-      border: {x: 0, y: 0, z: 0, w: 0}
+      border: {x: 4, y: 4, z: 16, w: 4}
       customData: 
       outline: []
       physicsShape: []

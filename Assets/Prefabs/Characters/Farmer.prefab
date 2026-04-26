@@ -168,11 +168,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6f544ae972cc4454cac2904157f180c9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  moveSpeed: 5
+  moveSpeed: 4
   interactRadius: 1.5
   interactableMask:
     serializedVersion: 2
-    m_Bits: 768
+    m_Bits: 1792
   maxHealth: 100
   iFrameDuration: 0.5
   hurtSfx: {fileID: 0}
@@ -241,3 +241,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 89d2e62a906c95c478e59ea5a2064a22, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  hurtFlashColor: {r: 1, g: 0, b: 0, a: 1}
+  hurtFlashDuration: 0.15

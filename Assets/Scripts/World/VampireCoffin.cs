@@ -25,6 +25,12 @@ public class VampireCoffin : MonoBehaviour, IDamageable
     [Tooltip("VampireEnemy prefab instantiated on the first Night. Leave empty if placed in scene.")]
     [SerializeField] private GameObject vampirePrefab;
 
+    [Header("Night Respawn")]
+    [Tooltip("Seconds after being banished before the vampire tries to respawn.")]
+    [SerializeField] private float respawnDelay = 30f;
+    [Tooltip("MaxHealth multiplier applied on each mid-night respawn (0.25 = +25 % per respawn).")]
+    [SerializeField] private float respawnHealthBonus = 0.25f;
+
     // ── IDamageable / IEnemyAttackable ────────────────────────────────────────
 
     public float CurrentHealth { get; private set; }
@@ -37,9 +43,12 @@ public class VampireCoffin : MonoBehaviour, IDamageable
 
     // ── Private ───────────────────────────────────────────────────────────────
 
-    private float _passiveXpTimer    = 0f;
+    private float _passiveXpTimer      = 0f;
     private float _accumulatedPassiveXp = 0f;
-    private bool  _vampireOut = false;
+    private bool  _vampireOut           = false;
+
+    private float _respawnTimer = -1f;   // -1 = not running
+    private int   _respawnCount = 0;
 
     // ── Unity lifecycle ───────────────────────────────────────────────────────
 
@@ -66,18 +75,31 @@ public class VampireCoffin : MonoBehaviour, IDamageable
     {
         if (DayNightManager.Instance != null)
             DayNightManager.Instance.OnPhaseChanged -= OnPhaseChanged;
+        UnsubscribeVampireEvents();
     }
 
     private void Update()
     {
         // Accumulate passive XP only while the vampire is sleeping here
-        if (_vampireOut) return;
-
-        _passiveXpTimer += Time.deltaTime;
-        if (_passiveXpTimer >= passiveXpInterval)
+        if (!_vampireOut)
         {
-            _passiveXpTimer         -= passiveXpInterval;
-            _accumulatedPassiveXp   += passiveXpAmount;
+            _passiveXpTimer += Time.deltaTime;
+            if (_passiveXpTimer >= passiveXpInterval)
+            {
+                _passiveXpTimer       -= passiveXpInterval;
+                _accumulatedPassiveXp += passiveXpAmount;
+            }
+        }
+
+        // Mid-night respawn countdown
+        if (_respawnTimer > 0f)
+        {
+            _respawnTimer -= Time.deltaTime;
+            if (_respawnTimer <= 0f)
+            {
+                _respawnTimer = -1f;
+                TryNightRespawn();
+            }
         }
     }
 
@@ -101,6 +123,8 @@ public class VampireCoffin : MonoBehaviour, IDamageable
 
         if (vampire == null) return;
 
+        SubscribeVampireEvents(vampire);
+
         vampire.transform.position = transform.position;
         vampire.Activate(this);
         _vampireOut = true;
@@ -108,6 +132,9 @@ public class VampireCoffin : MonoBehaviour, IDamageable
 
     private void RecallVampire()
     {
+        _respawnTimer = -1f;
+        _respawnCount = 0;
+
         VampireEnemy vampire = VampireEnemy.Instance;
         if (vampire == null || !vampire.gameObject.activeSelf) return;
 
@@ -120,6 +147,52 @@ public class VampireCoffin : MonoBehaviour, IDamageable
 
         vampire.ReturnToCoffin();
         _vampireOut = false;
+    }
+
+    private void TryNightRespawn()
+    {
+        if (DayNightManager.Instance == null) return;
+        if (DayNightManager.Instance.CurrentPhase != DayNightManager.Phase.Night) return;
+        if (GameManager.Instance?.CurrentState == GameManager.GameState.GameOver) return;
+
+        _respawnCount++;
+
+        VampireEnemy vampire = VampireEnemy.Instance;
+        if (vampire != null)
+            vampire.ScaleMaxHealth(1f + respawnHealthBonus);
+
+        SpawnVampire();
+    }
+
+    // ── Vampire event wiring ──────────────────────────────────────────────────
+
+    private void SubscribeVampireEvents(VampireEnemy vampire)
+    {
+        vampire.OnBanished          -= OnVampireBanished;
+        vampire.OnBanished          += OnVampireBanished;
+        vampire.OnPermanentlyKilled -= OnVampirePermanentlyKilled;
+        vampire.OnPermanentlyKilled += OnVampirePermanentlyKilled;
+    }
+
+    private void UnsubscribeVampireEvents()
+    {
+        VampireEnemy vampire = VampireEnemy.Instance;
+        if (vampire == null) return;
+        vampire.OnBanished          -= OnVampireBanished;
+        vampire.OnPermanentlyKilled -= OnVampirePermanentlyKilled;
+    }
+
+    private void OnVampireBanished()
+    {
+        _vampireOut   = false;
+        _respawnTimer = respawnDelay;
+    }
+
+    private void OnVampirePermanentlyKilled()
+    {
+        _respawnTimer = -1f;
+        _respawnCount = 0;
+        _vampireOut   = false;
     }
 
     // ── Destruction ───────────────────────────────────────────────────────────

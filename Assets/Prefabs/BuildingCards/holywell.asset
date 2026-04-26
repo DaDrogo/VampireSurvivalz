@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 81f3fb6210267524f866196ac5d13f3d, type: 3}
+  m_Name: holywell
+  m_EditorClassIdentifier: 
+  displayName: HolyWell
+  description: 
+  color: {r: 1, g: 1, b: 1, a: 1}
+  woodCost: 0
+  metalCost: 0
+  buildingDef:
+    buildingName: HolyWell
+    prefab: {fileID: 7460844404687726296, guid: 38f1c7eb60e48ee4890ff8a52a9644ed, type: 3}
+    footprint: {x: 1, y: 1}
+    woodCost: 100
+    metalCost: 100
+    description: 
+    isBasic: 0
+    isCitadel: 0
+    upgrades: []
+    upgradeChoices: []
+    groundTiles: []
+  isBasic: 1
+  isCitadel: 0
+  statsSummary: 

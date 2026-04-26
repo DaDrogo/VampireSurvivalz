@@ -20,6 +20,9 @@ public class AudioManager : MonoBehaviour
     [SerializeField] private AudioSource musicSource;   // day / menu source
     [SerializeField] private AudioSource sfxSource;
 
+    [Header("Menu Playlist")]
+    [SerializeField] private AudioClip[] menuPlaylist;
+
     [Header("Game Playlists")]
     [SerializeField] private AudioClip[] dayPlaylist;
     [SerializeField] private AudioClip[] nightPlaylist;
@@ -41,8 +44,10 @@ public class AudioManager : MonoBehaviour
     private float            _masterMusicVolume = 0.8f;
 
     private bool             _gameplayMusicActive;
+    private bool             _menuPlaylistActive;
     private float            _fadeInTimer;
 
+    private ShuffledPlaylist _menuList;
     private ShuffledPlaylist _dayList;
     private ShuffledPlaylist _nightList;
 
@@ -92,6 +97,12 @@ public class AudioManager : MonoBehaviour
 
     private void Update()
     {
+        if (_menuPlaylistActive && !_gameplayMusicActive)
+        {
+            _menuList?.Tick(musicSource);
+            return;
+        }
+
         if (!_gameplayMusicActive) return;
 
         // Fade-in ramp (0 → 1 over fadeInDuration)
@@ -134,6 +145,26 @@ public class AudioManager : MonoBehaviour
 
     public void StopMusic() => musicSource.Stop();
 
+    /// <summary>
+    /// Plays a shuffled playlist on the menu source.
+    /// Pass clips to override; omit to use the Inspector-assigned menuPlaylist.
+    /// </summary>
+    public void PlayMenuPlaylist(AudioClip[] clips = null)
+    {
+        AudioClip[] list = (clips != null && clips.Length > 0) ? clips : menuPlaylist;
+        if (list == null || list.Length == 0) return;
+
+        _gameplayMusicActive = false;
+        _menuPlaylistActive  = true;
+
+        musicSource.loop   = false;
+        musicSource.Stop();
+        musicSource.volume = _masterMusicVolume;
+
+        _menuList = new ShuffledPlaylist(list);
+        _menuList.StartOn(musicSource);
+    }
+
     // ── Game playlist ─────────────────────────────────────────────────────────
 
     /// <summary>
@@ -158,6 +189,7 @@ public class AudioManager : MonoBehaviour
         _nightList.StartOn(_nightMusicSource);
 
         _fadeInTimer         = 0f;
+        _menuPlaylistActive  = false;
         _gameplayMusicActive = true;
     }
 

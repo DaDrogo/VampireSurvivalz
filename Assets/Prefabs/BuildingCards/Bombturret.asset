@@ -1,0 +1,60 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 81f3fb6210267524f866196ac5d13f3d, type: 3}
+  m_Name: Bombturret
+  m_EditorClassIdentifier: 
+  displayName: Bomber
+  description: An elevated sniper post with long reach. Targets the nearest enemy
+    and fires with deadly accuracy.
+  color: {r: 0.35, g: 0.6, b: 0.8, a: 1}
+  woodCost: 40
+  metalCost: 10
+  buildingDef:
+    buildingName: Bomber
+    prefab: {fileID: 2221100000000001, guid: df563e9a30fbf564f87a879ef968e32f, type: 3}
+    footprint: {x: 1, y: 1}
+    woodCost: 40
+    metalCost: 10
+    description: 
+    isBasic: 0
+    isCitadel: 0
+    upgrades:
+    - label: 
+      woodCost: 40
+      metalCost: 10
+      healthMult: 2
+      fireRateMult: 2
+      rangeMult: 2
+    - label: 
+      woodCost: 5
+      metalCost: 5
+      healthMult: 2
+      fireRateMult: 2
+      rangeMult: 2
+    - label: 
+      woodCost: 40
+      metalCost: 40
+      healthMult: 2
+      fireRateMult: 2
+      rangeMult: 2
+    - label: 
+      woodCost: 100
+      metalCost: 100
+      healthMult: 2
+      fireRateMult: 2
+      rangeMult: 2
+    upgradeChoices: []
+    groundTiles:
+    - {fileID: 11400000, guid: 2a2bc5156453e854ba040d2fbc77088d, type: 2}
+  isBasic: 0
+  isCitadel: 0
+  statsSummary: 

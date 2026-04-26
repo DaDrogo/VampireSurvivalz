@@ -13,7 +13,8 @@ using UnityEngine.UI;
 public class MainMenuManager : MonoBehaviour
 {
     [Header("Audio")]
-    [SerializeField] private AudioClip menuMusic;
+    [SerializeField] private AudioClip   menuMusic;
+    [SerializeField] private AudioClip[] menuPlaylist;
 
     [Header("UI Theme")]
     [SerializeField] private UITheme _theme;
@@ -61,7 +62,10 @@ public class MainMenuManager : MonoBehaviour
         EnsureEventSystem();
         BuildUI();
         ShowPanel(_homePanel);
-        AudioManager.Instance?.PlayMusic(menuMusic);
+        if (menuPlaylist != null && menuPlaylist.Length > 0)
+            AudioManager.Instance?.PlayMenuPlaylist(menuPlaylist);
+        else
+            AudioManager.Instance?.PlayMusic(menuMusic);
     }
 
     private static LexikonEntry[] CreateDefaultLexikonEntries()

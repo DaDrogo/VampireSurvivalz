@@ -24,6 +24,7 @@ public class VampireEnemy : MonoBehaviour, IDamageable
     [SerializeField] private float attackRange      = 1.2f;
     [SerializeField] private float contactDamage    = 15f;
     [SerializeField] private float contactCooldown  = 1f;
+    [SerializeField] private float contactRange     = 1.2f;
 
     [Header("XP & Levelling")]
     [Tooltip("Cumulative XP thresholds to reach each next level. Index 0 = XP to reach Lv2, etc.")]
@@ -110,13 +111,20 @@ public class VampireEnemy : MonoBehaviour, IDamageable
     private bool    _approachingDoor;
     private float   _navTimer;
 
-    private const float PATH_REFRESH = 0.5f;
-    private const float DOOR_REACH   = 0.8f;
+    private const float PATH_REFRESH        = 0.5f;
+    private const float DOOR_REACH          = 0.8f;
+    private const float STUCK_THRESHOLD     = 2.5f;
+    private const float STUCK_MIN_MOVE      = 0.20f;
+    private const float STUCK_ATTACK_RADIUS = 1.5f;
 
     // Combat
     private IEnemyAttackable _attackTarget;
     private MonoBehaviour    _attackTargetMB;
     private float            _attackTimer;
+
+    // Stuck detection
+    private Vector2 _stuckCheckPos;
+    private float   _stuckTimer;
 
     // Physics
     private readonly RaycastHit2D[] _castBuffer    = new RaycastHit2D[16];
@@ -212,8 +220,10 @@ public class VampireEnemy : MonoBehaviour, IDamageable
             }
         }
 
+        TickPlayerProximityDamage();
         if (CheckLinecastForTarget()) return;
         Navigate();
+        TickStuckDetection();
     }
 
     // ── Activation ────────────────────────────────────────────────────────────
@@ -230,15 +240,17 @@ public class VampireEnemy : MonoBehaviour, IDamageable
 
         _navTimer = 0f;
         UpdateNavigation();
+        OnHealthChanged?.Invoke(CurrentHealth, MaxHealth);
     }
 
     public void Deactivate()
     {
-        _isActive       = false;
-        _contactTimer   = 0f;
+        _isActive          = false;
+        _contactTimer      = 0f;
+        _stuckTimer        = 0f;
         _rb.linearVelocity = Vector2.zero;
-        _attackTarget   = null;
-        _attackTargetMB = null;
+        _attackTarget      = null;
+        _attackTargetMB    = null;
         gameObject.SetActive(false);
     }
 
@@ -342,6 +354,15 @@ public class VampireEnemy : MonoBehaviour, IDamageable
             _upgradePool.RemoveAt(idx);
     }
 
+    // ── Health scaling (mid-night respawn) ───────────────────────────────────
+
+    public void ScaleMaxHealth(float mult)
+    {
+        MaxHealth     *= mult;
+        CurrentHealth  = MaxHealth;
+        OnHealthChanged?.Invoke(CurrentHealth, MaxHealth);
+    }
+
     // ── Death / banish ────────────────────────────────────────────────────────
 
     private void HandleDeath()
@@ -396,12 +417,10 @@ public class VampireEnemy : MonoBehaviour, IDamageable
         if (go.CompareTag("Player"))
             return Level >= 5;
 
-        // Level 1-2: IEnemyAttackable only if it's a Barricade
-        if (Level <= 2)
-            return go.TryGetComponent<Barricade>(out _);
-
-        // Level 3+: any building (IEnemyAttackable)
-        return go.TryGetComponent<IEnemyAttackable>(out _);
+        // Any destructible building or resource is always a valid target —
+        // the vampire must be able to fight through anything blocking its path.
+        return go.TryGetComponent<IEnemyAttackable>(out _)
+            || go.TryGetComponent<HarvestableObject>(out _);
     }
 
     private void TickAttack()
@@ -432,7 +451,12 @@ public class VampireEnemy : MonoBehaviour, IDamageable
 
     private void Navigate()
     {
-        Vector2 dir = (_navTarget - _rb.position).normalized;
+        // When there's no door in the path, chase the live player position instead
+        // of the cached _navTarget (which is up to PATH_REFRESH seconds stale).
+        Vector2 target = _nextDoor == null && _player != null
+            ? (Vector2)_player.position
+            : _navTarget;
+        Vector2 dir = (target - _rb.position).normalized;
         _rb.linearVelocity = dir * _moveSpeed;
     }
 
@@ -576,15 +600,59 @@ public class VampireEnemy : MonoBehaviour, IDamageable
         GameManager.Instance?.SpawnExtraEnemies(_thrallCount);
     }
 
+    // ── Stuck detection ───────────────────────────────────────────────────────
+
+    private void TickStuckDetection()
+    {
+        if (Vector2.Distance(_rb.position, _stuckCheckPos) > STUCK_MIN_MOVE)
+        {
+            _stuckTimer    = 0f;
+            _stuckCheckPos = _rb.position;
+            return;
+        }
+
+        _stuckTimer += Time.fixedDeltaTime;
+        if (_stuckTimer < STUCK_THRESHOLD) return;
+
+        _stuckTimer    = 0f;
+        _stuckCheckPos = _rb.position;
+        TryAttackNearbyBlocker();
+    }
+
+    private bool TryAttackNearbyBlocker()
+    {
+        var filter = new ContactFilter2D();
+        filter.useTriggers = false;
+        int count = Physics2D.OverlapCircle(_rb.position, STUCK_ATTACK_RADIUS, filter, _overlapBuffer);
+
+        for (int i = 0; i < count; i++)
+        {
+            Collider2D col = _overlapBuffer[i];
+            if (col.gameObject == gameObject) continue;
+            if (col.CompareTag("Player"))      continue;
+            if (!ShouldTarget(col.gameObject)) continue;
+
+            if (!col.TryGetComponent(out IEnemyAttackable attackable)) continue;
+            if (attackable.IsDestroyed || attackable.CurrentHealth <= 0f) continue;
+
+            _attackTarget      = attackable;
+            _attackTargetMB    = attackable as MonoBehaviour;
+            _attackTimer       = 0f;
+            _rb.linearVelocity = Vector2.zero;
+            return true;
+        }
+        return false;
+    }
+
     // ── Contact damage ────────────────────────────────────────────────────────
 
-    private void OnCollisionStay2D(Collision2D col)
+    private void TickPlayerProximityDamage()
     {
-        if (!_isActive) return;
         if (_contactTimer > 0f) return;
-        if (!col.gameObject.CompareTag("Player")) return;
+        if (_player == null) return;
+        if (Vector2.Distance(_rb.position, _player.position) > contactRange) return;
 
-        if (col.gameObject.TryGetComponent(out IDamageable target))
+        if (_player.TryGetComponent(out IDamageable target))
         {
             target.TakeDamage(contactDamage);
             _contactTimer = contactCooldown;

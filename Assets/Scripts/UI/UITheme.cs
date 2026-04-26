@@ -16,11 +16,11 @@ public class UITheme : ScriptableObject
     [Tooltip("Sidebar nav buttons and generic neutral buttons.")]
     public Sprite buttonNav;
 
-    [Tooltip("Primary action: Play, Start, Confirm, Upgrade (green).")]
-    public Sprite buttonPrimary;
-
     [Tooltip("Destructive action: Quit, Reset, Delete (red).")]
     public Sprite buttonDanger;
+
+    [Tooltip("Primary action: Play, Start, Confirm, Upgrade (green).")]
+    public Sprite buttonPrimary;
 
     [Tooltip("Secondary action: Settings, Back, Menu, Choice (blue/grey).")]
     public Sprite buttonSecondary;

@@ -22,12 +22,36 @@ MonoBehaviour:
     buildingName: Citadel
     prefab: {fileID: 1823645102394756890, guid: a8ef863af87879040a02f632b036dc3b, type: 3}
     footprint: {x: 1, y: 1}
-    woodCost: 10
-    metalCost: 10
+    woodCost: 0
+    metalCost: 0
     description: 
     isBasic: 1
     isCitadel: 1
-    upgrades: []
+    upgrades:
+    - label: 2
+      woodCost: 10
+      metalCost: 10
+      healthMult: 0
+      fireRateMult: 0
+      rangeMult: 0
+    - label: 3
+      woodCost: 10
+      metalCost: 10
+      healthMult: 0
+      fireRateMult: 0
+      rangeMult: 0
+    - label: 4
+      woodCost: 10
+      metalCost: 10
+      healthMult: 0
+      fireRateMult: 0
+      rangeMult: 0
+    - label: 5
+      woodCost: 10
+      metalCost: 10
+      healthMult: 0
+      fireRateMult: 0
+      rangeMult: 0
     upgradeChoices: []
     groundTiles: []
   isBasic: 1

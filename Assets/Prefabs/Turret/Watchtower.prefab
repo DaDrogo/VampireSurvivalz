@@ -83,7 +83,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 1
   m_Sprite: {fileID: 7316229441688303391, guid: 47822dabee248f8428f1fb093fc3bbe7, type: 3}
-  m_Color: {r: 0.35, g: 0.35, b: 0.35, a: 1}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -142,6 +142,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   maxHealth: 150
+  repairDuration: 3
+  repairTickPercent: 0.05
+  repairBonusPercent: 0.3
+  repairSfx: {fileID: 0}
   hitSfx: {fileID: 0}
   destroySfx: {fileID: 0}
   detectionRange: 8

@@ -14,10 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   font: {fileID: 11400000, guid: 1c2fdcead8f8292478714c2fc1eef14e, type: 2}
   buttonNav: {fileID: 2007947246514426862, guid: d6ce1ac047ffce148a1342cb77e7a9f2, type: 3}
-  buttonPrimary: {fileID: 1427748655437642682, guid: 492d58a0d2052c5408318aca80c87bc0, type: 3}
   buttonDanger: {fileID: -5216735785913309417, guid: d6ce1ac047ffce148a1342cb77e7a9f2, type: 3}
-  buttonSecondary: {fileID: -4125517351103491291, guid: 492d58a0d2052c5408318aca80c87bc0, type: 3}
-  buttonGold: {fileID: -3160130328679482939, guid: ddd532d1c454beb428653e5c595e1708, type: 3}
+  buttonPrimary: {fileID: 1427748655437642682, guid: d6ce1ac047ffce148a1342cb77e7a9f2, type: 3}
+  buttonSecondary: {fileID: -4125517351103491291, guid: d6ce1ac047ffce148a1342cb77e7a9f2, type: 3}
+  buttonGold: {fileID: 1459801314011546352, guid: d6ce1ac047ffce148a1342cb77e7a9f2, type: 3}
   buttonSetting: {fileID: -8813406801978007011, guid: d6ce1ac047ffce148a1342cb77e7a9f2, type: 3}
   cardBackground: {fileID: -1508923039, guid: 9997c44b0a9cf5649b7c9147725c2e8d, type: 3}
   panelBackground: {fileID: 1341818515, guid: 9997c44b0a9cf5649b7c9147725c2e8d, type: 3}
@@ -30,5 +30,5 @@ MonoBehaviour:
   stepChip: {fileID: -1591133115, guid: 9997c44b0a9cf5649b7c9147725c2e8d, type: 3}
   stepDivider: {fileID: -1812961988, guid: 9997c44b0a9cf5649b7c9147725c2e8d, type: 3}
   sliderBackground: {fileID: 1514073853490403208, guid: d6ce1ac047ffce148a1342cb77e7a9f2, type: 3}
-  sliderFill: {fileID: -7904285823810203936, guid: 492d58a0d2052c5408318aca80c87bc0, type: 3}
-  sliderHandle: {fileID: -2743947241941205161, guid: 492d58a0d2052c5408318aca80c87bc0, type: 3}
+  sliderFill: {fileID: -7904285823810203936, guid: d6ce1ac047ffce148a1342cb77e7a9f2, type: 3}
+  sliderHandle: {fileID: -2743947241941205161, guid: d6ce1ac047ffce148a1342cb77e7a9f2, type: 3}
