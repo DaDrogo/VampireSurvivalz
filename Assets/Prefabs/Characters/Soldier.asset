@@ -13,15 +13,20 @@ MonoBehaviour:
   m_Name: Soldier
   m_EditorClassIdentifier: 
   characterName: Soldier
-  description: 
-  color: {r: 1, g: 1, b: 1, a: 1}
-  healthMultiplier: 1
+  description: Hold the wall until they are all dead.
+  color: {r: 0.033079147, g: 0, b: 1, a: 1}
+  healthMultiplier: 5
   speedMultiplier: 1
   damageMultiplier: 1
-  startingWood: 0
+  startingWood: 10
   startingMetal: 0
+  availableBuildings:
+  - {fileID: 11400000, guid: 8e6845e3f47fc594499a639f63a8594e, type: 2}
+  - {fileID: 11400000, guid: a067f7992d56636488361f5c3af49a1b, type: 2}
+  - {fileID: 11400000, guid: 21b49d9a38072a94f81b4cc26975e443, type: 2}
   passiveEffects: []
+  selectSound: {fileID: 0}
   animatorOverride: {fileID: 0}
-  auraType: 0
-  auraStrengthPerTier: 0.25
-  auraDescription: 
+  auraType: 1
+  auraStrengthPerTier: 2
+  auraDescription: Buffs the walls.

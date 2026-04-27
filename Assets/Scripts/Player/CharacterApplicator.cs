@@ -1,19 +1,15 @@
 using UnityEngine;
 
 /// <summary>
-/// Applies the character chosen in SetupScene to the player when they spawn.
-/// Place on any GameObject in SampleScene and assign the same CharacterDefinition[]
-/// array that SetupManager uses (in the same index order).
+/// Reads the CharacterDefinition chosen in SetupScene from PersistentDataManager
+/// and applies it to the player when they spawn. No local array needed.
 /// </summary>
-[DefaultExecutionOrder(1)]  // Awake/Start before GameManager (5) so we subscribe before StartGame fires
+[DefaultExecutionOrder(1)]
 public class CharacterApplicator : MonoBehaviour
 {
     public static CharacterApplicator Instance { get; private set; }
 
-    /// <summary>The character the player selected in setup. Set once on Start.</summary>
     public CharacterDefinition ActiveCharacter { get; private set; }
-
-    [SerializeField] private CharacterDefinition[] characters;
 
     private void Awake()
     {
@@ -31,26 +27,21 @@ public class CharacterApplicator : MonoBehaviour
     {
         if (GameManager.Instance != null)
             GameManager.Instance.OnPlayerSpawned -= Apply;
+        if (Instance == this) Instance = null;
     }
 
     private void Apply(PlayerController player)
     {
         GameManager.Instance.OnPlayerSpawned -= Apply;
 
-        var pdm = PersistentDataManager.Instance;
-        if (pdm == null || characters == null || characters.Length == 0) return;
-
-        int idx = Mathf.Clamp(pdm.SelectedCharacterIndex, 0, characters.Length - 1);
-        CharacterDefinition def = characters[idx];
+        CharacterDefinition def = PersistentDataManager.Instance?.SelectedCharacterDefinition;
+        Debug.Log($"[CharacterApplicator] Applying: {(def != null ? def.characterName : "NULL — no character selected")}");
         if (def == null) return;
 
         ActiveCharacter = def;
         player.ApplyCharacter(def);
-
         player.GetComponent<PlayerAnimationController>()?.ApplyOverride(def.animatorOverride);
 
-        // Starting resources are added after GameManager.StartGame() calls ResetResources(),
-        // so they arrive on top of the clean slate.
         ResourceManager.Instance?.AddResource("Wood",  def.startingWood);
         ResourceManager.Instance?.AddResource("Metal", def.startingMetal);
     }

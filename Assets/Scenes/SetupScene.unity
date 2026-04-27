@@ -159,6 +159,11 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 21b49d9a38072a94f81b4cc26975e443, type: 2}
   - {fileID: 11400000, guid: 8a7d71c9e0043ba48a0251ea4c762be4, type: 2}
   - {fileID: 11400000, guid: 8df3a7173f3c0da428e466dc5ea2cc2c, type: 2}
+  - {fileID: 11400000, guid: 8e6845e3f47fc594499a639f63a8594e, type: 2}
+  - {fileID: 11400000, guid: a067f7992d56636488361f5c3af49a1b, type: 2}
+  - {fileID: 11400000, guid: 99f2694d1ce4a824d84c51c0014ef294, type: 2}
+  - {fileID: 11400000, guid: e354d288fc2d78c429d3e5b964f073e2, type: 2}
+  - {fileID: 11400000, guid: f02e8e475a6afe54e9a7a2a9ca76551e, type: 2}
   maxLoadoutSize: 5
   levels:
   - {fileID: 11400000, guid: 83e8d898a28124a4d9fa2205d18d934c, type: 2}

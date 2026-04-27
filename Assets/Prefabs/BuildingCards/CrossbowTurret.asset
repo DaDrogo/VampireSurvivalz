@@ -1,0 +1,60 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 81f3fb6210267524f866196ac5d13f3d, type: 3}
+  m_Name: CrossbowTurret
+  m_EditorClassIdentifier: 
+  displayName: Crossbow
+  description: An elevated sniper post with long reach. Targets the nearest enemy
+    and fires with deadly accuracy.
+  color: {r: 1, g: 1, b: 1, a: 1}
+  woodCost: 40
+  metalCost: 10
+  buildingDef:
+    buildingName: Crossbow
+    prefab: {fileID: 1111100000000001, guid: 9f2b48e2931b95140b783df3604c2faa, type: 3}
+    footprint: {x: 1, y: 1}
+    woodCost: 40
+    metalCost: 40
+    description: 
+    isBasic: 1
+    isCitadel: 0
+    upgrades:
+    - label: 
+      woodCost: 40
+      metalCost: 10
+      healthMult: 2
+      fireRateMult: 2
+      rangeMult: 2
+    - label: 
+      woodCost: 30
+      metalCost: 30
+      healthMult: 2
+      fireRateMult: 2
+      rangeMult: 2
+    - label: 
+      woodCost: 40
+      metalCost: 40
+      healthMult: 2
+      fireRateMult: 2
+      rangeMult: 2
+    - label: 
+      woodCost: 100
+      metalCost: 100
+      healthMult: 2
+      fireRateMult: 2
+      rangeMult: 2
+    upgradeChoices: []
+    groundTiles:
+    - {fileID: 0}
+  isBasic: 0
+  isCitadel: 0
+  statsSummary: 

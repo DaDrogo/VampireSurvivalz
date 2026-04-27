@@ -13,15 +13,21 @@ MonoBehaviour:
   m_Name: Mage
   m_EditorClassIdentifier: 
   characterName: Mage
-  description: 
-  color: {r: 1, g: 1, b: 1, a: 1}
+  description: Can build cool Towers.
+  color: {r: 1, g: 0, b: 0, a: 1}
   healthMultiplier: 1
   speedMultiplier: 1
-  damageMultiplier: 1
+  damageMultiplier: 1.5
   startingWood: 0
-  startingMetal: 0
+  startingMetal: 40
+  availableBuildings:
+  - {fileID: 11400000, guid: f02e8e475a6afe54e9a7a2a9ca76551e, type: 2}
+  - {fileID: 11400000, guid: 99f2694d1ce4a824d84c51c0014ef294, type: 2}
+  - {fileID: 11400000, guid: 518ea1ab5727a244db8c51ad75b9175c, type: 2}
+  - {fileID: 11400000, guid: 21b49d9a38072a94f81b4cc26975e443, type: 2}
   passiveEffects: []
-  animatorOverride: {fileID: 0}
-  auraType: 0
+  selectSound: {fileID: 0}
+  animatorOverride: {fileID: 22100000, guid: 3102e96e01652ec45ad949562baf85a3, type: 2}
+  auraType: 2
   auraStrengthPerTier: 0.25
-  auraDescription: 
+  auraDescription: Buffs his Towers

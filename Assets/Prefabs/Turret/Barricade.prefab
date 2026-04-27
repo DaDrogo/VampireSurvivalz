@@ -80,8 +80,8 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 1
-  m_Sprite: {fileID: 123523200, guid: 45f1c10b46b370c47889d361c1f53b2a, type: 3}
-  m_Color: {r: 0.6, g: 0.4, b: 0.1, a: 1}
+  m_Sprite: {fileID: 2048515, guid: c85fda9f27d113e4db919b071b6e48f7, type: 3}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -150,11 +150,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   maxHealth: 105.7
+  repairDuration: 3
+  repairTickPercent: 0.05
+  repairBonusPercent: 0.3
+  repairSfx: {fileID: 0}
   hitSfx: {fileID: 0}
   destroySfx: {fileID: 0}
   woodCost: 5
   ghostSprite: {fileID: 0}
   builtSprite: {fileID: 0}
+  regenPercentPerSecond: 0.02
   buildSfx: {fileID: 0}
 --- !u!114 &-1029268054583457119
 MonoBehaviour:
@@ -188,5 +193,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   maxHealth: 100
+  repairDuration: 3
+  repairTickPercent: 0.05
+  repairBonusPercent: 0.3
+  repairSfx: {fileID: 0}
   hitSfx: {fileID: 0}
   destroySfx: {fileID: 0}

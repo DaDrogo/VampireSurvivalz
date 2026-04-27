@@ -148,7 +148,7 @@ MonoBehaviour:
   hitSfx: {fileID: 0}
   destroySfx: {fileID: 0}
   detectionRange: 10
-  fireRate: 0.4
+  fireRate: 0.3
   projectilePrefab: {fileID: 2220000000000000001, guid: 3647a055d0ed4fd4e9620c753db82c87, type: 3}
   firePoint: {fileID: 2221100000000012}
   head: {fileID: 2221100000000009}

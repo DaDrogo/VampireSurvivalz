@@ -167,7 +167,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   type: 2
   speed: 14
-  damage: 30
+  damage: 10
   maxLifetime: 5
   aoeRadius: 0
   chainCount: 3

@@ -13,15 +13,20 @@ MonoBehaviour:
   m_Name: Farmer
   m_EditorClassIdentifier: 
   characterName: Farmer
-  description: 
-  color: {r: 1, g: 1, b: 1, a: 1}
+  description: Is the best in farming
+  color: {r: 0.33962262, g: 0.2851942, b: 0.15539338, a: 1}
   healthMultiplier: 1
-  speedMultiplier: 1
+  speedMultiplier: 2
   damageMultiplier: 1
-  startingWood: 0
+  startingWood: 50
   startingMetal: 0
+  availableBuildings:
+  - {fileID: 11400000, guid: e354d288fc2d78c429d3e5b964f073e2, type: 2}
+  - {fileID: 11400000, guid: 518ea1ab5727a244db8c51ad75b9175c, type: 2}
+  - {fileID: 11400000, guid: 21b49d9a38072a94f81b4cc26975e443, type: 2}
   passiveEffects: []
+  selectSound: {fileID: 0}
   animatorOverride: {fileID: 0}
-  auraType: 0
-  auraStrengthPerTier: 0.25
-  auraDescription: 
+  auraType: 4
+  auraStrengthPerTier: 1
+  auraDescription: Produces more Ressources

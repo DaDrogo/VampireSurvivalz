@@ -409,10 +409,10 @@ public class PlayerController : MonoBehaviour, IDamageable
     public void ApplyCharacter(CharacterDefinition def)
     {
         if (def == null) return;
-        maxHealth         = maxHealth * def.healthMultiplier;
-        moveSpeed         = moveSpeed * def.speedMultiplier;
-        DamageMultiplier  = def.damageMultiplier;
-        CurrentHealth     = maxHealth;
+        maxHealth        = maxHealth * def.healthMultiplier;
+        moveSpeed        = moveSpeed * def.speedMultiplier;
+        DamageMultiplier = def.damageMultiplier;
+        CurrentHealth    = maxHealth;
         OnHealthChanged?.Invoke(CurrentHealth, maxHealth);
     }
 

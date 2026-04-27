@@ -36,8 +36,16 @@ public class CharacterDefinition : ScriptableObject, ILexikonSource
     public int startingWood  = 0;
     public int startingMetal = 0;
 
+    [Header("Loadout")]
+    [Tooltip("Buildings available in the loadout picker for this character. Fixed buildings (Citadel, basics) always appear regardless.")]
+    public BuildingCard[] availableBuildings;
+
     [Header("Passive Effects")]
     public PassiveEffect[] passiveEffects;
+
+    [Header("Audio")]
+    [Tooltip("Played when the player taps this character card in the setup screen.")]
+    public AudioClip selectSound;
 
     [Header("Animation")]
     [Tooltip("Override controller that swaps animation clips for this character's sprite sheet.")]

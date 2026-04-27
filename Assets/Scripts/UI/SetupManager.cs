@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -39,6 +40,11 @@ public class SetupManager : MonoBehaviour
     private CharacterDefinition _selectedChar;
     private Image[]            _charCardBgs;
     private Image[]            _charPortraitBgs;
+    private RectTransform[]    _charCardRTs;
+    private Image[]            _charTopBars;
+    private GameObject[]       _charBadges;
+    private Coroutine[]        _charScaleCoroutines;
+    private Coroutine          _passivePillsCoroutine;
     private TextMeshProUGUI    _detailName;
     private Image              _detailColorBar;
     private TextMeshProUGUI    _detailDescription;
@@ -48,7 +54,10 @@ public class SetupManager : MonoBehaviour
     // Loadout
     private List<int>          _loadout = new List<int>();
     private Image[]            _loadoutCardBgs;
+    private Image[]            _loadoutAccentBars;
+    private TextMeshProUGUI[]  _loadoutSelLabels;
     private TextMeshProUGUI    _loadoutCounter;
+    private Transform          _loadoutListContent;
 
     // Level
     private int                _levelIndex;
@@ -176,7 +185,7 @@ public class SetupManager : MonoBehaviour
         var bar    = GroupGO(parent, "StepBar");
         var barImg = bar.AddComponent<Image>();
         UIHelper.ApplyImage(barImg, _theme?.stepBarBackground, C_Surface, Image.Type.Tiled);
-        bar.AddComponent<LayoutElement>().preferredHeight = 44f;
+        bar.AddComponent<LayoutElement>().preferredHeight = 80f;
 
         // Thin accent line at the very bottom of the step bar
         // (we'll just use the bar background + a bottom border trick via child)
@@ -220,13 +229,13 @@ public class SetupManager : MonoBehaviour
             _stepChipBgs[i] = chip.AddComponent<Image>();
             UIHelper.ApplyImage(_stepChipBgs[i], _theme?.stepChip, C_StepFut, Image.Type.Tiled);
             _stepChipBgs[i].color = C_StepFut;
-            var chipNum = Lbl(chip.transform, (i + 1).ToString(), 14f, Color.white);
+            var chipNum = Lbl(chip.transform, (i + 1).ToString(), 24f, Color.white);
             chipNum.fontStyle = FontStyles.Bold;
             chipNum.alignment = TextAlignmentOptions.Center;
             StretchRT(chipNum.GetComponent<RectTransform>());
 
             // Step name  ───────────────────────────────────
-            _stepNameLabels[i] = Lbl(step.transform, names[i], 13f, C_TxtDim);
+            _stepNameLabels[i] = Lbl(step.transform, names[i], 24f, Color.white);
             _stepNameLabels[i].fontStyle = FontStyles.Bold;
             _stepNameLabels[i].alignment = TextAlignmentOptions.Left;
             _stepNameLabels[i].gameObject.AddComponent<LayoutElement>().preferredWidth = 106f;
@@ -250,12 +259,6 @@ public class SetupManager : MonoBehaviour
         vlg.childForceExpandHeight = false;
         vlg.childForceExpandWidth  = true;
 
-        // Sub-header
-        var hdr = Lbl(panel.transform, "SELECT YOUR CHARACTER", 13f, C_TxtDim);
-        hdr.fontStyle = FontStyles.Bold;
-        hdr.alignment = TextAlignmentOptions.Center;
-        hdr.gameObject.AddComponent<LayoutElement>().preferredHeight = 18f;
-
         // Cards row — one portrait card per character
         var cardsRow = GroupGO(panel.transform, "CardsRow");
         cardsRow.AddComponent<LayoutElement>().flexibleHeight = 1f;
@@ -267,7 +270,13 @@ public class SetupManager : MonoBehaviour
         cardsHLG.childForceExpandHeight = true;
         cardsHLG.childForceExpandWidth  = true;
 
-        _charCardBgs = new Image[characters?.Length ?? 0];
+        int charCount        = characters?.Length ?? 0;
+        _charCardBgs         = new Image[charCount];
+        _charPortraitBgs     = new Image[charCount];
+        _charCardRTs         = new RectTransform[charCount];
+        _charTopBars         = new Image[charCount];
+        _charBadges          = new GameObject[charCount];
+        _charScaleCoroutines = new Coroutine[charCount];
         if (characters != null)
             for (int i = 0; i < characters.Length; i++)
                 if (characters[i] != null)
@@ -286,7 +295,7 @@ public class SetupManager : MonoBehaviour
         stripVLG.childForceExpandHeight = false;
         stripVLG.childForceExpandWidth  = true;
 
-        var passHdr = Lbl(strip.transform, "PASSIVE EFFECTS", 11f, C_TxtDim);
+        var passHdr = Lbl(strip.transform, "PASSIVE EFFECTS", 24f, Color.white);
         passHdr.fontStyle = FontStyles.Bold;
         passHdr.gameObject.AddComponent<LayoutElement>().preferredHeight = 16f;
 
@@ -319,6 +328,7 @@ public class SetupManager : MonoBehaviour
         var cardImg = card.AddComponent<Image>();
         UIHelper.ApplyImage(cardImg, _theme?.cardBackground, C_CardNorm, Image.Type.Tiled);
         _charCardBgs[i] = cardImg;
+        _charCardRTs[i] = card.GetComponent<RectTransform>();
 
         var btn = card.AddComponent<Button>();
         btn.targetGraphic = cardImg;
@@ -332,11 +342,19 @@ public class SetupManager : MonoBehaviour
         cardVLG.childForceExpandHeight = false;
         cardVLG.childForceExpandWidth  = true;
 
+        // ── Top accent bar (coloured on selection) ────────────────────────
+        var topBar    = GroupGO(card.transform, "TopBar");
+        var topBarImg = topBar.AddComponent<Image>();
+        topBarImg.color = new Color(0.15f, 0.15f, 0.20f);
+        topBar.AddComponent<LayoutElement>().preferredHeight = 5f;
+        _charTopBars[i] = topBarImg;
+
         // ── Portrait area (flexible, takes most height) ───────────────────
-        var portrait = GroupGO(card.transform, "Portrait");
+        var portrait    = GroupGO(card.transform, "Portrait");
         portrait.AddComponent<LayoutElement>().flexibleHeight = 1f;
-        portrait.AddComponent<Image>().color =
-            new Color(def.color.r, def.color.g, def.color.b, 0.28f);
+        var portraitImg = portrait.AddComponent<Image>();
+        portraitImg.color = new Color(def.color.r, def.color.g, def.color.b, 0.28f);
+        _charPortraitBgs[i] = portraitImg;
 
         // Avatar circle — anchored, ignores layout
         var avatar   = GroupGO(portrait.transform, "Avatar");
@@ -369,10 +387,30 @@ public class SetupManager : MonoBehaviour
         nameBarRT.anchoredPosition = Vector2.zero;
         nameBarRT.sizeDelta        = new Vector2(0f, 46f);
         nameBar.AddComponent<Image>().color = new Color(0f, 0f, 0f, 0.62f);
-        var nameTxt = Lbl(nameBar.transform, def.characterName.ToUpper(), 21f, Color.white);
+        var nameTxt = Lbl(nameBar.transform, def.characterName.ToUpper(), 24f, Color.white);
         nameTxt.fontStyle = FontStyles.Bold;
         nameTxt.alignment = TextAlignmentOptions.Center;
         StretchRT(nameTxt.GetComponent<RectTransform>());
+
+        // ✓ Badge — top-right corner of portrait, hidden until selected
+        var badge   = GroupGO(portrait.transform, "Badge");
+        badge.AddComponent<LayoutElement>().ignoreLayout = true;
+        var badgeRT = badge.GetComponent<RectTransform>();
+        badgeRT.anchorMin        = new Vector2(1f, 1f);
+        badgeRT.anchorMax        = new Vector2(1f, 1f);
+        badgeRT.pivot            = new Vector2(1f, 1f);
+        badgeRT.anchoredPosition = new Vector2(-6f, -6f);
+        badgeRT.sizeDelta        = new Vector2(44f, 30f);
+        badge.AddComponent<Image>().color = new Color(
+            def.color.r * 0.5f + 0.05f,
+            def.color.g * 0.5f + 0.05f,
+            def.color.b * 0.5f + 0.15f, 0.93f);
+        var badgeTxt = Lbl(badge.transform, "✓", 24f, Color.white);
+        badgeTxt.fontStyle = FontStyles.Bold;
+        badgeTxt.alignment = TextAlignmentOptions.Center;
+        StretchRT(badgeTxt.GetComponent<RectTransform>());
+        badge.SetActive(false);
+        _charBadges[i] = badge;
 
         // ── Info area (fixed height below portrait) ───────────────────────
         var info = GroupGO(card.transform, "Info");
@@ -387,7 +425,7 @@ public class SetupManager : MonoBehaviour
         infoVLG.childForceExpandHeight = false;
         infoVLG.childForceExpandWidth  = true;
 
-        var desc = Lbl(info.transform, def.description ?? "", 13f, C_TxtMid);
+        var desc = Lbl(info.transform, def.description ?? "", 20f, C_TxtMid);
         desc.enableWordWrapping = true;
         desc.gameObject.AddComponent<LayoutElement>().preferredHeight = 34f;
 
@@ -399,7 +437,7 @@ public class SetupManager : MonoBehaviour
 
         var res = Lbl(info.transform,
             $"{def.startingWood}W  ·  {def.startingMetal}M  starting",
-            12f, new Color(0.58f, 0.74f, 0.38f));
+            20f, new Color(0.58f, 0.74f, 0.38f));
         res.gameObject.AddComponent<LayoutElement>().preferredHeight = 18f;
     }
 
@@ -411,7 +449,7 @@ public class SetupManager : MonoBehaviour
                      : "base";
         Color  dCol  = multiplier > 1.005f ? C_Green
                      : multiplier < 0.995f ? C_Red
-                     : C_TxtDim;
+                     : Color.white;
 
         var row = GroupGO(parent, label + "Row");
         row.AddComponent<LayoutElement>().preferredHeight = 20f;
@@ -423,7 +461,7 @@ public class SetupManager : MonoBehaviour
         hlg.childForceExpandHeight = true;
         hlg.childForceExpandWidth  = false;
 
-        var nl = Lbl(row.transform, label, 13f, C_TxtMid);
+        var nl = Lbl(row.transform, label, 20f, C_TxtMid);
         nl.alignment = TextAlignmentOptions.Right;
         nl.gameObject.AddComponent<LayoutElement>().preferredWidth = 32f;
 
@@ -438,7 +476,7 @@ public class SetupManager : MonoBehaviour
         fRT.anchorMax = new Vector2(fill, 0.9f);
         fRT.offsetMin = fRT.offsetMax = Vector2.zero;
 
-        var dL = Lbl(row.transform, delta, 11f, dCol);
+        var dL = Lbl(row.transform, delta, 20f, dCol);
         dL.alignment = TextAlignmentOptions.Right;
         dL.gameObject.AddComponent<LayoutElement>().preferredWidth = 40f;
     }
@@ -450,71 +488,88 @@ public class SetupManager : MonoBehaviour
     private GameObject BuildLoadoutStep(Transform parent)
     {
         var panel = GroupGO(parent, "LoadoutStep");
-        UIHelper.ApplyImage(panel.AddComponent<Image>(), _theme?.panelBackground, Color.clear, Image.Type.Tiled);
+        panel.AddComponent<Image>().color = C_BG;
 
         var vlg = panel.AddComponent<VerticalLayoutGroup>();
-        vlg.padding  = new RectOffset(48, 48, 28, 24);
-        vlg.spacing  = 16f;
+        vlg.padding                = new RectOffset(0, 0, 0, 0);
+        vlg.spacing                = 0f;
         vlg.childControlHeight     = true;
         vlg.childControlWidth      = true;
         vlg.childForceExpandHeight = false;
         vlg.childForceExpandWidth  = true;
 
-        // ── Header: subtitle + counter ────────────────────────────────────
-        var hdr = GroupGO(panel.transform, "Header");
-        hdr.AddComponent<LayoutElement>().preferredHeight = 32f;
+        // Scrollable card list (full height — no info strip)
+        var scroll = MakeScrollView(panel.transform, vertical: true);
+        scroll.GetComponent<LayoutElement>().flexibleHeight = 1f;
+        var cnt = scroll.transform.Find("Viewport/Content");
 
-        var hdrHLG = hdr.AddComponent<HorizontalLayoutGroup>();
-        hdrHLG.childAlignment         = TextAnchor.MiddleLeft;
-        hdrHLG.spacing                = 24f;
-        hdrHLG.childControlHeight     = true;
-        hdrHLG.childControlWidth      = false;
-        hdrHLG.childForceExpandHeight = true;
-        hdrHLG.childForceExpandWidth  = false;
+        DestroyImmediate(cnt.GetComponent<VerticalLayoutGroup>());
+        DestroyImmediate(cnt.GetComponent<ContentSizeFitter>());
+        var listVLG = cnt.gameObject.AddComponent<VerticalLayoutGroup>();
+        listVLG.spacing                = 0f;
+        listVLG.childControlHeight     = true;
+        listVLG.childControlWidth      = true;
+        listVLG.childForceExpandHeight = false;
+        listVLG.childForceExpandWidth  = true;
+        cnt.gameObject.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
-        var sub = Lbl(hdr.transform,
-            $"Citadel & basics always included  —  select up to {maxLoadoutSize} additional buildings",
-            14f, C_TxtMid);
-        sub.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1f;
-
-        _loadoutCounter = Lbl(hdr.transform, $"{_loadout.Count} / {maxLoadoutSize}", 18f, C_Blue);
-        _loadoutCounter.fontStyle = FontStyles.Bold;
-        _loadoutCounter.alignment = TextAlignmentOptions.Right;
-        _loadoutCounter.gameObject.AddComponent<LayoutElement>().preferredWidth = 72f;
-
-        // ── Grid ──────────────────────────────────────────────────────────
-        // Panel inner width = 1920 - 2×48 = 1824px
-        // 3 cols: 3W + 2×16 spacing + 2×12 padding = 3W + 56 = 1824 → W = 589px
-        var scroll  = MakeScrollView(panel.transform, vertical: true);
-        var scrollLE = scroll.GetComponent<LayoutElement>();
-        scrollLE.preferredHeight = 600f;
-        scrollLE.flexibleHeight  = 1f;
-        var gridContent = scroll.transform.Find("Viewport/Content");
-
-        DestroyImmediate(gridContent.GetComponent<VerticalLayoutGroup>());
-        DestroyImmediate(gridContent.GetComponent<ContentSizeFitter>());
-
-        var grid             = gridContent.gameObject.AddComponent<GridLayoutGroup>();
-        grid.cellSize        = new Vector2(589f, 222f);
-        grid.spacing         = new Vector2(16f, 16f);
-        grid.padding         = new RectOffset(12, 12, 12, 12);
-        grid.constraint      = GridLayoutGroup.Constraint.FixedColumnCount;
-        grid.constraintCount = 3;
-        gridContent.gameObject.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
-
-        _loadoutCardBgs = new Image[buildingCards?.Length ?? 0];
-        if (buildingCards != null)
-            for (int i = 0; i < buildingCards.Length; i++)
-                if (buildingCards[i] != null)
-                    BuildLoadoutCard(gridContent, i);
+        // Cards are built lazily in RebuildLoadoutCards() when this step is shown
+        _loadoutListContent = cnt;
 
         return panel;
     }
 
-    // ─── Loadout card ─────────────────────────────────────────────────────────
-    //  Grid cell: 589 × 222 px
-    //  Structure:  [4px top accent bar]  +  [body VLG]
-    //  Body:       name | divider | description | stats | <spacer> | footer
+    private void RebuildLoadoutCards()
+    {
+        if (_loadoutListContent == null) return;
+
+        // Clear previous cards
+        for (int i = _loadoutListContent.childCount - 1; i >= 0; i--)
+            DestroyImmediate(_loadoutListContent.GetChild(i).gameObject);
+
+        // Determine which buildings this character may pick from
+        CharacterDefinition def = characters != null && _charIndex < characters.Length
+            ? characters[_charIndex] : null;
+        HashSet<BuildingCard> allowed = null;
+        if (def?.availableBuildings != null && def.availableBuildings.Length > 0)
+            allowed = new HashSet<BuildingCard>(def.availableBuildings);
+
+        int cardCount      = buildingCards?.Length ?? 0;
+        _loadoutCardBgs    = new Image[cardCount];
+        _loadoutAccentBars = new Image[cardCount];
+        _loadoutSelLabels  = new TextMeshProUGUI[cardCount];
+
+        // Remove previously selected buildings that are no longer available
+        if (buildingCards != null && allowed != null)
+            _loadout.RemoveAll(i => i < buildingCards.Length && buildingCards[i] != null
+                                 && !buildingCards[i].isCitadel && !buildingCards[i].isBasic
+                                 && !allowed.Contains(buildingCards[i]));
+
+        // ── Section: always-equipped ──────────────────────────────────────
+        AddSectionHeader(_loadoutListContent, "ALWAYS EQUIPPED", C_Gold);
+        if (buildingCards != null)
+            for (int i = 0; i < buildingCards.Length; i++)
+                if (buildingCards[i] != null && (buildingCards[i].isCitadel || buildingCards[i].isBasic))
+                    BuildLoadoutCard(_loadoutListContent, i);
+
+        // ── Section: selectable buildings ─────────────────────────────────
+        AddSectionSeparator(_loadoutListContent);
+        Transform selHdr = AddSectionHeader(_loadoutListContent, "SELECT BUILDINGS", C_Blue);
+        _loadoutCounter = Lbl(selHdr, $"{_loadout.Count} / {maxLoadoutSize}", 14f, C_Blue);
+        _loadoutCounter.fontStyle = FontStyles.Bold;
+        _loadoutCounter.alignment = TextAlignmentOptions.Right;
+        _loadoutCounter.gameObject.AddComponent<LayoutElement>().preferredWidth = 72f;
+
+        if (buildingCards != null)
+            for (int i = 0; i < buildingCards.Length; i++)
+                if (buildingCards[i] != null && !buildingCards[i].isCitadel && !buildingCards[i].isBasic)
+                    if (allowed == null || allowed.Contains(buildingCards[i]))
+                        BuildLoadoutCard(_loadoutListContent, i);
+    }
+
+    // ─── Loadout card ──────────────────────────────────────────────────────────
+    //  Full-width list row: [6px strip | 150px icon area | content VLG]
+    //  Content: name 22pt | description 15pt | stats (optional) | footer 14pt
 
     private void BuildLoadoutCard(Transform parent, int idx)
     {
@@ -524,146 +579,168 @@ public class SetupManager : MonoBehaviour
         bool isFixed   = isCitadel || isBasic;
         bool isChosen  = _loadout.Contains(idx);
 
-        Color bgColor = isCitadel ? C_CardCit
-                      : isBasic   ? C_CardBasic
-                      : isChosen  ? C_CardSel
-                      : C_CardNorm;
-
         Color accentColor = isCitadel ? C_Gold
                           : isBasic   ? C_Green
                           : isChosen  ? C_Blue
                           : new Color(0.20f, 0.20f, 0.28f);
+        Color bgColor     = isCitadel ? C_CardCit
+                          : isBasic   ? C_CardBasic
+                          : isChosen  ? C_CardSel
+                          : C_CardNorm;
 
-        // Root — VLG
-        var go    = GroupGO(parent, $"Card{idx}");
-        var bgImg = go.AddComponent<Image>();
-        UIHelper.ApplyImage(bgImg, _theme?.cardBackground, bgColor, Image.Type.Tiled);
-        bgImg.color = bgColor;
-        _loadoutCardBgs[idx] = bgImg;
+        // ── Card row (full-width, 170px tall) ─────────────────────────────
+        var row    = GroupGO(parent, $"Card{idx}");
+        var rowImg = row.AddComponent<Image>();
+        UIHelper.ApplyImage(rowImg, _theme?.cardBackground, bgColor, Image.Type.Tiled);
+        _loadoutCardBgs[idx] = rowImg;
+        row.AddComponent<LayoutElement>().preferredHeight = 170f;
 
-        var btn = go.AddComponent<Button>();
-        btn.targetGraphic = bgImg;
         if (!isFixed)
         {
+            var btn = row.AddComponent<Button>();
+            btn.targetGraphic = rowImg;
             SetBtn(btn, Color.white, new Color(1.06f, 1.06f, 1.06f), new Color(0.90f, 0.90f, 0.90f));
-            btn.onClick.AddListener(() => ToggleLoadout(idx));
+            int ci = idx;
+            btn.onClick.AddListener(() => ToggleLoadout(ci));
         }
-        else btn.interactable = false;
 
-        var rootVLG = go.AddComponent<VerticalLayoutGroup>();
-        rootVLG.spacing                = 0f;
-        rootVLG.childControlHeight     = true;
-        rootVLG.childControlWidth      = true;
-        rootVLG.childForceExpandHeight = false;
-        rootVLG.childForceExpandWidth  = true;
+        var rowHLG = row.AddComponent<HorizontalLayoutGroup>();
+        rowHLG.spacing                = 0f;
+        rowHLG.childControlHeight     = true;
+        rowHLG.childControlWidth      = true;
+        rowHLG.childForceExpandHeight = true;
+        rowHLG.childForceExpandWidth  = false;
 
-        // ── Top accent bar (4 px) ─────────────────────────────────────────
-        var topBar = GroupGO(go.transform, "TopBar");
-        topBar.AddComponent<Image>().color = accentColor;
-        topBar.AddComponent<LayoutElement>().preferredHeight = 4f;
+        // 6px accent strip ─────────────────────────────────────────────────
+        var strip = GroupGO(row.transform, "AccentStrip");
+        strip.AddComponent<Image>().color = accentColor;
+        strip.AddComponent<LayoutElement>().preferredWidth = 6f;
+        _loadoutAccentBars[idx] = strip.GetComponent<Image>();
 
-        // ── Body ──────────────────────────────────────────────────────────
-        var body    = GroupGO(go.transform, "Body");
-        body.AddComponent<LayoutElement>().flexibleHeight = 1f;
+        // 150px icon area ──────────────────────────────────────────────────
+        var iconArea = GroupGO(row.transform, "IconArea");
+        iconArea.AddComponent<LayoutElement>().preferredWidth = 150f;
+        iconArea.AddComponent<Image>().color =
+            new Color(card.color.r * 0.10f + 0.03f,
+                      card.color.g * 0.10f + 0.03f,
+                      card.color.b * 0.12f + 0.04f);
 
-        var bodyVLG = body.AddComponent<VerticalLayoutGroup>();
-        bodyVLG.padding                = new RectOffset(20, 20, 14, 14);
-        bodyVLG.spacing                = 8f;
-        bodyVLG.childControlHeight     = true;
-        bodyVLG.childControlWidth      = true;
-        bodyVLG.childForceExpandHeight = false;
-        bodyVLG.childForceExpandWidth  = true;
+        Sprite prefabSprite = card.buildingDef?.prefab != null
+            ? card.buildingDef.prefab.GetComponentInChildren<SpriteRenderer>()?.sprite
+            : null;
 
-        // Row 1 — name + optional badge ─────────────────────────────────
-        var nameRow = GroupGO(body.transform, "NameRow");
-        nameRow.AddComponent<LayoutElement>().preferredHeight = 28f;
+        if (prefabSprite != null)
+        {
+            var iconImg = GroupGO(iconArea.transform, "Icon");
+            var iconRT  = iconImg.GetComponent<RectTransform>();
+            iconRT.anchorMin       = new Vector2(0.1f, 0.1f);
+            iconRT.anchorMax       = new Vector2(0.9f, 0.9f);
+            iconRT.offsetMin       = Vector2.zero;
+            iconRT.offsetMax       = Vector2.zero;
+            var img            = iconImg.AddComponent<Image>();
+            img.sprite         = prefabSprite;
+            img.preserveAspect = true;
+            img.color          = Color.white;
+        }
+        else
+        {
+            // Fallback: large initial letter centered in the icon area
+            var initGO  = GroupGO(iconArea.transform, "Initial");
+            StretchRT(initGO.GetComponent<RectTransform>());
+            var initTxt = Lbl(initGO.transform,
+                card.displayName.Length > 0 ? card.displayName.Substring(0, 1).ToUpper() : "?",
+                52f, new Color(card.color.r, card.color.g, card.color.b, 0.55f));
+            initTxt.fontStyle = FontStyles.Bold;
+            initTxt.alignment = TextAlignmentOptions.Center;
+            StretchRT(initTxt.GetComponent<RectTransform>());
+        }
+
+        // Content area (takes remaining width) ─────────────────────────────
+        var content = GroupGO(row.transform, "Content");
+        content.AddComponent<LayoutElement>().flexibleWidth = 1f;
+        var cVLG = content.AddComponent<VerticalLayoutGroup>();
+        cVLG.padding                = new RectOffset(18, 18, 14, 12);
+        cVLG.spacing                = 6f;
+        cVLG.childControlHeight     = true;
+        cVLG.childControlWidth      = true;
+        cVLG.childForceExpandHeight = false;
+        cVLG.childForceExpandWidth  = true;
+
+        // Name row: name + status badge ────────────────────────────────────
+        var nameRow = GroupGO(content.transform, "NameRow");
+        nameRow.AddComponent<LayoutElement>().preferredHeight = 32f;
         var nrHLG = nameRow.AddComponent<HorizontalLayoutGroup>();
         nrHLG.childAlignment         = TextAnchor.MiddleLeft;
-        nrHLG.spacing                = 10f;
+        nrHLG.spacing                = 12f;
         nrHLG.childControlHeight     = true;
-        nrHLG.childControlWidth      = false;
+        nrHLG.childControlWidth      = true;
         nrHLG.childForceExpandHeight = true;
         nrHLG.childForceExpandWidth  = false;
 
-        Color nameCol = isCitadel ? C_Gold
-                      : isBasic   ? C_Green
-                      : C_TxtHi;
-        var nameL = Lbl(nameRow.transform, card.displayName, 19f, nameCol);
+        var nameL = Lbl(nameRow.transform, card.displayName, 24f, Color.white);
         nameL.fontStyle = FontStyles.Bold;
         nameL.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1f;
 
-        if (isCitadel || isBasic)
+        if (isFixed)
         {
             string bt   = isCitadel ? "ALWAYS EQUIPPED" : "AUTO-INCLUDED";
             Color  bcol = isCitadel ? new Color(0.30f, 0.20f, 0.02f) : new Color(0.04f, 0.18f, 0.04f);
             var bp = GroupGO(nameRow.transform, "Badge");
             bp.AddComponent<Image>().color = bcol;
-            bp.AddComponent<LayoutElement>().preferredWidth = isCitadel ? 128f : 108f;
-            var bpVLG = bp.AddComponent<VerticalLayoutGroup>();
-            bpVLG.childAlignment         = TextAnchor.MiddleCenter;
-            bpVLG.childControlHeight     = true;
-            bpVLG.childControlWidth      = true;
-            bpVLG.childForceExpandHeight = true;
-            bpVLG.childForceExpandWidth  = true;
-            var bpL = Lbl(bp.transform, bt, 9f, accentColor);
-            bpL.fontStyle = FontStyles.Bold;
-            bpL.alignment = TextAlignmentOptions.Center;
+            bp.AddComponent<LayoutElement>().preferredWidth = 130f;
+            var bVLG = bp.AddComponent<VerticalLayoutGroup>();
+            bVLG.childAlignment         = TextAnchor.MiddleCenter;
+            bVLG.childControlHeight     = true;
+            bVLG.childControlWidth      = true;
+            bVLG.childForceExpandHeight = true;
+            bVLG.childForceExpandWidth  = true;
+            var bL = Lbl(bp.transform, bt, 20f, accentColor);
+            bL.fontStyle = FontStyles.Bold;
+            bL.alignment = TextAlignmentOptions.Center;
         }
 
-        // Row 2 — horizontal rule ────────────────────────────────────────
-        var rule = GroupGO(body.transform, "Rule");
-        rule.AddComponent<Image>().color = C_Div;
-        rule.AddComponent<LayoutElement>().preferredHeight = 1f;
-
-        // Row 3 — description ────────────────────────────────────────────
-        var descL = Lbl(body.transform, card.description, 13f, C_TxtMid);
+        // Description ──────────────────────────────────────────────────────
+        var descL = Lbl(content.transform, card.description, 20f, C_TxtMid);
         descL.enableWordWrapping = true;
-        descL.gameObject.AddComponent<LayoutElement>().preferredHeight = 40f;
+        descL.gameObject.AddComponent<LayoutElement>().preferredHeight = 38f;
 
-        // Row 4 — stats summary ──────────────────────────────────────────
+        // Stats line (only if filled in) ───────────────────────────────────
         if (!string.IsNullOrEmpty(card.statsSummary))
         {
-            var sl = Lbl(body.transform, card.statsSummary, 13f, C_Cyan);
-            sl.gameObject.AddComponent<LayoutElement>().preferredHeight = 20f;
-        }
-        else
-        {
-            var sp = GroupGO(body.transform, "StatsSp");
-            sp.AddComponent<LayoutElement>().preferredHeight = 20f;
+            var sl = Lbl(content.transform, card.statsSummary, 20f, C_Cyan);
+            sl.gameObject.AddComponent<LayoutElement>().preferredHeight = 22f;
         }
 
-        // Row 5 — flexible spacer ────────────────────────────────────────
-        var spacer = GroupGO(body.transform, "Spacer");
-        spacer.AddComponent<LayoutElement>().flexibleHeight = 1f;
-
-        // Row 6 — thin footer rule ───────────────────────────────────────
-        var fRule = GroupGO(body.transform, "FRule");
-        fRule.AddComponent<Image>().color = C_Div;
-        fRule.AddComponent<LayoutElement>().preferredHeight = 1f;
-
-        // Row 7 — footer: cost | status ──────────────────────────────────
-        var footer = GroupGO(body.transform, "Footer");
-        footer.AddComponent<LayoutElement>().preferredHeight = 22f;
+        // Footer: cost | status ────────────────────────────────────────────
+        var footer = GroupGO(content.transform, "Footer");
+        footer.AddComponent<LayoutElement>().preferredHeight = 26f;
         var fHLG = footer.AddComponent<HorizontalLayoutGroup>();
         fHLG.childAlignment         = TextAnchor.MiddleLeft;
         fHLG.childControlHeight     = true;
-        fHLG.childControlWidth      = false;
+        fHLG.childControlWidth      = true;
         fHLG.childForceExpandHeight = true;
         fHLG.childForceExpandWidth  = false;
 
-        var costL = Lbl(footer.transform, $"{card.woodCost}W  ·  {card.metalCost}M",
-                        13f, new Color(0.58f, 0.82f, 0.36f));
+        var costL = Lbl(footer.transform, $"{card.woodCost}W  ·  {card.metalCost}M", 20f,
+            new Color(0.58f, 0.82f, 0.36f));
         costL.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1f;
 
-        string statusTxt   = isCitadel || isBasic ? "" : isChosen ? "✓  SELECTED" : "+ ADD";
-        Color  statusColor = isChosen
-            ? new Color(0.38f, 0.90f, 0.48f)
-            : new Color(0.30f, 0.30f, 0.40f);
-        var sel = Lbl(footer.transform, statusTxt, 12f, statusColor);
-        sel.fontStyle = isChosen ? FontStyles.Bold : FontStyles.Normal;
-        sel.alignment = TextAlignmentOptions.Right;
-        sel.gameObject.AddComponent<LayoutElement>().preferredWidth = 90f;
-        sel.name = "SelLabel";
+        string statusTxt = isFixed   ? "ALWAYS EQUIPPED"
+                         : isChosen  ? "✓  SELECTED"
+                         : "+ ADD";
+        Color statusCol  = isFixed   ? new Color(accentColor.r, accentColor.g, accentColor.b, 0.70f)
+                         : isChosen  ? new Color(0.38f, 0.90f, 0.48f)
+                         : new Color(0.30f, 0.30f, 0.40f);
+        var selL = Lbl(footer.transform, statusTxt, 20f, statusCol);
+        selL.fontStyle = (isFixed || isChosen) ? FontStyles.Bold : FontStyles.Normal;
+        selL.alignment = TextAlignmentOptions.Right;
+        selL.gameObject.AddComponent<LayoutElement>().preferredWidth = 140f;
+        if (!isFixed) _loadoutSelLabels[idx] = selL;
+
+        // 1px divider below card ───────────────────────────────────────────
+        var div = GroupGO(parent, $"Div{idx}");
+        div.AddComponent<Image>().color = C_Div;
+        div.AddComponent<LayoutElement>().preferredHeight = 1f;
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -774,13 +851,13 @@ public class SetupManager : MonoBehaviour
         UIHelper.ApplyImage(dv.AddComponent<Image>(), _theme?.stepBarBackground, C_Panel, Image.Type.Tiled);
         dv.GetComponent<RectTransform>().sizeDelta = new Vector2(0f, 1f);
 
-        var dl = Lbl(info.transform, lvl.description, 14f, new Color(0.46f, 0.46f, 0.54f));
+        var dl = Lbl(info.transform, lvl.description, 22f, new Color(0.46f, 0.46f, 0.54f));
         dl.enableWordWrapping = true;
         dl.GetComponent<RectTransform>().sizeDelta = new Vector2(0f, 110f);
 
         if (!unlocked)
         {
-            var req = Lbl(info.transform, $"Reach wave {lvl.unlockAtBestWave} to unlock", 13f,
+            var req = Lbl(info.transform, $"Reach wave {lvl.unlockAtBestWave} to unlock", 22f,
                           new Color(0.76f, 0.62f, 0.14f));
             req.enableWordWrapping = true;
             req.GetComponent<RectTransform>().sizeDelta = new Vector2(0f, 36f);
@@ -796,7 +873,7 @@ public class SetupManager : MonoBehaviour
             selVLG.childControlWidth   = true;
             selVLG.childForceExpandHeight = true;
             selVLG.childForceExpandWidth  = true;
-            var sl = Lbl(selRow.transform, "● SELECTED", 13f, C_Blue);
+            var sl = Lbl(selRow.transform, "● SELECTED", 22f, C_Blue);
             sl.fontStyle = FontStyles.Bold;
             sl.alignment = TextAlignmentOptions.Center;
         }
@@ -811,7 +888,7 @@ public class SetupManager : MonoBehaviour
         var bar    = GroupGO(parent, "NavBar");
         var barImg = bar.AddComponent<Image>();
         UIHelper.ApplyImage(barImg, _theme?.stepBarBackground, C_Surface, Image.Type.Tiled);
-        bar.AddComponent<LayoutElement>().preferredHeight = 56f;
+        bar.AddComponent<LayoutElement>().preferredHeight = 80f;
 
         var hlg = bar.AddComponent<HorizontalLayoutGroup>();
         hlg.padding                = new RectOffset(48, 48, 12, 12);
@@ -823,7 +900,7 @@ public class SetupManager : MonoBehaviour
 
         // Back button
         var backGO = GroupGO(bar.transform, "BackBtn");
-        backGO.AddComponent<LayoutElement>().preferredWidth = 240f;
+        backGO.AddComponent<LayoutElement>().preferredWidth = 200f;
         var backImg = backGO.AddComponent<Image>();
         UIHelper.ApplyImage(backImg, _theme?.buttonSecondary, Color.clear);
         _backBtn = backGO.AddComponent<Button>();
@@ -831,7 +908,7 @@ public class SetupManager : MonoBehaviour
         _backBtn.colors = UIHelper.BtnColors(_theme?.buttonSecondary,
             Color.white, new Color(1.08f, 1.08f, 1.08f), new Color(0.88f, 0.88f, 0.88f));
         _backBtn.onClick.AddListener(OnBack);
-        _backLabel = Lbl(backGO.transform, "BACK", 16f, C_TxtMid);
+        _backLabel = Lbl(backGO.transform, "BACK", 20f, C_TxtMid);
         _backLabel.alignment = TextAlignmentOptions.Center;
         StretchRT(_backLabel.GetComponent<RectTransform>());
 
@@ -841,14 +918,14 @@ public class SetupManager : MonoBehaviour
 
         // Next — primary action
         var nextGO = GroupGO(bar.transform, "NextBtn");
-        nextGO.AddComponent<LayoutElement>().preferredWidth = 240f;
+        nextGO.AddComponent<LayoutElement>().preferredWidth = 200f;
         var nextImg = nextGO.AddComponent<Image>();
         UIHelper.ApplyImage(nextImg, _theme?.buttonPrimary, new Color(0.12f, 0.46f, 0.12f));
         _nextBtn = nextGO.AddComponent<Button>();
         _nextBtn.targetGraphic = nextImg;
         SetBtn(_nextBtn, Color.white, new Color(1.10f, 1.10f, 1.10f), new Color(0.84f, 0.84f, 0.84f));
         _nextBtn.onClick.AddListener(OnNext);
-        _nextLabel = Lbl(nextGO.transform, "NEXT", 16f, Color.white);
+        _nextLabel = Lbl(nextGO.transform, "NEXT", 20f, Color.white);
         _nextLabel.fontStyle = FontStyles.Bold;
         _nextLabel.alignment = TextAlignmentOptions.Center;
         StretchRT(_nextLabel.GetComponent<RectTransform>());
@@ -871,7 +948,7 @@ public class SetupManager : MonoBehaviour
             _stepChipBgs[i].color    = active ? C_StepAct : done ? C_StepDone : C_StepFut;
             _stepNameLabels[i].color = active ? C_TxtHi
                                      : done   ? new Color(0.46f, 0.66f, 0.90f)
-                                              : C_TxtDim;
+                                              : Color.white;
         }
 
         _backLabel.text = _step == 0 ? "MENU" : "BACK";
@@ -884,6 +961,8 @@ public class SetupManager : MonoBehaviour
 
         if (_step == 0 && characters != null && characters.Length > 0)
             SelectCharacter(_charIndex, save: false);
+
+        if (_step == 1) RebuildLoadoutCards();
     }
 
     private void OnBack()
@@ -899,6 +978,9 @@ public class SetupManager : MonoBehaviour
 
     private void StartGame()
     {
+        PersistentDataManager.Instance?.SetSelectedCharacterDefinition(
+            characters != null && _charIndex < characters.Length ? characters[_charIndex] : null);
+
         PersistentDataManager.Instance?.SetBuildingLoadout(_loadout.ToArray());
 
         if (PersistentDataManager.Instance != null && buildingCards != null)
@@ -948,10 +1030,38 @@ public class SetupManager : MonoBehaviour
         _charIndex    = idx;
         _selectedChar = characters[idx];
 
-        if (_charCardBgs != null)
-            for (int i = 0; i < _charCardBgs.Length; i++)
-                if (_charCardBgs[i] != null)
-                    _charCardBgs[i].color = i == idx ? C_CardSel : C_CardNorm;
+        // Character-specific select sound
+        if (_selectedChar?.selectSound != null)
+            AudioManager.Instance?.PlaySFX(_selectedChar.selectSound);
+
+        for (int i = 0; i < (_charCardBgs?.Length ?? 0); i++)
+        {
+            bool sel = i == idx;
+            var  def = characters[i];
+
+            // Card background — dark character-tinted on selection
+            if (_charCardBgs[i] != null)
+                _charCardBgs[i].color = sel
+                    ? new Color(def.color.r * 0.18f + 0.04f,
+                                def.color.g * 0.18f + 0.04f,
+                                def.color.b * 0.22f + 0.06f)
+                    : C_CardNorm;
+
+            // Top accent bar — character colour when selected
+            if (_charTopBars != null && i < _charTopBars.Length && _charTopBars[i] != null)
+                _charTopBars[i].color = sel ? def.color : new Color(0.15f, 0.15f, 0.20f);
+
+            // ✓ Badge
+            if (_charBadges != null && i < _charBadges.Length && _charBadges[i] != null)
+                _charBadges[i].SetActive(sel);
+
+            // Scale punch animation
+            if (_charCardRTs != null && i < _charCardRTs.Length && _charCardRTs[i] != null)
+            {
+                if (_charScaleCoroutines[i] != null) StopCoroutine(_charScaleCoroutines[i]);
+                _charScaleCoroutines[i] = StartCoroutine(AnimateScale(_charCardRTs[i], sel ? 1.05f : 0.97f, 0.14f));
+            }
+        }
 
         RefreshDetail();
         if (save) PersistentDataManager.Instance?.SelectCharacter(idx);
@@ -979,7 +1089,7 @@ public class SetupManager : MonoBehaviour
             res.AddComponent<LayoutElement>().preferredHeight = 26f;
             var resLbl = Lbl(res.transform,
                 $"Starting:   {def.startingWood} Wood   |   {def.startingMetal} Metal",
-                15f, new Color(0.58f, 0.74f, 0.38f));
+                22f, new Color(0.58f, 0.74f, 0.38f));
             StretchRT(resLbl.GetComponent<RectTransform>());
         }
 
@@ -988,16 +1098,8 @@ public class SetupManager : MonoBehaviour
             for (int i = _passivesContainer.childCount - 1; i >= 0; i--)
                 DestroyImmediate(_passivesContainer.GetChild(i).gameObject);
 
-            bool has = def.passiveEffects != null && def.passiveEffects.Length > 0;
-            if (has)
-                foreach (var p in def.passiveEffects)
-                    PassivePill(_passivesContainer, p, def.color);
-            else
-            {
-                var none = Lbl(_passivesContainer, "No passive effects.", 13f,
-                               new Color(0.30f, 0.30f, 0.36f));
-                none.gameObject.AddComponent<LayoutElement>().preferredWidth = 220f;
-            }
+            if (_passivePillsCoroutine != null) StopCoroutine(_passivePillsCoroutine);
+            _passivePillsCoroutine = StartCoroutine(AnimatePassivePills(def));
         }
     }
 
@@ -1019,29 +1121,22 @@ public class SetupManager : MonoBehaviour
         bool nowIn = _loadout.Contains(idx);
 
         if (_loadoutCardBgs != null && idx < _loadoutCardBgs.Length && _loadoutCardBgs[idx] != null)
-        {
-            var cardT = _loadoutCardBgs[idx].transform;
-
             _loadoutCardBgs[idx].color = nowIn ? C_CardSel : C_CardNorm;
 
-            var topBar = cardT.Find("TopBar")?.GetComponent<Image>();
-            if (topBar != null)
-                topBar.color = nowIn ? C_Blue : new Color(0.20f, 0.20f, 0.28f);
+        if (_loadoutAccentBars != null && idx < _loadoutAccentBars.Length && _loadoutAccentBars[idx] != null)
+            _loadoutAccentBars[idx].color = nowIn ? C_Blue : new Color(0.20f, 0.20f, 0.28f);
 
-            var sel = cardT.Find("Body/Footer/SelLabel")?.GetComponent<TextMeshProUGUI>();
-            if (sel != null)
-            {
-                sel.text      = nowIn ? "✓  SELECTED" : "+ ADD";
-                sel.color     = nowIn ? new Color(0.38f, 0.90f, 0.48f) : new Color(0.30f, 0.30f, 0.40f);
-                sel.fontStyle = nowIn ? FontStyles.Bold : FontStyles.Normal;
-            }
+        if (_loadoutSelLabels != null && idx < _loadoutSelLabels.Length && _loadoutSelLabels[idx] != null)
+        {
+            _loadoutSelLabels[idx].text      = nowIn ? "✓  SELECTED" : "+ ADD";
+            _loadoutSelLabels[idx].color     = nowIn ? new Color(0.38f, 0.90f, 0.48f) : new Color(0.30f, 0.30f, 0.40f);
+            _loadoutSelLabels[idx].fontStyle = nowIn ? FontStyles.Bold : FontStyles.Normal;
         }
 
         if (_loadoutCounter != null)
         {
             _loadoutCounter.text  = $"{_loadout.Count} / {maxLoadoutSize}";
-            _loadoutCounter.color = _loadout.Count >= maxLoadoutSize
-                ? C_Green : C_Blue;
+            _loadoutCounter.color = _loadout.Count >= maxLoadoutSize ? C_Green : C_Blue;
         }
     }
 
@@ -1088,7 +1183,7 @@ public class SetupManager : MonoBehaviour
         hlg.childForceExpandHeight = true;
         hlg.childForceExpandWidth  = false;
 
-        var nl = Lbl(row.transform, statName, 17f, C_TxtMid);
+        var nl = Lbl(row.transform, statName, 22f, C_TxtMid);
         nl.alignment = TextAlignmentOptions.Right;
         nl.gameObject.AddComponent<LayoutElement>().preferredWidth = 80f;
 
@@ -1104,9 +1199,9 @@ public class SetupManager : MonoBehaviour
         fRT.offsetMin = Vector2.zero;
         fRT.offsetMax = Vector2.zero;
 
-        Lbl(row.transform, $"×{multiplier:0.0}", 17f, C_TxtHi)
+        Lbl(row.transform, $"×{multiplier:0.0}", 22f, C_TxtHi)
             .gameObject.AddComponent<LayoutElement>().preferredWidth = 44f;
-        Lbl(row.transform, delta, 13f, dCol)
+        Lbl(row.transform, delta, 22f, dCol)
             .gameObject.AddComponent<LayoutElement>().preferredWidth = 52f;
     }
 
@@ -1141,9 +1236,9 @@ public class SetupManager : MonoBehaviour
         colVLG.childForceExpandHeight = true;
         colVLG.childForceExpandWidth  = true;
 
-        var n = Lbl(col.transform, passive.effectName ?? "", 16f, new Color(0.88f, 0.84f, 0.38f));
+        var n = Lbl(col.transform, passive.effectName ?? "", 22f, new Color(0.88f, 0.84f, 0.38f));
         n.fontStyle = FontStyles.Bold;
-        var d = Lbl(col.transform, passive.effectDescription ?? "", 13f, C_TxtMid);
+        var d = Lbl(col.transform, passive.effectDescription ?? "", 22f, C_TxtMid);
         d.enableWordWrapping = true;
     }
 
@@ -1179,19 +1274,107 @@ public class SetupManager : MonoBehaviour
         cVLG.childForceExpandHeight = false;
         cVLG.childForceExpandWidth  = true;
 
-        var nameLbl = Lbl(content.transform, passive.effectName ?? "", 13f,
+        var nameLbl = Lbl(content.transform, passive.effectName ?? "", 22f,
             new Color(0.88f, 0.84f, 0.38f));
         nameLbl.fontStyle = FontStyles.Bold;
         nameLbl.gameObject.AddComponent<LayoutElement>().preferredHeight = 18f;
 
-        var descLbl = Lbl(content.transform, passive.effectDescription ?? "", 11f, C_TxtMid);
+        var descLbl = Lbl(content.transform, passive.effectDescription ?? "", 22f, C_TxtMid);
         descLbl.enableWordWrapping = true;
         descLbl.gameObject.AddComponent<LayoutElement>().preferredHeight = 36f;
     }
 
     // ═════════════════════════════════════════════════════════════════════════
+    //  Animations
+    // ═════════════════════════════════════════════════════════════════════════
+
+    private IEnumerator AnimateScale(RectTransform rt, float target, float duration)
+    {
+        if (rt == null) yield break;
+        Vector3 start = rt.localScale;
+        Vector3 end   = new Vector3(target, target, 1f);
+        float   t     = 0f;
+        while (t < duration)
+        {
+            t            += Time.unscaledDeltaTime;
+            rt.localScale = Vector3.Lerp(start, end, Mathf.SmoothStep(0f, 1f, t / duration));
+            yield return null;
+        }
+        rt.localScale = end;
+    }
+
+    private IEnumerator AnimatePassivePills(CharacterDefinition def)
+    {
+        bool has = def?.passiveEffects != null && def.passiveEffects.Length > 0;
+        if (!has)
+        {
+            var none = Lbl(_passivesContainer, "No passive effects.", 22f,
+                           new Color(0.30f, 0.30f, 0.36f));
+            none.gameObject.AddComponent<LayoutElement>().preferredWidth = 220f;
+            yield break;
+        }
+
+        foreach (var p in def.passiveEffects)
+        {
+            if (p == null) continue;
+            PassivePill(_passivesContainer, p, def.color);
+            var pill = _passivesContainer.GetChild(_passivesContainer.childCount - 1).gameObject;
+            var cg   = pill.AddComponent<CanvasGroup>();
+            cg.alpha = 0f;
+            StartCoroutine(FadeIn(cg, 0.20f));
+            yield return new WaitForSecondsRealtime(0.08f);
+        }
+    }
+
+    private IEnumerator FadeIn(CanvasGroup cg, float duration)
+    {
+        if (cg == null) yield break;
+        float t = 0f;
+        while (t < duration)
+        {
+            t       += Time.unscaledDeltaTime;
+            cg.alpha = Mathf.Clamp01(t / duration);
+            yield return null;
+        }
+        cg.alpha = 1f;
+    }
+
+    // ═════════════════════════════════════════════════════════════════════════
     //  Helpers
     // ═════════════════════════════════════════════════════════════════════════
+
+    private Transform AddSectionHeader(Transform parent, string title, Color accent)
+    {
+        var hdr = GroupGO(parent, "SectionHdr");
+        hdr.AddComponent<Image>().color = new Color(0.07f, 0.07f, 0.10f);
+        hdr.AddComponent<LayoutElement>().preferredHeight = 36f;
+
+        var hlg = hdr.AddComponent<HorizontalLayoutGroup>();
+        hlg.padding                = new RectOffset(16, 16, 0, 0);
+        hlg.spacing                = 10f;
+        hlg.childAlignment         = TextAnchor.MiddleLeft;
+        hlg.childControlHeight     = true;
+        hlg.childControlWidth      = true;
+        hlg.childForceExpandHeight = true;
+        hlg.childForceExpandWidth  = false;
+
+        var stripe = GroupGO(hdr.transform, "Stripe");
+        stripe.AddComponent<Image>().color = accent;
+        stripe.AddComponent<LayoutElement>().preferredWidth = 3f;
+
+        var lbl = Lbl(hdr.transform, title, 22f, Color.white);
+        lbl.fontStyle = FontStyles.Bold;
+        lbl.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1f;
+
+        return hdr.transform;
+    }
+
+    private void AddSectionSeparator(Transform parent)
+    {
+        var sep = GroupGO(parent, "SectionSep");
+        sep.AddComponent<Image>().color = C_Div;
+        sep.AddComponent<LayoutElement>().preferredHeight = 8f;
+    }
 
     private GameObject MakeScrollView(Transform parent, bool vertical)
     {
