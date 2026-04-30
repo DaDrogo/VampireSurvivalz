@@ -1,0 +1,546 @@
+fileFormatVersion: 2
+guid: f89a3df39590ba04fabd848306f43733
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: -6108938585230601444
+    second: World of Solaria Crafting Materials ICon Pack Update 02 DEMO_0
+  - first:
+      213: 4642636662790195108
+    second: World of Solaria Crafting Materials ICon Pack Update 02 DEMO_1
+  - first:
+      213: 5133759354719037730
+    second: World of Solaria Crafting Materials ICon Pack Update 02 DEMO_2
+  - first:
+      213: 1694423127279311771
+    second: World of Solaria Crafting Materials ICon Pack Update 02 DEMO_3
+  - first:
+      213: -3940411629160750657
+    second: World of Solaria Crafting Materials ICon Pack Update 02 DEMO_4
+  - first:
+      213: 103501759055319548
+    second: World of Solaria Crafting Materials ICon Pack Update 02 DEMO_5
+  - first:
+      213: 287178009951316072
+    second: World of Solaria Crafting Materials ICon Pack Update 02 DEMO_6
+  - first:
+      213: -5493696307127356214
+    second: World of Solaria Crafting Materials ICon Pack Update 02 DEMO_7
+  - first:
+      213: 7809088338454210455
+    second: World of Solaria Crafting Materials ICon Pack Update 02 DEMO_8
+  - first:
+      213: -540300126591142704
+    second: World of Solaria Crafting Materials ICon Pack Update 02 DEMO_9
+  - first:
+      213: 1052187912575108467
+    second: World of Solaria Crafting Materials ICon Pack Update 02 DEMO_10
+  - first:
+      213: 1510389182982689306
+    second: World of Solaria Crafting Materials ICon Pack Update 02 DEMO_11
+  - first:
+      213: -6640614655715547304
+    second: World of Solaria Crafting Materials ICon Pack Update 02 DEMO_12
+  - first:
+      213: -7522165000744046522
+    second: World of Solaria Crafting Materials ICon Pack Update 02 DEMO_13
+  - first:
+      213: -8088531633045188372
+    second: World of Solaria Crafting Materials ICon Pack Update 02 DEMO_14
+  - first:
+      213: 6527994512431048580
+    second: World of Solaria Crafting Materials ICon Pack Update 02 DEMO_15
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 0
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 16
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Android
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: World of Solaria Crafting Materials ICon Pack Update 02 DEMO_0
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 48
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c1317a829b0b83ba0800000000000000
+      internalID: -6108938585230601444
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: World of Solaria Crafting Materials ICon Pack Update 02 DEMO_1
+      rect:
+        serializedVersion: 2
+        x: 16
+        y: 48
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4a780d27275fd6040800000000000000
+      internalID: 4642636662790195108
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: World of Solaria Crafting Materials ICon Pack Update 02 DEMO_2
+      rect:
+        serializedVersion: 2
+        x: 32
+        y: 48
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 229ed5ceee6ce3740800000000000000
+      internalID: 5133759354719037730
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: World of Solaria Crafting Materials ICon Pack Update 02 DEMO_3
+      rect:
+        serializedVersion: 2
+        x: 48
+        y: 48
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b9b90b85bdcc38710800000000000000
+      internalID: 1694423127279311771
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: World of Solaria Crafting Materials ICon Pack Update 02 DEMO_4
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 32
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: fb12e0f1088d059c0800000000000000
+      internalID: -3940411629160750657
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: World of Solaria Crafting Materials ICon Pack Update 02 DEMO_5
+      rect:
+        serializedVersion: 2
+        x: 16
+        y: 32
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: cf1de1e2d46bf6100800000000000000
+      internalID: 103501759055319548
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: World of Solaria Crafting Materials ICon Pack Update 02 DEMO_6
+      rect:
+        serializedVersion: 2
+        x: 32
+        y: 32
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 868a376e0e24cf300800000000000000
+      internalID: 287178009951316072
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: World of Solaria Crafting Materials ICon Pack Update 02 DEMO_7
+      rect:
+        serializedVersion: 2
+        x: 48
+        y: 32
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ac47cc5c05872c3b0800000000000000
+      internalID: -5493696307127356214
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: World of Solaria Crafting Materials ICon Pack Update 02 DEMO_8
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 16
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 797653138747f5c60800000000000000
+      internalID: 7809088338454210455
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: World of Solaria Crafting Materials ICon Pack Update 02 DEMO_9
+      rect:
+        serializedVersion: 2
+        x: 16
+        y: 16
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0d4bf62c5e77088f0800000000000000
+      internalID: -540300126591142704
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: World of Solaria Crafting Materials ICon Pack Update 02 DEMO_10
+      rect:
+        serializedVersion: 2
+        x: 32
+        y: 16
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 375cffde45f1a9e00800000000000000
+      internalID: 1052187912575108467
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: World of Solaria Crafting Materials ICon Pack Update 02 DEMO_11
+      rect:
+        serializedVersion: 2
+        x: 48
+        y: 16
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a129644a5faf5f410800000000000000
+      internalID: 1510389182982689306
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: World of Solaria Crafting Materials ICon Pack Update 02 DEMO_12
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 0
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 85762d3772cc7d3a0800000000000000
+      internalID: -6640614655715547304
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: World of Solaria Crafting Materials ICon Pack Update 02 DEMO_13
+      rect:
+        serializedVersion: 2
+        x: 16
+        y: 0
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 64076c439c6eb9790800000000000000
+      internalID: -7522165000744046522
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: World of Solaria Crafting Materials ICon Pack Update 02 DEMO_14
+      rect:
+        serializedVersion: 2
+        x: 32
+        y: 0
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ce0d4d9a553cfbf80800000000000000
+      internalID: -8088531633045188372
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: World of Solaria Crafting Materials ICon Pack Update 02 DEMO_15
+      rect:
+        serializedVersion: 2
+        x: 48
+        y: 0
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 487e6291c68189a50800000000000000
+      internalID: 6527994512431048580
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 124c418b4dcc822439fc3118fc0ddb1a
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      World of Solaria Crafting Materials ICon Pack Update 02 DEMO_0: -6108938585230601444
+      World of Solaria Crafting Materials ICon Pack Update 02 DEMO_1: 4642636662790195108
+      World of Solaria Crafting Materials ICon Pack Update 02 DEMO_10: 1052187912575108467
+      World of Solaria Crafting Materials ICon Pack Update 02 DEMO_11: 1510389182982689306
+      World of Solaria Crafting Materials ICon Pack Update 02 DEMO_12: -6640614655715547304
+      World of Solaria Crafting Materials ICon Pack Update 02 DEMO_13: -7522165000744046522
+      World of Solaria Crafting Materials ICon Pack Update 02 DEMO_14: -8088531633045188372
+      World of Solaria Crafting Materials ICon Pack Update 02 DEMO_15: 6527994512431048580
+      World of Solaria Crafting Materials ICon Pack Update 02 DEMO_2: 5133759354719037730
+      World of Solaria Crafting Materials ICon Pack Update 02 DEMO_3: 1694423127279311771
+      World of Solaria Crafting Materials ICon Pack Update 02 DEMO_4: -3940411629160750657
+      World of Solaria Crafting Materials ICon Pack Update 02 DEMO_5: 103501759055319548
+      World of Solaria Crafting Materials ICon Pack Update 02 DEMO_6: 287178009951316072
+      World of Solaria Crafting Materials ICon Pack Update 02 DEMO_7: -5493696307127356214
+      World of Solaria Crafting Materials ICon Pack Update 02 DEMO_8: 7809088338454210455
+      World of Solaria Crafting Materials ICon Pack Update 02 DEMO_9: -540300126591142704
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

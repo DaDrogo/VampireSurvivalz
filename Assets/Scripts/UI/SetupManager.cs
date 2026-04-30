@@ -625,9 +625,10 @@ public class SetupManager : MonoBehaviour
                       card.color.g * 0.10f + 0.03f,
                       card.color.b * 0.12f + 0.04f);
 
-        Sprite prefabSprite = card.buildingDef?.prefab != null
-            ? card.buildingDef.prefab.GetComponentInChildren<SpriteRenderer>()?.sprite
-            : null;
+        Sprite prefabSprite = card.icon != null ? card.icon
+            : card.buildingDef?.prefab != null
+                ? card.buildingDef.prefab.GetComponentInChildren<SpriteRenderer>()?.sprite
+                : null;
 
         if (prefabSprite != null)
         {

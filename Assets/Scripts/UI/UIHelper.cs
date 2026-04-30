@@ -44,6 +44,7 @@ public static class UIHelper
             cb.normalColor      = Color.white;
             cb.highlightedColor = new Color(0.85f, 0.85f, 0.85f, 1f);
             cb.pressedColor     = new Color(0.70f, 0.70f, 0.70f, 1f);
+            cb.selectedColor    = Color.white;
             cb.disabledColor    = new Color(0.50f, 0.50f, 0.50f, 0.50f);
         }
         else
@@ -51,6 +52,7 @@ public static class UIHelper
             cb.normalColor      = normal;
             cb.highlightedColor = highlighted;
             cb.pressedColor     = pressed;
+            cb.selectedColor    = normal;
             cb.disabledColor    = normal * 0.5f;
         }
 

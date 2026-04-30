@@ -1,5 +1,5 @@
 using System.Collections;
-using System.Text;
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -8,95 +8,103 @@ using UnityEngine.UI;
 /// Drives the entire in-game HUD, built fully at runtime — no prefab needed.
 ///
 /// Layout (1920×1080 reference):
-///   • Top bar    — full width, 68 px:  resources (left) | state + timer (centre) | HP (right)
-///   • Hotbar     — full width, 108 px, bottom: one clickable slot per building definition
-///   • Info panel — 280 px wide, right edge, vertically centred: stats + upgrade button
-///     visible whenever a hotbar slot is selected OR a placed building is clicked
+///   • Top bar      — full width, 90 px: resources (left) | state+timer (centre) | HP+coins (right) | pause
+///   • Action bar   — full width, 80 px, bottom: hammer button + context area
+///   • Build menu   — full width, slides up above action bar when hammer is pressed
+///   • Choice panel — slides up above action bar when upgrade choices are shown
+///   • Boss bar     — 500 px wide, below top bar, centre
+///   • Toast        — centre-screen notification
 /// </summary>
 public class UIManager : MonoBehaviour
 {
     public static UIManager Instance { get; private set; }
 
-    // ── Boss health bar ───────────────────────────────────────────────────────
-
-    private GameObject      _bossPanel;
-    private Image           _bossHealthFill;
-    private TextMeshProUGUI _bossNameText;
-    private TextMeshProUGUI _bossLevelText;
-    private Image           _bossVulnGlow;
-
-    private VampireEnemy    _boundVampire;
-
     [Header("UI Theme")]
     [SerializeField] private UITheme _theme;
 
-    // ── Runtime-built label references ────────────────────────────────────────
-
+    // ── Top bar labels ────────────────────────────────────────────────────────
     private TextMeshProUGUI _woodText;
     private TextMeshProUGUI _metalText;
     private TextMeshProUGUI _stateText;
     private TextMeshProUGUI _timerText;
     private TextMeshProUGUI _hpText;
     private TextMeshProUGUI _currencyText;
+    private Image           _stateIcon;
 
-    // ── Hotbar ────────────────────────────────────────────────────────────────
+    // ── Boss health bar ───────────────────────────────────────────────────────
+    private GameObject      _bossPanel;
+    private Image           _bossHealthFill;
+    private TextMeshProUGUI _bossNameText;
+    private TextMeshProUGUI _bossLevelText;
+    private Image           _bossVulnGlow;
+    private VampireEnemy    _boundVampire;
 
-    private Image[]           _hotbarBgs;
-    private TextMeshProUGUI[] _hotbarNames;
-    private TextMeshProUGUI[] _hotbarCosts;
-    private Image[]           _hotbarLockOverlays;
-    private GameObject        _cancelBuildSlot;
+    // ── Build menu overlay ────────────────────────────────────────────────────
+    private GameObject      _buildMenuPanel;
+    private RectTransform   _buildMenuRT;
+    private GameObject      _buildMenuBackdrop;
+    private Transform       _buildMenuContent;   // parent of icon buttons
+    private readonly List<Image>  _buildMenuIcons = new();
+    private readonly List<Image>  _buildMenuLockOverlays = new();
+    private readonly List<Button> _buildMenuButtons = new();
+    private bool            _buildMenuOpen;
+    private Coroutine       _buildMenuAnim;
+    private const float     BuildMenuHeight = 160f;
+    private const float     ActionBarHeight = 80f;
 
-    // ── Info drawer animation ─────────────────────────────────────────────────
+    // ── Upgrade choice panel ──────────────────────────────────────────────────
+    private GameObject      _choicePanel;
+    private RectTransform   _choicePanelRT;
+    private Transform       _choicePanelContent;
+    private TextMeshProUGUI _choicePanelHeader;
+    private bool            _choicePanelOpen;
+    private Coroutine       _choicePanelAnim;
+    private const float     ChoicePanelHeight = 130f;
 
-    private RectTransform _drawerRT;
-    private Coroutine     _drawerAnim;
-    private float         _drawerShownY;
-    private float         _drawerHiddenY;
-    private bool          _drawerVisible;
+    // ── Action bar ────────────────────────────────────────────────────────────
+    private GameObject      _actionBar;
+    private Image           _buildBtnImage;      // hammer button background (tint when active)
 
-    // ── Info / upgrade panel ──────────────────────────────────────────────────
+    // Placing page
+    private GameObject      _placingPage;
+    private Image           _placingIcon;
+    private TextMeshProUGUI _placingLabel;
 
-    private GameObject      _infoPanel;
+    // Building-selected page
+    private GameObject      _infoPage;
+    private Image           _infoBuildingIcon;
     private TextMeshProUGUI _infoBuildingName;
-    private TextMeshProUGUI _infoDescription;
-    private TextMeshProUGUI _infoStats;
-
-    // Repair button
-    private Button          _repairButton;
-    private TextMeshProUGUI _repairButtonText;
-
-    // Standard tier-upgrade section
-    private GameObject      _upgradeSection;
-    private TextMeshProUGUI _infoLevel;
-    private Button          _upgradeButton;
-    private TextMeshProUGUI _upgradeButtonText;
-
-    // Choice-upgrade section (up to 3 options)
-    private const int       MaxChoices = 3;
-    private GameObject      _choiceSection;
-    private Button[]        _choiceButtons    = new Button[MaxChoices];
-    private TextMeshProUGUI[] _choiceNameTexts  = new TextMeshProUGUI[MaxChoices];
-    private TextMeshProUGUI[] _choiceCostTexts  = new TextMeshProUGUI[MaxChoices];
+    private Image           _infoHpFill;
+    private TextMeshProUGUI _infoHpText;
+    private Button          _repairBtn;
+    private Button          _upgradeBtn;
+    private Button          _destroyBtn;
 
     // ── Player reference ──────────────────────────────────────────────────────
-
     private PlayerController _player;
 
     // ── Selection state ───────────────────────────────────────────────────────
-
-    private int            _selectedHotbarIndex = -1;
     private PlacedBuilding _selectedPlaced;
     private Building       _selectedBuildingHpWatcher;
 
+    // ── Toast ─────────────────────────────────────────────────────────────────
     private TextMeshProUGUI _toastText;
     private CanvasGroup     _toastGroup;
     private Coroutine       _toastCoroutine;
 
-    private static readonly Color SlotNormal   = new Color(0.05f, 0.05f, 0.1f,  0.75f);
-    private static readonly Color SlotSelected = new Color(0.15f, 0.50f, 1.00f, 0.85f);
+    // ── HUD root (SafeArea transform — shared with DayNightManager widget) ────
+    private Transform _hudRoot;
 
-    // ── Unity lifecycle ───────────────────────────────────────────────────────
+    // ── Colours ───────────────────────────────────────────────────────────────
+    private static readonly Color ColAffordable   = Color.white;
+    private static readonly Color ColUnaffordable = new Color(0.35f, 0.35f, 0.35f, 1f);
+    private static readonly Color ColHpHigh       = new Color(0.18f, 0.78f, 0.18f);
+    private static readonly Color ColHpMid        = new Color(0.95f, 0.75f, 0.10f);
+    private static readonly Color ColHpLow        = new Color(0.90f, 0.18f, 0.18f);
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  Unity lifecycle
+    // ─────────────────────────────────────────────────────────────────────────
 
     private void Awake()
     {
@@ -108,8 +116,18 @@ public class UIManager : MonoBehaviour
     private void Start()
     {
         SubscribeToEvents();
-        RefreshHotbarContent();
+        PopulateBuildMenu();
         RefreshAll();
+
+        // Inject the day/night widget into the HUD canvas so it shares the same
+        // CanvasScaler and SafeArea as the top bar, keeping alignment consistent.
+        if (_hudRoot != null)
+        {
+            TMP_FontAsset font = _theme?.font != null
+                ? _theme.font
+                : Resources.Load<TMP_FontAsset>("Fonts & Materials/LiberationSans SDF");
+            DayNightManager.Instance?.BuildWidget(_hudRoot, font);
+        }
     }
 
     private void OnDestroy()
@@ -128,7 +146,8 @@ public class UIManager : MonoBehaviour
         }
         if (PersistentDataManager.Instance != null)
             PersistentDataManager.Instance.OnCurrencyChanged -= HandleCurrencyChanged;
-        BuildingManager.OnSelectionChanged -= HandleHotbarSelectionChanged;
+
+        BuildingManager.OnSelectionChanged -= HandleBuildingManagerSelectionChanged;
         BuildingManager.OnBuildingPlaced   -= OnAnyBuildingPlaced;
         PlacedBuilding.OnSelected          -= HandlePlacedBuildingSelected;
 
@@ -141,7 +160,9 @@ public class UIManager : MonoBehaviour
             _selectedBuildingHpWatcher.OnHealthChanged -= OnSelectedBuildingHealthChanged;
     }
 
-    // ── Subscription ─────────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────────────────
+    //  Subscriptions
+    // ─────────────────────────────────────────────────────────────────────────
 
     private void SubscribeToEvents()
     {
@@ -150,8 +171,6 @@ public class UIManager : MonoBehaviour
             ResourceManager.Instance.OnWoodChanged  += HandleWoodChanged;
             ResourceManager.Instance.OnMetalChanged += HandleMetalChanged;
         }
-        else Debug.LogWarning("UIManager: ResourceManager not found.");
-
         if (GameManager.Instance != null)
         {
             GameManager.Instance.OnStateChanged            += HandleStateChanged;
@@ -159,14 +178,12 @@ public class UIManager : MonoBehaviour
             GameManager.Instance.OnEnemiesRemainingChanged += HandleEnemiesRemainingChanged;
             GameManager.Instance.OnPlayerSpawned           += BindHPLabel;
         }
-        else Debug.LogWarning("UIManager: GameManager not found.");
-
         if (PersistentDataManager.Instance != null)
         {
             PersistentDataManager.Instance.OnCurrencyChanged += HandleCurrencyChanged;
             HandleCurrencyChanged(PersistentDataManager.Instance.TotalCurrency);
         }
-        BuildingManager.OnSelectionChanged += HandleHotbarSelectionChanged;
+        BuildingManager.OnSelectionChanged += HandleBuildingManagerSelectionChanged;
         BuildingManager.OnBuildingPlaced   += OnAnyBuildingPlaced;
         PlacedBuilding.OnSelected          += HandlePlacedBuildingSelected;
     }
@@ -186,23 +203,23 @@ public class UIManager : MonoBehaviour
             else if (GameManager.Instance.CurrentState == GameManager.GameState.Wave)
                 HandleEnemiesRemainingChanged(GameManager.Instance.EnemiesRemaining);
         }
-        RefreshHotbar();
-        RefreshHotbarLocks();
-        RefreshInfoPanel();
+        RefreshBuildMenuAffordability();
     }
 
-    // ── Event handlers ────────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────────────────
+    //  Event handlers
+    // ─────────────────────────────────────────────────────────────────────────
 
     private void HandleWoodChanged(int amount)
     {
-        _woodText?.SetText("Wood: {0}", amount);
-        if (_drawerVisible) RefreshInfoPanel();
+        _woodText?.SetText("{0}", amount);
+        RefreshBuildMenuAffordability();
     }
 
     private void HandleMetalChanged(int amount)
     {
-        _metalText?.SetText("Metal: {0}", amount);
-        if (_drawerVisible) RefreshInfoPanel();
+        _metalText?.SetText("{0}", amount);
+        RefreshBuildMenuAffordability();
     }
 
     private void HandleStateChanged(GameManager.GameState state)
@@ -210,20 +227,17 @@ public class UIManager : MonoBehaviour
         switch (state)
         {
             case GameManager.GameState.Preparation:
-                if (_stateText != null)
-                { _stateText.SetText("PREPARATION"); _stateText.color = new Color(0.4f, 0.9f, 0.4f); }
+                if (_stateText != null) { _stateText.SetText("PREPARATION"); _stateText.color = new Color(0.4f, 0.9f, 0.4f); }
+                if (_stateIcon != null) ApplyIconOrColor(_stateIcon, _theme?.iconPrep, new Color(0.4f, 0.9f, 0.4f, 0.9f));
                 HandleTimerChanged(GameManager.Instance.TimeRemaining);
                 break;
-
             case GameManager.GameState.Wave:
-                if (_stateText != null)
-                { _stateText.SetText("WAVE {0}", GameManager.Instance.WaveNumber); _stateText.color = new Color(1f, 0.35f, 0.2f); }
+                if (_stateText != null) { _stateText.SetText("WAVE {0}", GameManager.Instance.WaveNumber); _stateText.color = new Color(1f, 0.35f, 0.2f); }
+                if (_stateIcon != null) ApplyIconOrColor(_stateIcon, _theme?.iconWave, new Color(1f, 0.35f, 0.2f, 0.9f));
                 HandleEnemiesRemainingChanged(GameManager.Instance.EnemiesRemaining);
                 break;
-
             case GameManager.GameState.GameOver:
-                if (_stateText != null)
-                { _stateText.SetText("GAME OVER"); _stateText.color = new Color(0.9f, 0.15f, 0.15f); }
+                if (_stateText != null) { _stateText.SetText("GAME OVER"); _stateText.color = new Color(0.9f, 0.15f, 0.15f); }
                 _timerText?.SetText("");
                 break;
         }
@@ -231,29 +245,35 @@ public class UIManager : MonoBehaviour
 
     private void HandleTimerChanged(float remaining)
     {
-        _timerText?.SetText("{0}s remaining", Mathf.CeilToInt(remaining));
+        _timerText?.SetText("{0}s", Mathf.CeilToInt(remaining));
         if (_timerText != null)
-            _timerText.color = remaining <= 10f
-                ? new Color(1f, 0.35f, 0.2f)
-                : new Color(1f, 0.85f, 0.3f);
+            _timerText.color = remaining <= 10f ? new Color(1f, 0.35f, 0.2f) : new Color(1f, 0.85f, 0.3f);
     }
 
-    private void HandleCurrencyChanged(int coins) =>
-        _currencyText?.SetText("Coins: {0}", coins);
+    private void HandleCurrencyChanged(int coins) => _currencyText?.SetText("{0}", coins);
 
     private void HandleEnemiesRemainingChanged(int count)
     {
-        _timerText?.SetText(count == 1 ? "1 enemy left" : "{0} enemies left", count);
+        _timerText?.SetText(count == 1 ? "1 left" : "{0} left", count);
         if (_timerText != null) _timerText.color = new Color(1f, 0.85f, 0.3f);
     }
 
-    private void HandleHotbarSelectionChanged(int index)
+    private void HandleBuildingManagerSelectionChanged(int index)
     {
-        _selectedHotbarIndex = index;
-        if (index >= 0) _selectedPlaced = null;  // new hotbar selection clears placed-building info
-        if (_cancelBuildSlot != null) _cancelBuildSlot.SetActive(index >= 0);
-        RefreshHotbar();
-        RefreshInfoPanel();
+        if (index >= 0)
+        {
+            // Entered placement mode
+            HideBuildMenu();
+            HideChoicePanel();
+            ShowPlacingPage(index);
+            DeselectBuilding();
+        }
+        else
+        {
+            // Cancelled placement
+            ShowDefaultPage();
+        }
+        HighlightBuildButton(_buildMenuOpen);
     }
 
     private void HandlePlacedBuildingSelected(PlacedBuilding pb)
@@ -261,198 +281,379 @@ public class UIManager : MonoBehaviour
         if (_selectedBuildingHpWatcher != null)
             _selectedBuildingHpWatcher.OnHealthChanged -= OnSelectedBuildingHealthChanged;
 
-        _selectedPlaced      = pb;
-        _selectedHotbarIndex = -1;
-
+        _selectedPlaced = pb;
         _selectedBuildingHpWatcher = pb != null ? pb.GetComponent<Building>() : null;
+
         if (_selectedBuildingHpWatcher != null)
             _selectedBuildingHpWatcher.OnHealthChanged += OnSelectedBuildingHealthChanged;
 
-        RefreshHotbar();
-        RefreshInfoPanel();
+        if (pb != null)
+        {
+            // Close build menu if open; cancel placement if active
+            HideBuildMenu();
+            HideChoicePanel();
+            if (BuildingManager.Instance != null && BuildingManager.Instance.IsPlacing)
+                BuildingManager.Instance.CancelPlacement();
+            ShowInfoPage();
+        }
+        else
+        {
+            HideChoicePanel();
+            ShowDefaultPage();
+        }
     }
 
     private void OnSelectedBuildingHealthChanged(float _, float __)
     {
-        if (_drawerVisible)
-            RefreshRepairButton();
+        if (_infoPage != null && _infoPage.activeSelf)
+            RefreshInfoHP();
     }
 
-    // ── Health bar ────────────────────────────────────────────────────────────
+    private void OnAnyBuildingPlaced(PlacedBuilding _) => RefreshBuildMenuLocks();
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  HP label binding
+    // ─────────────────────────────────────────────────────────────────────────
 
     private void BindHPLabel(PlayerController player)
     {
         if (player == null) return;
         _player = player;
-
-        // Remove any previous listener to avoid duplicate subscriptions on restart
         player.OnHealthChanged -= UpdateHPText;
         player.OnHealthChanged += UpdateHPText;
         UpdateHPText(player.CurrentHealth, player.MaxHealth);
     }
 
-    private void UpdateHPText(float current, float max) =>
-        _hpText?.SetText("{0:0} / {1:0}", current, max);
+    private void UpdateHPText(float current, float max)
+        => _hpText?.SetText("{0:0}/{1:0}", current, max);
 
-    // ── Hotbar ────────────────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────────────────
+    //  Build menu
+    // ─────────────────────────────────────────────────────────────────────────
 
-    private void RefreshHotbar()
+    private void PopulateBuildMenu()
     {
-        if (_hotbarBgs == null) return;
-        for (int i = 0; i < _hotbarBgs.Length; i++)
-            if (_hotbarBgs[i] != null)
-                _hotbarBgs[i].color = i == _selectedHotbarIndex ? SlotSelected : SlotNormal;
+        if (_buildMenuContent == null || BuildingManager.Instance == null) return;
+
+        // Clear any previous children
+        foreach (Transform child in _buildMenuContent)
+            Destroy(child.gameObject);
+        _buildMenuIcons.Clear();
+        _buildMenuLockOverlays.Clear();
+        _buildMenuButtons.Clear();
+
+        TMP_FontAsset font = _theme?.font != null
+            ? _theme.font
+            : Resources.Load<TMP_FontAsset>("Fonts & Materials/LiberationSans SDF");
+
+        for (int i = 0; i < BuildingManager.Instance.BuildingCount; i++)
+        {
+            int idx = i;
+            BuildingDefinition def = BuildingManager.Instance.GetDefinition(i);
+            GameObject slot = BuildBuildMenuSlot(def, font, () => OnBuildMenuSlotClicked(idx));
+            slot.transform.SetParent(_buildMenuContent, false);
+        }
+
+        RefreshBuildMenuAffordability();
+        RefreshBuildMenuLocks();
     }
 
-    /// <summary>Fills hotbar slot names and costs from BuildingManager (called in Start).</summary>
-    public void RefreshHotbarContent()
+    private GameObject BuildBuildMenuSlot(BuildingDefinition def, TMP_FontAsset font, UnityEngine.Events.UnityAction onClick)
     {
-        if (_hotbarNames == null || BuildingManager.Instance == null) return;
-        for (int i = 0; i < _hotbarNames.Length; i++)
+        const float slotW = 110f;
+        const float slotH = 140f;
+        const float iconSize = 80f;
+
+        GameObject slot = new GameObject("BuildSlot_" + def.buildingName);
+        RectTransform slotRT = slot.AddComponent<RectTransform>();
+        slotRT.sizeDelta = new Vector2(slotW, slotH);
+
+        Image slotBg = slot.AddComponent<Image>();
+        UIHelper.ApplyImage(slotBg, _theme?.buildSlotBackground, new Color(0.08f, 0.08f, 0.14f, 0.95f), Image.Type.Tiled);
+
+        Button btn = slot.AddComponent<Button>();
+        btn.targetGraphic = slotBg;
+        btn.colors = UIHelper.BtnColors(_theme?.buildSlotBackground,
+            new Color(0.08f, 0.08f, 0.14f), new Color(0.18f, 0.40f, 0.65f), new Color(0.05f, 0.05f, 0.10f));
+        btn.onClick.AddListener(onClick);
+        _buildMenuButtons.Add(btn);
+
+        // Icon
+        GameObject iconGO = new GameObject("Icon");
+        iconGO.transform.SetParent(slot.transform, false);
+        RectTransform iconRT = iconGO.AddComponent<RectTransform>();
+        iconRT.anchorMin = new Vector2(0.5f, 1f);
+        iconRT.anchorMax = new Vector2(0.5f, 1f);
+        iconRT.pivot     = new Vector2(0.5f, 1f);
+        iconRT.anchoredPosition = new Vector2(0f, -8f);
+        iconRT.sizeDelta = new Vector2(iconSize, iconSize);
+
+        Image iconImg = iconGO.AddComponent<Image>();
+        iconImg.raycastTarget = false;
+        Sprite defIcon = GetBuildingIcon(def);
+        if (defIcon != null) { iconImg.sprite = defIcon; iconImg.color = Color.white; }
+        else                 { iconImg.color = new Color(0.5f, 0.7f, 1f); }
+        _buildMenuIcons.Add(iconImg);
+
+        // Cost row
+        GameObject costRow = new GameObject("CostRow");
+        costRow.transform.SetParent(slot.transform, false);
+        RectTransform costRT = costRow.AddComponent<RectTransform>();
+        costRT.anchorMin = new Vector2(0f, 0f);
+        costRT.anchorMax = new Vector2(1f, 0f);
+        costRT.pivot     = new Vector2(0.5f, 0f);
+        costRT.anchoredPosition = new Vector2(0f, 8f);
+        costRT.sizeDelta = new Vector2(0f, 40f);
+
+        HorizontalLayoutGroup costHLG = costRow.AddComponent<HorizontalLayoutGroup>();
+        costHLG.childAlignment       = TextAnchor.MiddleCenter;
+        costHLG.spacing              = 4f;
+        costHLG.childControlHeight   = true;
+        costHLG.childControlWidth    = true;
+        costHLG.childForceExpandHeight = false;
+        costHLG.childForceExpandWidth  = false;
+
+        if (def.woodCost > 0)  AddCostChip(costRow.transform, _theme?.iconWood,  new Color(0.5f, 0.85f, 0.3f), def.woodCost,  font);
+        if (def.metalCost > 0) AddCostChip(costRow.transform, _theme?.iconMetal, new Color(0.6f, 0.85f, 1.0f), def.metalCost, font);
+
+        // Lock overlay (citadel required)
+        GameObject lockGO = new GameObject("LockOverlay");
+        lockGO.transform.SetParent(slot.transform, false);
+        RectTransform lockRT = lockGO.AddComponent<RectTransform>();
+        lockRT.anchorMin = Vector2.zero;
+        lockRT.anchorMax = Vector2.one;
+        lockRT.offsetMin = lockRT.offsetMax = Vector2.zero;
+        Image lockImg = lockGO.AddComponent<Image>();
+        lockImg.color = new Color(0f, 0f, 0f, 0.60f);
+        lockImg.raycastTarget = false;
+        lockGO.SetActive(false);
+        _buildMenuLockOverlays.Add(lockImg);
+
+        LayoutElement le = slot.AddComponent<LayoutElement>();
+        le.minWidth = slotW;
+        le.preferredWidth = slotW;
+        le.flexibleWidth = 0f;
+
+        return slot;
+    }
+
+    private void AddCostChip(Transform parent, Sprite icon, Color fallbackColor, int amount, TMP_FontAsset font)
+    {
+        GameObject chip = new GameObject("Chip");
+        chip.transform.SetParent(parent, false);
+        HorizontalLayoutGroup hlg = chip.AddComponent<HorizontalLayoutGroup>();
+        hlg.spacing = 2f;
+        hlg.childAlignment = TextAnchor.MiddleCenter;
+        hlg.childControlHeight = true;
+        hlg.childControlWidth  = true;
+        hlg.childForceExpandHeight = false;
+        hlg.childForceExpandWidth  = false;
+        chip.AddComponent<RectTransform>();
+
+        if (icon != null)
+        {
+            GameObject iconGO = new GameObject("CostIcon");
+            iconGO.transform.SetParent(chip.transform, false);
+            RectTransform irt = iconGO.AddComponent<RectTransform>();
+            irt.sizeDelta = new Vector2(18f, 18f);
+            Image img = iconGO.AddComponent<Image>();
+            img.sprite = icon;
+            img.color  = Color.white;
+            img.raycastTarget = false;
+            LayoutElement le = iconGO.AddComponent<LayoutElement>();
+            le.minWidth = 18f; le.preferredWidth = 18f; le.minHeight = 18f; le.preferredHeight = 18f;
+        }
+
+        GameObject txtGO = new GameObject("CostText");
+        txtGO.transform.SetParent(chip.transform, false);
+        txtGO.AddComponent<RectTransform>();
+        TextMeshProUGUI txt = txtGO.AddComponent<TextMeshProUGUI>();
+        txt.SetText("{0}", amount);
+        txt.fontSize  = 15f;
+        txt.color     = fallbackColor;
+        txt.alignment = TextAlignmentOptions.MidlineLeft;
+        txt.raycastTarget = false;
+        if (font != null) txt.font = font;
+    }
+
+    private void OnBuildMenuSlotClicked(int index)
+    {
+        HideBuildMenu();
+        BuildingManager.Instance?.SelectBuilding(index);
+    }
+
+    public void ShowBuildMenu()
+    {
+        if (_buildMenuPanel == null) return;
+        _buildMenuOpen = true;
+        _buildMenuPanel.SetActive(true);
+
+        // ContentSizeFitter doesn't run on inactive objects, so the content width
+        // stays 0 until we force a rebuild now that the panel is active.
+        if (_buildMenuContent != null)
+            LayoutRebuilder.ForceRebuildLayoutImmediate(
+                _buildMenuContent.GetComponent<RectTransform>());
+
+        if (_buildMenuBackdrop != null) _buildMenuBackdrop.SetActive(true);
+        HighlightBuildButton(true);
+        AnimateBuildMenu(ActionBarHeight, false);
+    }
+
+    public void HideBuildMenu()
+    {
+        if (!_buildMenuOpen) return;
+        _buildMenuOpen = false;
+        HighlightBuildButton(false);
+        if (_buildMenuBackdrop != null) _buildMenuBackdrop.SetActive(false);
+        AnimateBuildMenu(-BuildMenuHeight, true);
+    }
+
+    private void AnimateBuildMenu(float targetY, bool deactivateAfter)
+    {
+        if (_buildMenuAnim != null) StopCoroutine(_buildMenuAnim);
+        _buildMenuAnim = StartCoroutine(SlidePanel(_buildMenuRT, targetY, deactivateAfter, 0.18f,
+            () => _buildMenuAnim = null));
+    }
+
+    private void HighlightBuildButton(bool on)
+    {
+        if (_buildBtnImage == null) return;
+        _buildBtnImage.color = on
+            ? new Color(0.15f, 0.45f, 0.85f, 1f)
+            : new Color(0.08f, 0.08f, 0.16f, 1f);
+    }
+
+    private void RefreshBuildMenuAffordability()
+    {
+        if (_buildMenuIcons.Count == 0 || BuildingManager.Instance == null) return;
+        bool citadelMissing = Citadel.Instance == null;
+
+        for (int i = 0; i < _buildMenuIcons.Count; i++)
         {
             if (i >= BuildingManager.Instance.BuildingCount) break;
             BuildingDefinition def = BuildingManager.Instance.GetDefinition(i);
-            if (_hotbarNames[i] != null) _hotbarNames[i].SetText(def.buildingName);
-            if (_hotbarCosts[i] != null) _hotbarCosts[i].SetText(
-                $"{def.woodCost}W / {def.metalCost}M");
+
+            bool canAfford = ResourceManager.Instance != null
+                && ResourceManager.Instance.Wood  >= def.woodCost
+                && ResourceManager.Instance.Metal >= def.metalCost;
+
+            _buildMenuIcons[i].color = canAfford ? ColAffordable : ColUnaffordable;
         }
     }
 
-    // ── Info / upgrade panel ──────────────────────────────────────────────────
-
-    private void RefreshInfoPanel()
+    private void RefreshBuildMenuLocks()
     {
-        if (_infoPanel == null) return;
+        if (_buildMenuLockOverlays.Count == 0 || BuildingManager.Instance == null) return;
+        bool citadelMissing = Citadel.Instance == null;
 
-        if (_selectedPlaced == null
-            || (BuildingManager.Instance != null && BuildingManager.Instance.IsPlacing))
+        for (int i = 0; i < _buildMenuLockOverlays.Count; i++)
         {
-            HideDrawer();
+            if (i >= BuildingManager.Instance.BuildingCount) break;
+            BuildingDefinition def = BuildingManager.Instance.GetDefinition(i);
+            bool locked = citadelMissing && !def.isCitadel;
+            _buildMenuLockOverlays[i].gameObject.SetActive(locked);
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  Action bar page switching
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private void ShowDefaultPage()
+    {
+        SetPage(null);
+    }
+
+    private void ShowPlacingPage(int index)
+    {
+        if (BuildingManager.Instance == null || index < 0 || index >= BuildingManager.Instance.BuildingCount)
+        { ShowDefaultPage(); return; }
+
+        BuildingDefinition def = BuildingManager.Instance.GetDefinition(index);
+        if (_placingIcon != null)
+        {
+            Sprite s = GetBuildingIcon(def);
+            if (s != null) { _placingIcon.sprite = s; _placingIcon.color = Color.white; }
+            else _placingIcon.color = new Color(0.5f, 0.7f, 1f);
+        }
+        _placingLabel?.SetText($"Placing: {def.buildingName}\nTap to place");
+        SetPage(_placingPage);
+    }
+
+    private void ShowInfoPage()
+    {
+        if (_selectedPlaced == null) { ShowDefaultPage(); return; }
+
+        BuildingDefinition def = _selectedPlaced.Definition;
+        if (_infoBuildingIcon != null)
+        {
+            Sprite s = GetBuildingIcon(def);
+            if (s != null) { _infoBuildingIcon.sprite = s; _infoBuildingIcon.color = Color.white; }
+            else _infoBuildingIcon.color = new Color(0.5f, 0.7f, 1f);
+        }
+        _infoBuildingName?.SetText(def?.buildingName ?? "");
+        RefreshInfoHP();
+        RefreshUpgradeButton();
+        RefreshRepairButton();
+        SetPage(_infoPage);
+    }
+
+    private void SetPage(GameObject page)
+    {
+        if (_placingPage != null) _placingPage.SetActive(page == _placingPage);
+        if (_infoPage    != null) _infoPage.SetActive(page == _infoPage);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  Building info refresh
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private void RefreshInfoHP()
+    {
+        if (_selectedPlaced == null) return;
+        Building bldg = _selectedBuildingHpWatcher;
+        if (bldg == null) return;
+
+        float ratio = bldg.MaxHealth > 0f ? bldg.CurrentHealth / bldg.MaxHealth : 0f;
+        if (_infoHpFill != null)
+        {
+            _infoHpFill.fillAmount = ratio;
+            _infoHpFill.color = ratio > 0.6f ? ColHpHigh : ratio > 0.3f ? ColHpMid : ColHpLow;
+        }
+        _infoHpText?.SetText("{0:0}/{1:0}", bldg.CurrentHealth, bldg.MaxHealth);
+    }
+
+    private void RefreshRepairButton()
+    {
+        if (_repairBtn == null || _selectedPlaced == null) return;
+        Building bldg = _selectedBuildingHpWatcher;
+        bool canRepair = bldg != null && bldg.CurrentHealth < bldg.MaxHealth;
+        _repairBtn.interactable = canRepair;
+    }
+
+    private void RefreshUpgradeButton()
+    {
+        if (_upgradeBtn == null || _selectedPlaced == null) return;
+
+        // Button is enabled whenever there is any upgrade to show in the panel.
+        // Affordability is displayed inside the panel itself, not on the button.
+        bool hasChoices = _selectedPlaced.Definition?.upgradeChoices != null
+                       && _selectedPlaced.Definition.upgradeChoices.Length > 0;
+        if (hasChoices) { _upgradeBtn.interactable = true; return; }
+
+        if (_selectedPlaced.TryGetComponent(out Citadel cit))
+        {
+            _upgradeBtn.interactable = cit.GetNextTierData() != null;
             return;
         }
 
-        BuildingDefinition def   = _selectedPlaced.Definition;
-        int                level = _selectedPlaced.Level;
-
-        _infoPanel.SetActive(true);
-        _infoBuildingName?.SetText(def != null ? def.buildingName : "");
-        _infoDescription?.SetText(def?.description ?? "");
-
-        // Stats
-        var sb = new StringBuilder();
-        if (def != null) sb.AppendLine($"Cost: {def.woodCost}W / {def.metalCost}M");
-        if (_selectedPlaced.TryGetComponent(out Citadel citadel))
-        {
-            sb.AppendLine($"HP:       {citadel.CurrentHealth:0} / {citadel.MaxHealth:0}");
-            sb.AppendLine($"Tier:     {citadel.Tier} / {citadel.MaxTier}");
-            sb.AppendLine($"Output:   {citadel.ProductionOutput}");
-            sb.AppendLine($"Amount:   {citadel.ProductionAmount} / {citadel.ProductionInterval:0.0}s");
-        }
-        else
-        {
-            if (_selectedPlaced.TryGetComponent(out Barricade b))
-                sb.AppendLine($"HP: {b.CurrentHealth:0} / {b.MaxHealth:0}");
-            if (_selectedPlaced.TryGetComponent(out Turret t))
-            {
-                sb.AppendLine($"HP:        {t.CurrentHealth:0} / {t.MaxHealth:0}");
-                sb.AppendLine($"Range:     {t.DetectionRange:0.0}");
-                sb.AppendLine($"Fire rate: {t.FireRate:0.00}/s");
-            }
-            if (_selectedPlaced.TryGetComponent(out ResourceProducer rp))
-            {
-                sb.AppendLine($"HP:       {rp.CurrentHealth:0} / {rp.MaxHealth:0}");
-                sb.AppendLine($"Output:   {rp.OutputType}");
-                sb.AppendLine($"Amount:   {rp.AmountPerCycle} / cycle");
-                sb.AppendLine($"Interval: {rp.ProductionInterval:0.0}s");
-            }
-        }
-        _infoStats?.SetText(sb.ToString());
-
-        RefreshRepairButton();
-
-        bool hasChoices = def != null
-                       && def.upgradeChoices != null
-                       && def.upgradeChoices.Length > 0;
-
-        if (_upgradeSection != null) _upgradeSection.SetActive(!hasChoices && def != null);
-        if (_choiceSection   != null) _choiceSection.SetActive(hasChoices);
-
-        if (hasChoices)
-        {
-            for (int i = 0; i < MaxChoices; i++)
-            {
-                if (_choiceButtons[i] == null) continue;
-                if (i < def.upgradeChoices.Length)
-                {
-                    BuildingUpgradeChoice ch = def.upgradeChoices[i];
-                    _choiceButtons[i].gameObject.SetActive(true);
-                    bool canAfford = ResourceManager.Instance != null
-                        && ResourceManager.Instance.Wood  >= ch.woodCost
-                        && ResourceManager.Instance.Metal >= ch.metalCost;
-                    _choiceButtons[i].interactable = canAfford;
-                    string desc = string.IsNullOrEmpty(ch.description) ? "" : $"\n<size=12><color=#aaaaaa>{ch.description}</color></size>";
-                    _choiceNameTexts[i]?.SetText($"{ch.label}{desc}");
-                    _choiceCostTexts[i]?.SetText($"{ch.woodCost}W / {ch.metalCost}M");
-                }
-                else
-                {
-                    _choiceButtons[i].gameObject.SetActive(false);
-                }
-            }
-        }
-        else if (def != null)
-        {
-            if (_selectedPlaced.TryGetComponent(out Citadel cit))
-            {
-                _infoLevel?.SetText($"Tier {cit.Tier} / {cit.MaxTier}");
-                if (_upgradeButton != null)
-                {
-                    CitadelTierData next = cit.GetNextTierData();
-                    if (next == null)
-                    {
-                        _upgradeButton.gameObject.SetActive(true);
-                        _upgradeButtonText?.SetText("MAX TIER");
-                        _upgradeButton.interactable = false;
-                    }
-                    else
-                    {
-                        bool canAfford = ResourceManager.Instance != null
-                            && ResourceManager.Instance.Wood  >= next.woodCost
-                            && ResourceManager.Instance.Metal >= next.metalCost;
-                        _upgradeButton.gameObject.SetActive(true);
-                        _upgradeButton.interactable = canAfford;
-                        _upgradeButtonText?.SetText($"Upgrade  [{next.label}]\n{next.woodCost}W / {next.metalCost}M");
-                    }
-                }
-            }
-            else
-            {
-                int maxLevel = def.upgrades?.Length ?? 0;
-                _infoLevel?.SetText($"Level {level} / {maxLevel}");
-                if (_upgradeButton != null)
-                {
-                    if (level >= maxLevel)
-                    {
-                        _upgradeButton.gameObject.SetActive(true);
-                        _upgradeButtonText?.SetText("MAX LEVEL");
-                        _upgradeButton.interactable = false;
-                    }
-                    else
-                    {
-                        BuildingUpgradeTier tier = def.upgrades[level];
-                        bool canAfford = ResourceManager.Instance != null
-                            && ResourceManager.Instance.Wood  >= tier.woodCost
-                            && ResourceManager.Instance.Metal >= tier.metalCost;
-                        _upgradeButton.gameObject.SetActive(true);
-                        _upgradeButton.interactable = canAfford;
-                        _upgradeButtonText?.SetText($"Upgrade  [{tier.label}]\n{tier.woodCost}W / {tier.metalCost}M");
-                    }
-                }
-            }
-        }
-
-        if (!_drawerVisible) ShowDrawer();
+        int maxLevel = _selectedPlaced.Definition?.upgrades?.Length ?? 0;
+        _upgradeBtn.interactable = _selectedPlaced.Level < maxLevel;
     }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  Action button callbacks
+    // ─────────────────────────────────────────────────────────────────────────
 
     private void OnRepairClicked()
     {
@@ -461,102 +662,323 @@ public class UIManager : MonoBehaviour
             _player.StartRepair(holdTarget, _selectedPlaced.transform);
     }
 
-    private void RefreshRepairButton()
-    {
-        if (_repairButton == null) return;
-        Building bldg = null;
-        bool show = _selectedPlaced != null
-                 && _selectedPlaced.TryGetComponent(out bldg);
-        _repairButton.gameObject.SetActive(show);
-        if (show && bldg != null)
-        {
-            bool damaged = bldg.CurrentHealth < bldg.MaxHealth;
-            _repairButton.interactable = damaged;
-            _repairButtonText?.SetText(damaged ? "Repair" : "Full HP");
-        }
-    }
-
     private void OnUpgradeClicked()
     {
-        _selectedPlaced?.TryUpgrade();
-        // TryUpgrade fires PlacedBuilding.OnSelected which calls HandlePlacedBuildingSelected → RefreshInfoPanel
+        if (_selectedPlaced == null) return;
+        if (_choicePanelOpen) { HideChoicePanel(); return; }
+        ShowUpgradePanel();
     }
 
-    private void OnChoiceClicked(int index)
+    private void OnDestroyClicked()
     {
         if (_selectedPlaced == null) return;
+        var toDestroy = _selectedPlaced;  // save before Deselect clears _selectedPlaced
+        PlacedBuilding.Deselect();
+        Destroy(toDestroy.gameObject);
+    }
+
+    private void DeselectBuilding()
+    {
+        if (_selectedBuildingHpWatcher != null)
+            _selectedBuildingHpWatcher.OnHealthChanged -= OnSelectedBuildingHealthChanged;
+        _selectedPlaced = null;
+        _selectedBuildingHpWatcher = null;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  Upgrade choice panel
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private void ShowChoicePanel()
+    {
+        if (_choicePanel == null || _selectedPlaced == null) return;
         BuildingUpgradeChoice[] choices = _selectedPlaced.Definition?.upgradeChoices;
-        if (choices == null || index >= choices.Length) return;
-        _selectedPlaced.TryUpgradeToChoice(choices[index]);
-        // TryUpgradeToChoice destroys the building → OnSelected(null) → panel closes
+        if (choices == null || choices.Length == 0) return;
+
+        PopulateChoicePanel(choices);
+        _choicePanelOpen = true;
+        _choicePanel.SetActive(true);
+
+        if (_choicePanelContent != null)
+            LayoutRebuilder.ForceRebuildLayoutImmediate(
+                _choicePanelContent.GetComponent<RectTransform>());
+
+        AnimateChoicePanel(ActionBarHeight, false);
     }
 
-    // ── Drawer animation ─────────────────────────────────────────────────────
-
-    private void ShowDrawer()
+    private void HideChoicePanel()
     {
-        if (_drawerRT == null) return;
-        _drawerVisible = true;
-        _infoPanel.SetActive(true);
-        AnimateDrawerTo(_drawerShownY);
+        if (_choicePanel == null || !_choicePanelOpen) return;
+        _choicePanelOpen = false;
+        AnimateChoicePanel(-ChoicePanelHeight, true);
     }
 
-    private void HideDrawer()
+    private void ShowUpgradePanel()
     {
-        if (_drawerRT == null || !_drawerVisible) return;
-        _drawerVisible = false;
-        AnimateDrawerToAndDeactivate(_drawerHiddenY);
-    }
+        if (_choicePanel == null || _selectedPlaced == null) return;
 
-    private void AnimateDrawerTo(float targetY)
-    {
-        if (_drawerAnim != null) StopCoroutine(_drawerAnim);
-        _drawerAnim = StartCoroutine(DrawerCoroutine(targetY, false));
-    }
+        TMP_FontAsset font = _theme?.font != null
+            ? _theme.font
+            : Resources.Load<TMP_FontAsset>("Fonts & Materials/LiberationSans SDF");
 
-    private void AnimateDrawerToAndDeactivate(float targetY)
-    {
-        if (_drawerAnim != null) StopCoroutine(_drawerAnim);
-        _drawerAnim = StartCoroutine(DrawerCoroutine(targetY, true));
-    }
+        if (_choicePanelContent != null)
+            foreach (Transform child in _choicePanelContent) Destroy(child.gameObject);
 
-    private IEnumerator DrawerCoroutine(float targetY, bool deactivateAfter)
-    {
-        float startY   = _drawerRT.anchoredPosition.y;
-        float elapsed  = 0f;
-        const float duration = 0.2f;
+        BuildingUpgradeChoice[] choices = _selectedPlaced.Definition?.upgradeChoices;
 
-        while (elapsed < duration)
+        if (choices != null && choices.Length > 0)
         {
-            elapsed += Time.unscaledDeltaTime;
-            float t  = Mathf.SmoothStep(0f, 1f, elapsed / duration);
-            _drawerRT.anchoredPosition = new Vector2(0f, Mathf.LerpUnclamped(startY, targetY, t));
-            yield return null;
+            if (_choicePanelHeader != null) _choicePanelHeader.SetText("CHOOSE UPGRADE");
+            foreach (BuildingUpgradeChoice choice in choices)
+            {
+                BuildingUpgradeChoice captured = choice;
+                GameObject slot = BuildUpgradeSlot(choice.icon, choice.woodCost, choice.metalCost,
+                    0, font,
+                    () => OnChoiceClicked(captured));
+                slot.transform.SetParent(_choicePanelContent, false);
+            }
         }
-        _drawerRT.anchoredPosition = new Vector2(0f, targetY);
-        if (deactivateAfter) _infoPanel.SetActive(false);
-        _drawerAnim = null;
-    }
-
-    // ── Citadel lock ──────────────────────────────────────────────────────────
-
-    private void OnAnyBuildingPlaced(PlacedBuilding _) => RefreshHotbarLocks();
-
-    private void RefreshHotbarLocks()
-    {
-        if (_hotbarLockOverlays == null || BuildingManager.Instance == null) return;
-        bool citadelMissing = Citadel.Instance == null;
-        for (int i = 0; i < _hotbarLockOverlays.Length; i++)
+        else if (_selectedPlaced.TryGetComponent(out Citadel cit))
         {
-            if (_hotbarLockOverlays[i] == null) continue;
-            bool locked = citadelMissing
-                       && i < BuildingManager.Instance.BuildingCount
-                       && !BuildingManager.Instance.GetDefinition(i).isCitadel;
-            _hotbarLockOverlays[i].gameObject.SetActive(locked);
+            if (_choicePanelHeader != null) _choicePanelHeader.SetText("UPGRADE CITADEL");
+            CitadelTierData next = cit.GetNextTierData();
+            if (next != null)
+            {
+                Sprite icon = GetBuildingIcon(_selectedPlaced.Definition);
+                var captured = _selectedPlaced;
+                // targetLevel = the tier the Citadel will become after upgrade
+                GameObject slot = BuildUpgradeSlot(icon, next.woodCost, next.metalCost,
+                    cit.Tier + 1, font,
+                    () => { HideChoicePanel(); captured?.TryUpgrade(); });
+                slot.transform.SetParent(_choicePanelContent, false);
+            }
+        }
+        else
+        {
+            if (_choicePanelHeader != null) _choicePanelHeader.SetText("UPGRADE");
+            if (_selectedPlaced.Definition?.upgrades != null
+                && _selectedPlaced.Level < _selectedPlaced.Definition.upgrades.Length)
+            {
+                BuildingUpgradeTier tier = _selectedPlaced.Definition.upgrades[_selectedPlaced.Level];
+                Sprite icon = GetBuildingIcon(_selectedPlaced.Definition);
+                var captured = _selectedPlaced;
+                // targetLevel = the level the building will reach after upgrade
+                GameObject slot = BuildUpgradeSlot(icon, tier.woodCost, tier.metalCost,
+                    _selectedPlaced.Level + 1, font,
+                    () => { HideChoicePanel(); captured?.TryUpgrade(); });
+                slot.transform.SetParent(_choicePanelContent, false);
+            }
+        }
+
+        _choicePanelOpen = true;
+        _choicePanel.SetActive(true);
+
+        if (_choicePanelContent != null)
+            LayoutRebuilder.ForceRebuildLayoutImmediate(
+                _choicePanelContent.GetComponent<RectTransform>());
+
+        AnimateChoicePanel(ActionBarHeight, false);
+    }
+
+    private GameObject BuildUpgradeSlot(Sprite icon, int woodCost, int metalCost,
+        int targetLevel, TMP_FontAsset font, UnityEngine.Events.UnityAction onClick)
+    {
+        const float slotW = 120f;
+        const float slotH = 110f;
+        const float iconS = 72f;
+
+        bool canAfford = ResourceManager.Instance != null
+            && ResourceManager.Instance.Wood  >= woodCost
+            && ResourceManager.Instance.Metal >= metalCost;
+
+        GameObject slot = new GameObject("UpgradeSlot");
+        RectTransform rt = slot.AddComponent<RectTransform>();
+        rt.sizeDelta = new Vector2(slotW, slotH);
+
+        Image bg = slot.AddComponent<Image>();
+        UIHelper.ApplyImage(bg, _theme?.buildSlotBackground, new Color(0.10f, 0.18f, 0.30f, 0.95f), Image.Type.Tiled);
+
+        Button btn = slot.AddComponent<Button>();
+        btn.targetGraphic = bg;
+        btn.interactable  = canAfford;
+        ColorBlock cb     = UIHelper.BtnColors(_theme?.buildSlotBackground,
+            new Color(0.10f, 0.18f, 0.30f), new Color(0.18f, 0.42f, 0.72f), new Color(0.06f, 0.12f, 0.22f));
+        cb.disabledColor  = new Color(0.25f, 0.25f, 0.30f, 0.6f);
+        btn.colors        = cb;
+        btn.onClick.AddListener(onClick);
+
+        // Icon
+        GameObject iconGO = new GameObject("Icon");
+        iconGO.transform.SetParent(slot.transform, false);
+        RectTransform iconRT = iconGO.AddComponent<RectTransform>();
+        iconRT.anchorMin = new Vector2(0.5f, 1f); iconRT.anchorMax = new Vector2(0.5f, 1f);
+        iconRT.pivot     = new Vector2(0.5f, 1f);
+        iconRT.anchoredPosition = new Vector2(0f, -6f);
+        iconRT.sizeDelta = new Vector2(iconS, iconS);
+        Image iconImg = iconGO.AddComponent<Image>();
+        iconImg.raycastTarget = false;
+        if (icon != null) { iconImg.sprite = icon; iconImg.color = canAfford ? Color.white : ColUnaffordable; }
+        else iconImg.color = canAfford ? new Color(0.4f, 0.7f, 1f) : ColUnaffordable;
+
+        // Level badge — top-right corner of icon, shows the resulting level as Roman numeral
+        if (targetLevel > 0)
+        {
+            GameObject badge    = new GameObject("LevelBadge");
+            badge.transform.SetParent(iconGO.transform, false);
+            RectTransform brt   = badge.AddComponent<RectTransform>();
+            brt.anchorMin       = new Vector2(1f, 1f);
+            brt.anchorMax       = new Vector2(1f, 1f);
+            brt.pivot           = new Vector2(1f, 1f);
+            brt.anchoredPosition = Vector2.zero;
+            brt.sizeDelta       = new Vector2(26f, 18f);
+            Image badgeBg       = badge.AddComponent<Image>();
+            badgeBg.color       = new Color(0f, 0f, 0f, 0.72f);
+            badgeBg.raycastTarget = false;
+
+            GameObject badgeTxtGO = new GameObject("Text");
+            badgeTxtGO.transform.SetParent(badge.transform, false);
+            RectTransform trt   = badgeTxtGO.AddComponent<RectTransform>();
+            trt.anchorMin       = Vector2.zero;
+            trt.anchorMax       = Vector2.one;
+            trt.offsetMin       = trt.offsetMax = Vector2.zero;
+            TextMeshProUGUI tmp = badgeTxtGO.AddComponent<TextMeshProUGUI>();
+            tmp.text            = ToRoman(targetLevel);
+            tmp.fontSize        = 13f;
+            tmp.fontStyle       = FontStyles.Bold;
+            tmp.color           = Color.white;
+            tmp.alignment       = TextAlignmentOptions.Center;
+            tmp.raycastTarget   = false;
+            if (font != null) tmp.font = font;
+        }
+
+        // Cost row
+        GameObject costRow = new GameObject("Cost");
+        costRow.transform.SetParent(slot.transform, false);
+        RectTransform crt = costRow.AddComponent<RectTransform>();
+        crt.anchorMin = new Vector2(0f, 0f); crt.anchorMax = new Vector2(1f, 0f);
+        crt.pivot     = new Vector2(0.5f, 0f);
+        crt.anchoredPosition = new Vector2(0f, 4f);
+        crt.sizeDelta = new Vector2(0f, 34f);
+        HorizontalLayoutGroup hlg = costRow.AddComponent<HorizontalLayoutGroup>();
+        hlg.childAlignment = TextAnchor.MiddleCenter; hlg.spacing = 4f;
+        hlg.childControlHeight = true; hlg.childControlWidth = true;
+        hlg.childForceExpandHeight = false; hlg.childForceExpandWidth = false;
+
+        if (woodCost  > 0) AddCostChip(costRow.transform, _theme?.iconWood,  new Color(0.5f, 0.85f, 0.3f), woodCost,  font);
+        if (metalCost > 0) AddCostChip(costRow.transform, _theme?.iconMetal, new Color(0.6f, 0.85f, 1.0f), metalCost, font);
+
+        LayoutElement le = slot.AddComponent<LayoutElement>();
+        le.minWidth = slotW; le.preferredWidth = slotW; le.flexibleWidth = 0f;
+
+        return slot;
+    }
+
+    private static string ToRoman(int n)
+    {
+        if (n <= 0) return "";
+        string[] thousands = { "",  "M",  "MM",  "MMM" };
+        string[] hundreds  = { "", "C", "CC", "CCC", "CD", "D", "DC", "DCC", "DCCC", "CM" };
+        string[] tens      = { "", "X", "XX", "XXX", "XL", "L", "LX", "LXX", "LXXX", "XC" };
+        string[] ones      = { "", "I", "II", "III", "IV", "V", "VI", "VII", "VIII",  "IX" };
+        return thousands[n / 1000]
+             + hundreds[(n % 1000) / 100]
+             + tens[(n % 100) / 10]
+             + ones[n % 10];
+    }
+
+    private void AnimateChoicePanel(float targetY, bool deactivateAfter)
+    {
+        if (_choicePanelAnim != null) StopCoroutine(_choicePanelAnim);
+        _choicePanelAnim = StartCoroutine(SlidePanel(_choicePanelRT, targetY, deactivateAfter, 0.18f,
+            () => _choicePanelAnim = null));
+    }
+
+    private void PopulateChoicePanel(BuildingUpgradeChoice[] choices)
+    {
+        if (_choicePanelContent == null) return;
+        foreach (Transform child in _choicePanelContent) Destroy(child.gameObject);
+
+        TMP_FontAsset font = _theme?.font != null
+            ? _theme.font
+            : Resources.Load<TMP_FontAsset>("Fonts & Materials/LiberationSans SDF");
+
+        foreach (BuildingUpgradeChoice choice in choices)
+        {
+            BuildingUpgradeChoice captured = choice;
+            GameObject slot = BuildChoiceSlot(choice, font, () => OnChoiceClicked(captured));
+            slot.transform.SetParent(_choicePanelContent, false);
         }
     }
 
-    // ── Toast notification ────────────────────────────────────────────────────
+    private GameObject BuildChoiceSlot(BuildingUpgradeChoice choice, TMP_FontAsset font, UnityEngine.Events.UnityAction onClick)
+    {
+        const float slotW = 120f;
+        const float slotH = 110f;
+        const float iconS = 72f;
+
+        GameObject slot = new GameObject("ChoiceSlot");
+        RectTransform rt = slot.AddComponent<RectTransform>();
+        rt.sizeDelta = new Vector2(slotW, slotH);
+
+        Image bg = slot.AddComponent<Image>();
+        UIHelper.ApplyImage(bg, _theme?.buildSlotBackground, new Color(0.10f, 0.18f, 0.30f, 0.95f), Image.Type.Tiled);
+
+        Button btn = slot.AddComponent<Button>();
+        btn.targetGraphic = bg;
+
+        bool canAfford = ResourceManager.Instance != null
+            && ResourceManager.Instance.Wood  >= choice.woodCost
+            && ResourceManager.Instance.Metal >= choice.metalCost;
+        btn.interactable = canAfford;
+        btn.colors = UIHelper.BtnColors(_theme?.buildSlotBackground,
+            new Color(0.10f, 0.18f, 0.30f), new Color(0.18f, 0.42f, 0.72f), new Color(0.06f, 0.12f, 0.22f));
+        btn.onClick.AddListener(onClick);
+
+        // Icon
+        GameObject iconGO = new GameObject("Icon");
+        iconGO.transform.SetParent(slot.transform, false);
+        RectTransform iconRT = iconGO.AddComponent<RectTransform>();
+        iconRT.anchorMin = new Vector2(0.5f, 1f); iconRT.anchorMax = new Vector2(0.5f, 1f);
+        iconRT.pivot = new Vector2(0.5f, 1f);
+        iconRT.anchoredPosition = new Vector2(0f, -6f);
+        iconRT.sizeDelta = new Vector2(iconS, iconS);
+        Image iconImg = iconGO.AddComponent<Image>();
+        iconImg.raycastTarget = false;
+        if (choice.icon != null) { iconImg.sprite = choice.icon; iconImg.color = canAfford ? Color.white : ColUnaffordable; }
+        else iconImg.color = canAfford ? new Color(0.4f, 0.7f, 1f) : ColUnaffordable;
+
+        // Cost row
+        GameObject costRow = new GameObject("Cost");
+        costRow.transform.SetParent(slot.transform, false);
+        RectTransform crt = costRow.AddComponent<RectTransform>();
+        crt.anchorMin = new Vector2(0f, 0f); crt.anchorMax = new Vector2(1f, 0f);
+        crt.pivot = new Vector2(0.5f, 0f);
+        crt.anchoredPosition = new Vector2(0f, 4f);
+        crt.sizeDelta = new Vector2(0f, 34f);
+        HorizontalLayoutGroup hlg = costRow.AddComponent<HorizontalLayoutGroup>();
+        hlg.childAlignment = TextAnchor.MiddleCenter; hlg.spacing = 4f;
+        hlg.childControlHeight = true; hlg.childControlWidth = true;
+        hlg.childForceExpandHeight = false; hlg.childForceExpandWidth = false;
+
+        if (choice.woodCost > 0)  AddCostChip(costRow.transform, _theme?.iconWood,  new Color(0.5f, 0.85f, 0.3f), choice.woodCost,  font);
+        if (choice.metalCost > 0) AddCostChip(costRow.transform, _theme?.iconMetal, new Color(0.6f, 0.85f, 1.0f), choice.metalCost, font);
+
+        LayoutElement le = slot.AddComponent<LayoutElement>();
+        le.minWidth = slotW; le.preferredWidth = slotW; le.flexibleWidth = 0f;
+
+        return slot;
+    }
+
+    private void OnChoiceClicked(BuildingUpgradeChoice choice)
+    {
+        if (_selectedPlaced == null) return;
+        HideChoicePanel();
+        _selectedPlaced.TryUpgradeToChoice(choice);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  Toast
+    // ─────────────────────────────────────────────────────────────────────────
 
     public void ShowToast(string message, Color color)
     {
@@ -570,182 +992,20 @@ public class UIManager : MonoBehaviour
         _toastText.text   = message;
         _toastText.color  = color;
         _toastGroup.alpha = 1f;
-
         float elapsed = 0f;
         while (elapsed < 1.8f) { elapsed += Time.unscaledDeltaTime; yield return null; }
-
         elapsed = 0f;
-        while (elapsed < 0.5f)
-        {
-            _toastGroup.alpha = 1f - elapsed / 0.5f;
-            elapsed += Time.unscaledDeltaTime;
-            yield return null;
-        }
+        while (elapsed < 0.5f) { _toastGroup.alpha = 1f - elapsed / 0.5f; elapsed += Time.unscaledDeltaTime; yield return null; }
         _toastGroup.alpha = 0f;
-        _toastCoroutine   = null;
+        _toastCoroutine = null;
     }
 
-    private void BuildToast(Transform canvas, TMP_FontAsset font)
-    {
-        GameObject toastGO  = new GameObject("Toast");
-        toastGO.transform.SetParent(canvas, false);
-
-        RectTransform rt    = toastGO.AddComponent<RectTransform>();
-        rt.anchorMin        = new Vector2(0.5f, 0.5f);
-        rt.anchorMax        = new Vector2(0.5f, 0.5f);
-        rt.pivot            = new Vector2(0.5f, 0.5f);
-        rt.anchoredPosition = new Vector2(0f, 120f);
-        rt.sizeDelta        = new Vector2(700f, 64f);
-
-        toastGO.AddComponent<Image>().color = new Color(0f, 0f, 0f, 0.80f);
-        _toastGroup       = toastGO.AddComponent<CanvasGroup>();
-        _toastGroup.alpha = 0f;
-
-        GameObject textGO    = new GameObject("ToastText");
-        textGO.transform.SetParent(toastGO.transform, false);
-        RectTransform textRT = textGO.AddComponent<RectTransform>();
-        textRT.anchorMin     = Vector2.zero;
-        textRT.anchorMax     = Vector2.one;
-        textRT.offsetMin     = new Vector2(20f, 0f);
-        textRT.offsetMax     = new Vector2(-20f, 0f);
-
-        _toastText           = textGO.AddComponent<TextMeshProUGUI>();
-        _toastText.fontSize  = 28f;
-        _toastText.alignment = TextAlignmentOptions.Center;
-        _toastText.fontStyle = FontStyles.Bold;
-        _toastText.color     = Color.white;
-        if (font != null) _toastText.font = font;
-    }
-
-    // ── HUD builder ───────────────────────────────────────────────────────────
-
-    private void BuildHUD()
-    {
-        EnsureEventSystem();
-
-        TMP_FontAsset font = _theme?.font != null
-            ? _theme.font
-            : Resources.Load<TMP_FontAsset>("Fonts & Materials/LiberationSans SDF");
-        if (font == null)
-            Debug.LogWarning("UIManager: TMP font not found — import TMP Essential Resources via Window > TextMeshPro.");
-
-        GameObject canvasGO        = new GameObject("HUD Canvas");
-        Canvas canvas              = canvasGO.AddComponent<Canvas>();
-        canvas.renderMode          = RenderMode.ScreenSpaceOverlay;
-        canvas.sortingOrder        = 100;
-
-        CanvasScaler scaler        = canvasGO.AddComponent<CanvasScaler>();
-        scaler.uiScaleMode         = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = new Vector2(1920f, 1080f);
-        scaler.matchWidthOrHeight  = 1f;   // match height — correct for landscape
-
-        canvasGO.AddComponent<GraphicRaycaster>();
-
-        // Safe-area container — insets UI away from notches and gesture bars
-        GameObject safeAreaGO  = new GameObject("SafeArea");
-        safeAreaGO.transform.SetParent(canvasGO.transform, false);
-        RectTransform safeRT   = safeAreaGO.AddComponent<RectTransform>();
-        safeRT.anchorMin       = Vector2.zero;
-        safeRT.anchorMax       = Vector2.one;
-        safeRT.offsetMin       = safeRT.offsetMax = Vector2.zero;
-        safeAreaGO.AddComponent<SafeAreaFitter>();
-        Transform root = safeAreaGO.transform;
-
-        BuildTopBar(root, font);
-        BuildHotbar(root, font);
-        BuildInfoPanel(root, font);
-        BuildBossHealthBar(root, font);
-        BuildToast(root, font);
-    }
-
-    // ── Boss health bar ───────────────────────────────────────────────────────
-
-    private void BuildBossHealthBar(Transform canvas, TMP_FontAsset font)
-    {
-        // Panel — bottom-centre, above hotbar
-        _bossPanel = new GameObject("BossHealthBar");
-        _bossPanel.transform.SetParent(canvas, false);
-
-        RectTransform rt  = _bossPanel.AddComponent<RectTransform>();
-        rt.anchorMin      = new Vector2(0.5f, 1f);
-        rt.anchorMax      = new Vector2(0.5f, 1f);
-        rt.pivot          = new Vector2(0.5f, 1f);
-        rt.anchoredPosition = new Vector2(0f, -(68f + 6f));   // below top bar
-        rt.sizeDelta      = new Vector2(500f, 60f);
-
-        _bossPanel.AddComponent<Image>().color = new Color(0.05f, 0f, 0.1f, 0.85f);
-
-        // Vulnerability glow (full-panel colour overlay)
-        GameObject glowGO = new GameObject("VulnGlow");
-        glowGO.transform.SetParent(_bossPanel.transform, false);
-        RectTransform grt  = glowGO.AddComponent<RectTransform>();
-        grt.anchorMin      = Vector2.zero;
-        grt.anchorMax      = Vector2.one;
-        grt.offsetMin      = grt.offsetMax = Vector2.zero;
-        _bossVulnGlow      = glowGO.AddComponent<Image>();
-        _bossVulnGlow.color = new Color(1f, 1f, 0f, 0f);
-
-        // Name label
-        GameObject nameGO = new GameObject("BossName");
-        nameGO.transform.SetParent(_bossPanel.transform, false);
-        RectTransform nrt  = nameGO.AddComponent<RectTransform>();
-        nrt.anchorMin      = new Vector2(0f, 0.5f);
-        nrt.anchorMax      = new Vector2(0.65f, 1f);
-        nrt.offsetMin      = new Vector2(8f, 0f);
-        nrt.offsetMax      = Vector2.zero;
-        _bossNameText      = nameGO.AddComponent<TextMeshProUGUI>();
-        _bossNameText.font = font;
-        _bossNameText.text = "The Vampire";
-        _bossNameText.fontSize    = 18f;
-        _bossNameText.fontStyle   = FontStyles.Bold;
-        _bossNameText.color       = new Color(0.85f, 0.5f, 1f);
-        _bossNameText.alignment   = TextAlignmentOptions.MidlineLeft;
-
-        // Level badge
-        GameObject lvlGO  = new GameObject("BossLevel");
-        lvlGO.transform.SetParent(_bossPanel.transform, false);
-        RectTransform lrt  = lvlGO.AddComponent<RectTransform>();
-        lrt.anchorMin      = new Vector2(0.65f, 0.5f);
-        lrt.anchorMax      = new Vector2(1f, 1f);
-        lrt.offsetMin      = Vector2.zero;
-        lrt.offsetMax      = new Vector2(-8f, 0f);
-        _bossLevelText     = lvlGO.AddComponent<TextMeshProUGUI>();
-        _bossLevelText.font = font;
-        _bossLevelText.text = "Lv 1";
-        _bossLevelText.fontSize   = 16f;
-        _bossLevelText.color      = new Color(1f, 0.9f, 0.4f);
-        _bossLevelText.alignment  = TextAlignmentOptions.MidlineRight;
-
-        // Health bar background
-        GameObject barBg = new GameObject("HealthBg");
-        barBg.transform.SetParent(_bossPanel.transform, false);
-        RectTransform brt  = barBg.AddComponent<RectTransform>();
-        brt.anchorMin      = new Vector2(0f, 0f);
-        brt.anchorMax      = new Vector2(1f, 0.5f);
-        brt.offsetMin      = new Vector2(8f, 6f);
-        brt.offsetMax      = new Vector2(-8f, 0f);
-        barBg.AddComponent<Image>().color = new Color(0.15f, 0.05f, 0.2f);
-
-        // Health fill
-        GameObject fillGO  = new GameObject("HealthFill");
-        fillGO.transform.SetParent(barBg.transform, false);
-        RectTransform frt   = fillGO.AddComponent<RectTransform>();
-        frt.anchorMin       = Vector2.zero;
-        frt.anchorMax       = Vector2.one;
-        frt.offsetMin       = frt.offsetMax = Vector2.zero;
-        _bossHealthFill     = fillGO.AddComponent<Image>();
-        _bossHealthFill.color = new Color(0.7f, 0.1f, 0.9f);
-        _bossHealthFill.type  = Image.Type.Filled;
-        _bossHealthFill.fillMethod  = Image.FillMethod.Horizontal;
-        _bossHealthFill.fillOrigin  = (int)Image.OriginHorizontal.Left;
-        _bossHealthFill.fillAmount  = 1f;
-
-        _bossPanel.SetActive(false);
-    }
+    // ─────────────────────────────────────────────────────────────────────────
+    //  Update — vampire bind + boss bar pulse
+    // ─────────────────────────────────────────────────────────────────────────
 
     private void Update()
     {
-        // Late-bind to VampireEnemy when it first becomes available
         if (_boundVampire == null && VampireEnemy.Instance != null)
         {
             _boundVampire = VampireEnemy.Instance;
@@ -754,7 +1014,6 @@ public class UIManager : MonoBehaviour
         }
 
         if (_bossPanel == null) return;
-
         bool wasVisible    = _bossPanel.activeSelf;
         bool vampireActive = _boundVampire != null && _boundVampire.gameObject.activeSelf;
         _bossPanel.SetActive(vampireActive);
@@ -777,474 +1036,787 @@ public class UIManager : MonoBehaviour
 
     private void OnVampireLevelChanged(int level)
     {
-        if (_bossLevelText != null)
-            _bossLevelText.text = $"Lv {level}";
+        if (_bossLevelText != null) _bossLevelText.text = $"Lv {level}";
     }
 
-    // ── Top bar ───────────────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────────────────
+    //  HUD builder entry point
+    // ─────────────────────────────────────────────────────────────────────────
 
-    private void BuildTopBar(Transform canvas, TMP_FontAsset font)
+    private void BuildHUD()
     {
-        GameObject bar   = new GameObject("TopBar");
-        bar.transform.SetParent(canvas, false);
+        EnsureEventSystem();
 
+        TMP_FontAsset font = _theme?.font != null
+            ? _theme.font
+            : Resources.Load<TMP_FontAsset>("Fonts & Materials/LiberationSans SDF");
+        if (font == null)
+            Debug.LogWarning("UIManager: TMP font not found — import TMP Essential Resources via Window > TextMeshPro.");
+
+        GameObject canvasGO        = new GameObject("HUD Canvas");
+        Canvas canvas              = canvasGO.AddComponent<Canvas>();
+        canvas.renderMode          = RenderMode.ScreenSpaceOverlay;
+        canvas.sortingOrder        = 100;
+
+        CanvasScaler scaler        = canvasGO.AddComponent<CanvasScaler>();
+        scaler.uiScaleMode         = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.referenceResolution = new Vector2(1920f, 1080f);
+        scaler.matchWidthOrHeight  = 1f;
+
+        canvasGO.AddComponent<GraphicRaycaster>();
+
+        GameObject safeAreaGO = new GameObject("SafeArea");
+        safeAreaGO.transform.SetParent(canvasGO.transform, false);
+        RectTransform safeRT  = safeAreaGO.AddComponent<RectTransform>();
+        safeRT.anchorMin      = Vector2.zero;
+        safeRT.anchorMax      = Vector2.one;
+        safeRT.offsetMin      = safeRT.offsetMax = Vector2.zero;
+        safeAreaGO.AddComponent<SafeAreaFitter>();
+        _hudRoot = safeAreaGO.transform;
+        Transform root = _hudRoot;
+
+        BuildTopBar(root, font);
+        BuildBossHealthBar(root, font);
+        BuildActionBar(root, font);
+        BuildBuildMenuOverlay(root, font);
+        BuildChoicePanelOverlay(root, font);
+        BuildToast(root, font);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  Top bar
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private void BuildTopBar(Transform root, TMP_FontAsset font)
+    {
+        const float barH    = 90f;
+        const float padH    = 60f;
+        const float iconSz  = 30f;
+
+        GameObject bar = new GameObject("TopBar");
+        bar.transform.SetParent(root, false);
         RectTransform rt = bar.AddComponent<RectTransform>();
         rt.anchorMin        = new Vector2(0f, 1f);
         rt.anchorMax        = new Vector2(1f, 1f);
         rt.pivot            = new Vector2(0.5f, 1f);
         rt.anchoredPosition = Vector2.zero;
-        rt.sizeDelta        = new Vector2(0f, 68f);
+        rt.sizeDelta        = new Vector2(0f, barH);
 
-        bar.AddComponent<Image>().color = new Color(0f, 0f, 0f, 0.65f);
+        Image barBg = bar.AddComponent<Image>();
+        UIHelper.ApplyImage(barBg, _theme?.hudPanelBackground, new Color(0f, 0f, 0f, 0.70f), Image.Type.Tiled);
 
-        HorizontalLayoutGroup hlg  = bar.AddComponent<HorizontalLayoutGroup>();
-        hlg.padding                = new RectOffset(20, 20, 8, 8);
-        hlg.spacing                = 0f;
-        hlg.childAlignment         = TextAnchor.MiddleCenter;
-        hlg.childControlHeight     = true;
-        hlg.childControlWidth      = true;
+        HorizontalLayoutGroup hlg = bar.AddComponent<HorizontalLayoutGroup>();
+        hlg.padding               = new RectOffset((int)padH, (int)padH, 0, 0);
+        hlg.spacing               = 0f;
+        hlg.childAlignment        = TextAnchor.MiddleCenter;
+        hlg.childControlHeight    = true;
+        hlg.childControlWidth     = true;
         hlg.childForceExpandHeight = true;
         hlg.childForceExpandWidth  = false;
 
-        // Left: resources
-        GameObject leftGO  = MakeGroup(bar.transform, "Resources");
-        LayoutElement leftLE = leftGO.AddComponent<LayoutElement>();
-        leftLE.flexibleWidth = 1f;
-        VerticalLayoutGroup leftVLG  = leftGO.AddComponent<VerticalLayoutGroup>();
-        leftVLG.childAlignment       = TextAnchor.MiddleLeft;
-        leftVLG.childControlHeight   = true;
-        leftVLG.childControlWidth    = true;
-        leftVLG.childForceExpandHeight = true;
-        leftVLG.childForceExpandWidth  = true;
+        // ── Left: resources ───────────────────────────────────────────────────
+        GameObject leftGO = MakeGroup(bar.transform, "Resources");
+        leftGO.AddComponent<LayoutElement>().flexibleWidth = 1f;
+        HorizontalLayoutGroup leftHLG = leftGO.AddComponent<HorizontalLayoutGroup>();
+        leftHLG.childAlignment        = TextAnchor.MiddleLeft;
+        leftHLG.spacing               = 20f;
+        leftHLG.childControlHeight    = true;
+        leftHLG.childControlWidth     = true;
+        leftHLG.childForceExpandHeight = true;
+        leftHLG.childForceExpandWidth  = false;
 
-        _woodText  = MakeLabel(leftGO.transform,  "WoodText",  "Wood: 0",  font, 24f);
-        _metalText = MakeLabel(leftGO.transform, "MetalText", "Metal: 0", font, 24f);
+        _woodText  = MakeResourceChip(leftGO.transform, "Wood",  _theme?.iconWood,  new Color(0.50f, 0.85f, 0.30f), font, iconSz);
+        _metalText = MakeResourceChip(leftGO.transform, "Metal", _theme?.iconMetal, new Color(0.60f, 0.85f, 1.00f), font, iconSz);
 
-        // Centre: state + timer
-        GameObject centreGO  = MakeGroup(bar.transform, "StateTimer");
-        LayoutElement centreLE = centreGO.AddComponent<LayoutElement>();
-        centreLE.flexibleWidth = 1f;
-        VerticalLayoutGroup centreVLG  = centreGO.AddComponent<VerticalLayoutGroup>();
-        centreVLG.childAlignment       = TextAnchor.MiddleCenter;
-        centreVLG.childControlHeight   = true;
-        centreVLG.childControlWidth    = true;
-        centreVLG.childForceExpandHeight = true;
-        centreVLG.childForceExpandWidth  = true;
+        // ── Centre: state icon + state text + timer ───────────────────────────
+        GameObject centreGO = MakeGroup(bar.transform, "StateTimer");
+        centreGO.AddComponent<LayoutElement>().flexibleWidth = 1f;
+        HorizontalLayoutGroup centreHLG = centreGO.AddComponent<HorizontalLayoutGroup>();
+        centreHLG.childAlignment        = TextAnchor.MiddleCenter;
+        centreHLG.spacing               = 10f;
+        centreHLG.childControlHeight    = true;
+        centreHLG.childControlWidth     = true;
+        centreHLG.childForceExpandHeight = true;
+        centreHLG.childForceExpandWidth  = false;
 
-        _stateText = MakeLabel(centreGO.transform, "StateText", "PREPARATION", font, 26f,
+        // State icon
+        GameObject stateIconGO = new GameObject("StateIcon");
+        stateIconGO.transform.SetParent(centreGO.transform, false);
+        LayoutElement siLE = stateIconGO.AddComponent<LayoutElement>();
+        siLE.minWidth = iconSz; siLE.preferredWidth = iconSz;
+        siLE.minHeight = iconSz; siLE.preferredHeight = iconSz;
+        _stateIcon = stateIconGO.AddComponent<Image>();
+        ApplyIconOrColor(_stateIcon, _theme?.iconPrep, new Color(0.4f, 0.9f, 0.4f, 0.9f));
+
+        // State + timer stacked vertically
+        GameObject stateStack = MakeGroup(centreGO.transform, "StateStack");
+        stateStack.AddComponent<LayoutElement>().flexibleWidth = 0f;
+        VerticalLayoutGroup stateVLG = stateStack.AddComponent<VerticalLayoutGroup>();
+        stateVLG.childAlignment        = TextAnchor.MiddleCenter;
+        stateVLG.childControlHeight    = true;
+        stateVLG.childControlWidth     = true;
+        stateVLG.childForceExpandHeight = true;
+        stateVLG.childForceExpandWidth  = false;
+
+        _stateText = MakeLabel(stateStack.transform, "StateText", "PREPARATION", font, 26f,
                                new Color(0.4f, 0.9f, 0.4f), TextAlignmentOptions.Center);
-        _timerText = MakeLabel(centreGO.transform, "TimerText", "",            font, 22f,
+        _timerText = MakeLabel(stateStack.transform, "TimerText", "",            font, 20f,
                                new Color(1f, 0.85f, 0.3f),  TextAlignmentOptions.Center);
 
-        // Right: HP
-        GameObject rightGO  = MakeGroup(bar.transform, "HP");
-        LayoutElement rightLE = rightGO.AddComponent<LayoutElement>();
-        rightLE.flexibleWidth = 1f;
-        VerticalLayoutGroup rightVLG  = rightGO.AddComponent<VerticalLayoutGroup>();
-        rightVLG.childAlignment       = TextAnchor.MiddleRight;
-        rightVLG.childControlHeight   = true;
-        rightVLG.childControlWidth    = true;
-        rightVLG.childForceExpandHeight = true;
-        rightVLG.childForceExpandWidth  = true;
+        // ── Right: HP + coins ─────────────────────────────────────────────────
+        GameObject rightGO = MakeGroup(bar.transform, "HPCoins");
+        rightGO.AddComponent<LayoutElement>().flexibleWidth = 1f;
+        HorizontalLayoutGroup rightHLG = rightGO.AddComponent<HorizontalLayoutGroup>();
+        rightHLG.childAlignment        = TextAnchor.MiddleRight;
+        rightHLG.spacing               = 16f;
+        rightHLG.childControlHeight    = true;
+        rightHLG.childControlWidth     = true;
+        rightHLG.childForceExpandHeight = true;
+        rightHLG.childForceExpandWidth  = false;
 
-        MakeLabel(rightGO.transform, "HPCaption", "HEALTH", font, 16f,
-                  new Color(0.6f, 0.6f, 0.6f), TextAlignmentOptions.Right);
-        _hpText = MakeLabel(rightGO.transform, "HPText", "--/--", font, 22f,
-                            Color.white, TextAlignmentOptions.Right);
-        _currencyText = MakeLabel(rightGO.transform, "CurrencyText", "Coins: 0", font, 18f,
-                                  new Color(1f, 0.85f, 0.2f), TextAlignmentOptions.Right);
+        _hpText       = MakeResourceChip(rightGO.transform, "HP",    _theme?.iconHealth, new Color(0.95f, 0.30f, 0.35f), font, iconSz, "--/--");
+        _currencyText = MakeResourceChip(rightGO.transform, "Coins", _theme?.iconCoin,   new Color(1.00f, 0.85f, 0.20f), font, iconSz, "0");
 
-        // Pause button — fixed-width slot at the right end of the top bar
-        GameObject pauseBtnGO = new GameObject("PauseButton");
-        pauseBtnGO.transform.SetParent(bar.transform, false);
-
-        LayoutElement pauseLE   = pauseBtnGO.AddComponent<LayoutElement>();
-        pauseLE.minWidth        = 52f;
-        pauseLE.preferredWidth  = 52f;
+        // ── Pause button ──────────────────────────────────────────────────────
+        GameObject pauseGO = new GameObject("PauseBtn");
+        pauseGO.transform.SetParent(bar.transform, false);
+        LayoutElement pauseLE   = pauseGO.AddComponent<LayoutElement>();
+        pauseLE.minWidth        = 90f;
+        pauseLE.preferredWidth  = 90f;
         pauseLE.flexibleWidth   = 0f;
-
-        Image pauseImg          = pauseBtnGO.AddComponent<Image>();
+        Image pauseImg          = pauseGO.AddComponent<Image>();
         UIHelper.ApplyImage(pauseImg, _theme?.buttonSetting, new Color(0.18f, 0.18f, 0.22f, 0.85f));
-
-        Button pauseBtn         = pauseBtnGO.AddComponent<Button>();
+        Button pauseBtn         = pauseGO.AddComponent<Button>();
         pauseBtn.targetGraphic  = pauseImg;
-        pauseBtn.colors         = UIHelper.BtnColors(_theme?.buttonSecondary,
-                                      Color.white, new Color(0.7f, 0.85f, 1f), new Color(0.45f, 0.55f, 0.7f));
+        pauseBtn.colors         = UIHelper.BtnColors(_theme?.buttonSetting,
+                                    Color.white, new Color(0.7f, 0.85f, 1f), new Color(0.45f, 0.55f, 0.7f));
         pauseBtn.onClick.AddListener(() => PauseMenuManager.Instance?.Pause());
     }
 
-    // ── Hotbar ────────────────────────────────────────────────────────────────
-
-    private void BuildHotbar(Transform canvas, TMP_FontAsset font)
+    private TextMeshProUGUI MakeResourceChip(Transform parent, string name, Sprite icon,
+        Color iconFallback, TMP_FontAsset font, float iconSz, string defaultText = "0")
     {
-        const int slots = 5;   // matches BuildingManager.Hotkeys.Length
-        _hotbarBgs          = new Image[slots];
-        _hotbarNames        = new TextMeshProUGUI[slots];
-        _hotbarCosts        = new TextMeshProUGUI[slots];
-        _hotbarLockOverlays = new Image[slots];
+        GameObject chip = new GameObject(name + "Chip");
+        chip.transform.SetParent(parent, false);
+        chip.AddComponent<RectTransform>();
+        HorizontalLayoutGroup hlg = chip.AddComponent<HorizontalLayoutGroup>();
+        hlg.childAlignment         = TextAnchor.MiddleLeft;
+        hlg.spacing                = 6f;
+        hlg.childControlHeight     = true;
+        hlg.childControlWidth      = true;
+        hlg.childForceExpandHeight = false;
+        hlg.childForceExpandWidth  = false;
 
-        GameObject hotbar   = new GameObject("Hotbar");
-        hotbar.transform.SetParent(canvas, false);
+        GameObject iconGO = new GameObject("Icon");
+        iconGO.transform.SetParent(chip.transform, false);
+        LayoutElement ile = iconGO.AddComponent<LayoutElement>();
+        ile.minWidth = iconSz; ile.preferredWidth = iconSz;
+        ile.minHeight = iconSz; ile.preferredHeight = iconSz;
+        Image iconImg = iconGO.AddComponent<Image>();
+        iconImg.raycastTarget = false;
+        ApplyIconOrColor(iconImg, icon, iconFallback);
 
-        RectTransform rt    = hotbar.AddComponent<RectTransform>();
+        GameObject textGO = new GameObject("Text");
+        textGO.transform.SetParent(chip.transform, false);
+        textGO.AddComponent<RectTransform>();
+        TextMeshProUGUI tmp = textGO.AddComponent<TextMeshProUGUI>();
+        tmp.text      = defaultText;
+        tmp.fontSize  = 26f;
+        tmp.color     = Color.white;
+        tmp.fontStyle = FontStyles.Bold;
+        tmp.alignment = TextAlignmentOptions.MidlineLeft;
+        tmp.raycastTarget = false;
+        if (font != null) tmp.font = font;
+
+        return tmp;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  Action bar
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private void BuildActionBar(Transform root, TMP_FontAsset font)
+    {
+        _actionBar = new GameObject("ActionBar");
+        _actionBar.transform.SetParent(root, false);
+
+        RectTransform rt    = _actionBar.AddComponent<RectTransform>();
         rt.anchorMin        = new Vector2(0f, 0f);
         rt.anchorMax        = new Vector2(1f, 0f);
         rt.pivot            = new Vector2(0.5f, 0f);
         rt.anchoredPosition = Vector2.zero;
-        rt.sizeDelta        = new Vector2(0f, 108f);
+        rt.sizeDelta        = new Vector2(0f, ActionBarHeight);
 
-        hotbar.AddComponent<Image>().color = new Color(0f, 0f, 0f, 0.65f);
+        Image barBg = _actionBar.AddComponent<Image>();
+        UIHelper.ApplyImage(barBg, _theme?.hudPanelBackground, new Color(0f, 0f, 0f, 0.70f), Image.Type.Tiled);
 
-        HorizontalLayoutGroup hlg  = hotbar.AddComponent<HorizontalLayoutGroup>();
-        hlg.padding                = new RectOffset(8, 8, 8, 8);
-        hlg.spacing                = 4f;
-        hlg.childAlignment         = TextAnchor.MiddleCenter;
-        hlg.childControlHeight     = true;
-        hlg.childControlWidth      = true;
+        HorizontalLayoutGroup hlg = _actionBar.AddComponent<HorizontalLayoutGroup>();
+        hlg.padding               = new RectOffset(60, 60, 0, 0);
+        hlg.spacing               = 0f;
+        hlg.childAlignment        = TextAnchor.MiddleLeft;
+        hlg.childControlHeight    = true;
+        hlg.childControlWidth     = true;
         hlg.childForceExpandHeight = true;
-        hlg.childForceExpandWidth  = true;
+        hlg.childForceExpandWidth  = false;
 
-        for (int i = 0; i < slots; i++)
-        {
-            int idx = i;   // capture for lambda
+        // ── Hammer / build button (fixed 80×80) ───────────────────────────────
+        GameObject buildBtnGO = new GameObject("BuildBtn");
+        buildBtnGO.transform.SetParent(_actionBar.transform, false);
+        LayoutElement ble   = buildBtnGO.AddComponent<LayoutElement>();
+        ble.minWidth        = ActionBarHeight;
+        ble.preferredWidth  = ActionBarHeight;
+        ble.flexibleWidth   = 0f;
 
-            GameObject slot   = new GameObject($"Slot_{i}");
-            slot.transform.SetParent(hotbar.transform, false);
+        _buildBtnImage      = buildBtnGO.AddComponent<Image>();
+        UIHelper.ApplyImage(_buildBtnImage, _theme?.hudPanelBackground, new Color(0.08f, 0.08f, 0.16f, 1f));
 
-            Image slotBg      = slot.AddComponent<Image>();
-            slotBg.color      = SlotNormal;
-            _hotbarBgs[i]     = slotBg;
+        Button buildBtn     = buildBtnGO.AddComponent<Button>();
+        buildBtn.targetGraphic = _buildBtnImage;
+        buildBtn.colors     = UIHelper.BtnColors(_theme?.hudPanelBackground,
+            new Color(0.08f, 0.08f, 0.16f), new Color(0.18f, 0.35f, 0.60f), new Color(0.05f, 0.05f, 0.10f));
+        buildBtn.onClick.AddListener(OnBuildButtonClicked);
 
-            Button btn        = slot.AddComponent<Button>();
-            btn.targetGraphic = slotBg;
-            ColorBlock cb     = btn.colors;
-            cb.normalColor    = Color.white;
-            cb.highlightedColor = new Color(0.85f, 0.85f, 1f);
-            btn.colors        = cb;
-            btn.onClick.AddListener(() => BuildingManager.Instance?.SelectBuilding(idx));
+        GameObject hammerIconGO = new GameObject("HammerIcon");
+        hammerIconGO.transform.SetParent(buildBtnGO.transform, false);
+        RectTransform hammerRT = hammerIconGO.AddComponent<RectTransform>();
+        hammerRT.anchorMin = new Vector2(0.5f, 0.5f);
+        hammerRT.anchorMax = new Vector2(0.5f, 0.5f);
+        hammerRT.pivot     = new Vector2(0.5f, 0.5f);
+        hammerRT.sizeDelta = new Vector2(44f, 44f);
+        hammerRT.anchoredPosition = Vector2.zero;
+        Image hammerImg    = hammerIconGO.AddComponent<Image>();
+        hammerImg.raycastTarget = false;
+        ApplyIconOrColor(hammerImg, _theme?.iconBuild, new Color(0.7f, 0.7f, 0.8f));
 
-            VerticalLayoutGroup vlg    = slot.AddComponent<VerticalLayoutGroup>();
-            vlg.padding                = new RectOffset(6, 6, 6, 6);
-            vlg.spacing                = 2f;
-            vlg.childAlignment         = TextAnchor.MiddleCenter;
-            vlg.childControlHeight     = true;
-            vlg.childControlWidth      = true;
-            vlg.childForceExpandHeight = true;
-            vlg.childForceExpandWidth  = true;
+        // ── Context area (fills remaining width) ──────────────────────────────
+        GameObject contextGO = new GameObject("ContextArea");
+        contextGO.transform.SetParent(_actionBar.transform, false);
+        contextGO.AddComponent<RectTransform>();
+        contextGO.AddComponent<LayoutElement>().flexibleWidth = 1f;
 
-            MakeLabel(slot.transform, "Hotkey", $"[{i + 1}]", font, 16f,
-                      new Color(0.65f, 0.65f, 0.65f), TextAlignmentOptions.Center);
+        BuildPlacingPage(contextGO.transform, font);
+        BuildInfoPage(contextGO.transform, font);
 
-            _hotbarNames[i] = MakeLabel(slot.transform, "Name", $"—",   font, 20f,
-                                        Color.white, TextAlignmentOptions.Center);
-            _hotbarCosts[i] = MakeLabel(slot.transform, "Cost", "",      font, 15f,
-                                        new Color(0.8f, 0.9f, 0.55f), TextAlignmentOptions.Center);
-
-            // Dark overlay shown when this slot is locked (citadel not yet placed)
-            GameObject lockGO    = new GameObject("LockOverlay");
-            lockGO.transform.SetParent(slot.transform, false);
-            RectTransform lockRT = lockGO.AddComponent<RectTransform>();
-            lockRT.anchorMin     = Vector2.zero;
-            lockRT.anchorMax     = Vector2.one;
-            lockRT.offsetMin     = lockRT.offsetMax = Vector2.zero;
-            lockGO.AddComponent<LayoutElement>().ignoreLayout = true;
-            Image lockImg         = lockGO.AddComponent<Image>();
-            lockImg.color         = new Color(0f, 0f, 0f, 0.60f);
-            lockImg.raycastTarget = false;
-            _hotbarLockOverlays[i] = lockImg;
-            lockGO.SetActive(false);
-        }
-
-        // Cancel placement button — shown only while placement mode is active
-        _cancelBuildSlot = new GameObject("CancelBuildSlot");
-        _cancelBuildSlot.transform.SetParent(hotbar.transform, false);
-
-        LayoutElement cancelLE  = _cancelBuildSlot.AddComponent<LayoutElement>();
-        cancelLE.minWidth       = 88f;
-        cancelLE.preferredWidth = 88f;
-        cancelLE.flexibleWidth  = 0f;
-
-        Image cancelBg          = _cancelBuildSlot.AddComponent<Image>();
-        UIHelper.ApplyImage(cancelBg, _theme?.buttonNav, new Color(0.55f, 0.06f, 0.06f, 0.90f));
-
-        Button cancelBtn        = _cancelBuildSlot.AddComponent<Button>();
-        cancelBtn.targetGraphic = cancelBg;
-        cancelBtn.colors        = UIHelper.BtnColors(_theme?.buttonNav,
-            new Color(0.55f, 0.06f, 0.06f), new Color(0.80f, 0.15f, 0.15f), new Color(0.38f, 0.04f, 0.04f));
-        cancelBtn.onClick.AddListener(() => BuildingManager.Instance?.CancelPlacement());
-
-        VerticalLayoutGroup cancelVLG    = _cancelBuildSlot.AddComponent<VerticalLayoutGroup>();
-        cancelVLG.padding                = new RectOffset(4, 4, 4, 4);
-        cancelVLG.childAlignment         = TextAnchor.MiddleCenter;
-        cancelVLG.childControlHeight     = true;
-        cancelVLG.childControlWidth      = true;
-        cancelVLG.childForceExpandHeight = true;
-        cancelVLG.childForceExpandWidth  = true;
-
-        MakeLabel(_cancelBuildSlot.transform, "CancelText", "✕\nCancel", font, 19f,
-                  Color.white, TextAlignmentOptions.Center);
-
-        _cancelBuildSlot.SetActive(false);
+        // Start with both pages hidden
+        _placingPage?.SetActive(false);
+        _infoPage?.SetActive(false);
     }
 
-    // ── Info panel (bottom drawer) ────────────────────────────────────────────
-
-    private void BuildInfoPanel(Transform canvas, TMP_FontAsset font)
+    private void BuildPlacingPage(Transform parent, TMP_FontAsset font)
     {
-        const float drawerH = 280f;
-        const float hotbarH = 108f;
-        const float headerH = 42f;
-        _drawerShownY  = hotbarH;
-        _drawerHiddenY = -(drawerH - hotbarH);   // slides down behind the hotbar
+        _placingPage = new GameObject("PlacingPage");
+        _placingPage.transform.SetParent(parent, false);
+        RectTransform rt = _placingPage.AddComponent<RectTransform>();
+        rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one;
+        rt.offsetMin = rt.offsetMax = Vector2.zero;
 
-        GameObject panel = new GameObject("InfoPanel");
-        panel.transform.SetParent(canvas, false);
-        _infoPanel = panel;
+        HorizontalLayoutGroup hlg = _placingPage.AddComponent<HorizontalLayoutGroup>();
+        hlg.padding               = new RectOffset(12, 12, 8, 8);
+        hlg.spacing               = 16f;
+        hlg.childAlignment        = TextAnchor.MiddleLeft;
+        hlg.childControlHeight    = true;
+        hlg.childControlWidth     = true;
+        hlg.childForceExpandHeight = true;
+        hlg.childForceExpandWidth  = false;
 
-        RectTransform rt = panel.AddComponent<RectTransform>();
-        rt.anchorMin        = new Vector2(0f, 0f);
-        rt.anchorMax        = new Vector2(1f, 0f);
-        rt.pivot            = new Vector2(0.5f, 0f);
-        rt.anchoredPosition = new Vector2(0f, _drawerHiddenY);
-        rt.sizeDelta        = new Vector2(0f, drawerH);
-        _drawerRT = rt;
+        // Building icon
+        GameObject iconGO = new GameObject("PlacingIcon");
+        iconGO.transform.SetParent(_placingPage.transform, false);
+        LayoutElement ile = iconGO.AddComponent<LayoutElement>();
+        ile.minWidth = 56f; ile.preferredWidth = 56f; ile.flexibleWidth = 0f;
+        _placingIcon = iconGO.AddComponent<Image>();
+        _placingIcon.color = new Color(0.5f, 0.7f, 1f);
 
-        panel.AddComponent<Image>().color = new Color(0.04f, 0.04f, 0.10f, 0.92f);
+        // Label (flex)
+        GameObject labelGO = new GameObject("PlacingLabel");
+        labelGO.transform.SetParent(_placingPage.transform, false);
+        labelGO.AddComponent<RectTransform>();
+        labelGO.AddComponent<LayoutElement>().flexibleWidth = 1f;
+        _placingLabel = labelGO.AddComponent<TextMeshProUGUI>();
+        _placingLabel.text      = "Tap to place";
+        _placingLabel.fontSize  = 22f;
+        _placingLabel.color     = new Color(0.8f, 0.9f, 1f);
+        _placingLabel.alignment = TextAlignmentOptions.MidlineLeft;
+        if (font != null) _placingLabel.font = font;
 
-        // ── Header ────────────────────────────────────────────────────────────
-        GameObject headerGO = new GameObject("Header");
-        headerGO.transform.SetParent(panel.transform, false);
-        RectTransform headerRT    = headerGO.AddComponent<RectTransform>();
-        headerRT.anchorMin        = new Vector2(0f, 1f);
-        headerRT.anchorMax        = new Vector2(1f, 1f);
-        headerRT.pivot            = new Vector2(0.5f, 1f);
-        headerRT.anchoredPosition = Vector2.zero;
-        headerRT.sizeDelta        = new Vector2(0f, headerH);
-        headerGO.AddComponent<Image>().color = new Color(0f, 0f, 0f, 0.40f);
-
-        HorizontalLayoutGroup headerHLG  = headerGO.AddComponent<HorizontalLayoutGroup>();
-        headerHLG.padding                = new RectOffset(14, 8, 0, 0);
-        headerHLG.spacing                = 8f;
-        headerHLG.childAlignment         = TextAnchor.MiddleLeft;
-        headerHLG.childControlHeight     = true;
-        headerHLG.childControlWidth      = true;
-        headerHLG.childForceExpandHeight = true;
-        headerHLG.childForceExpandWidth  = false;
-
-        _infoBuildingName = MakeLabel(headerGO.transform, "InfoName", "", font, 22f,
-                                      new Color(1f, 0.85f, 0.3f), TextAlignmentOptions.MidlineLeft);
-        _infoBuildingName.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1f;
-
-        // Close button (✕)
-        GameObject closeBtnGO = new GameObject("CloseBtn");
-        closeBtnGO.transform.SetParent(headerGO.transform, false);
-        LayoutElement closeLE  = closeBtnGO.AddComponent<LayoutElement>();
-        closeLE.minWidth       = 42f;
-        closeLE.preferredWidth = 42f;
-        closeLE.flexibleWidth  = 0f;
-        Image closeImg         = closeBtnGO.AddComponent<Image>();
-        UIHelper.ApplyImage(closeImg, _theme?.buttonNav, new Color(0.25f, 0.06f, 0.06f, 0.90f));
-        Button closeBtn        = closeBtnGO.AddComponent<Button>();
-        closeBtn.targetGraphic = closeImg;
-        closeBtn.colors        = UIHelper.BtnColors(_theme?.buttonNav,
-            new Color(0.3f, 0.08f, 0.08f), new Color(0.55f, 0.15f, 0.15f), new Color(0.2f, 0.05f, 0.05f));
-        closeBtn.onClick.AddListener(() => PlacedBuilding.Deselect());
-        GameObject closeTxtGO    = new GameObject("CloseText");
-        closeTxtGO.transform.SetParent(closeBtnGO.transform, false);
-        RectTransform closeTxtRT = closeTxtGO.AddComponent<RectTransform>();
-        closeTxtRT.anchorMin     = Vector2.zero;
-        closeTxtRT.anchorMax     = Vector2.one;
-        closeTxtRT.offsetMin     = closeTxtRT.offsetMax = Vector2.zero;
-        TextMeshProUGUI closeTxt = closeTxtGO.AddComponent<TextMeshProUGUI>();
-        closeTxt.text      = "✕";
-        closeTxt.fontSize  = 22f;
-        closeTxt.alignment = TextAlignmentOptions.Center;
-        closeTxt.color     = Color.white;
-        if (font != null) closeTxt.font = font;
-
-        // ── Body (two-column layout below header) ─────────────────────────────
-        GameObject bodyGO = new GameObject("Body");
-        bodyGO.transform.SetParent(panel.transform, false);
-        RectTransform bodyRT = bodyGO.AddComponent<RectTransform>();
-        bodyRT.anchorMin     = new Vector2(0f, 0f);
-        bodyRT.anchorMax     = new Vector2(1f, 1f);
-        bodyRT.offsetMin     = Vector2.zero;
-        bodyRT.offsetMax     = new Vector2(0f, -headerH);
-
-        HorizontalLayoutGroup bodyHLG  = bodyGO.AddComponent<HorizontalLayoutGroup>();
-        bodyHLG.padding                = new RectOffset(8, 8, 8, 8);
-        bodyHLG.spacing                = 8f;
-        bodyHLG.childAlignment         = TextAnchor.UpperLeft;
-        bodyHLG.childControlHeight     = true;
-        bodyHLG.childControlWidth      = true;
-        bodyHLG.childForceExpandHeight = true;
-        bodyHLG.childForceExpandWidth  = false;
-
-        // Left column — description + stats (flexible)
-        GameObject leftCol = MakeGroup(bodyGO.transform, "LeftCol");
-        leftCol.AddComponent<LayoutElement>().flexibleWidth = 1f;
-        VerticalLayoutGroup leftVLG    = leftCol.AddComponent<VerticalLayoutGroup>();
-        leftVLG.spacing                = 6f;
-        leftVLG.childAlignment         = TextAnchor.UpperLeft;
-        leftVLG.childControlHeight     = false;
-        leftVLG.childControlWidth      = true;
-        leftVLG.childForceExpandHeight = false;
-        leftVLG.childForceExpandWidth  = true;
-
-        _infoDescription = MakeLabel(leftCol.transform, "InfoDesc", "", font, 16f,
-                                     new Color(0.72f, 0.72f, 0.72f), TextAlignmentOptions.Left);
-        _infoDescription.enableWordWrapping = true;
-        SetPrefHeight(_infoDescription.gameObject, 48f);
-
-        _infoStats = MakeLabel(leftCol.transform, "InfoStats", "", font, 16f,
-                               Color.white, TextAlignmentOptions.Left);
-        _infoStats.enableWordWrapping = false;
-        SetPrefHeight(_infoStats.gameObject, 120f);
-
-        // Right column — 190px fixed: repair + upgrade/choice
-        GameObject rightCol = MakeGroup(bodyGO.transform, "RightCol");
-        LayoutElement rightLE = rightCol.AddComponent<LayoutElement>();
-        rightLE.minWidth       = 190f;
-        rightLE.preferredWidth = 190f;
-        rightLE.flexibleWidth  = 0f;
-        VerticalLayoutGroup rightVLG    = rightCol.AddComponent<VerticalLayoutGroup>();
-        rightVLG.spacing                = 6f;
-        rightVLG.childAlignment         = TextAnchor.UpperCenter;
-        rightVLG.childControlHeight     = false;
-        rightVLG.childControlWidth      = true;
-        rightVLG.childForceExpandHeight = false;
-        rightVLG.childForceExpandWidth  = true;
-
-        // Repair button
-        {
-            GameObject repairGO = new GameObject("RepairBtn");
-            repairGO.transform.SetParent(rightCol.transform, false);
-            Image repairImg         = repairGO.AddComponent<Image>();
-            UIHelper.ApplyImage(repairImg, _theme?.buttonNav, new Color(0.12f, 0.45f, 0.12f, 1f));
-            _repairButton           = repairGO.AddComponent<Button>();
-            _repairButton.targetGraphic = repairImg;
-            _repairButton.onClick.AddListener(OnRepairClicked);
-            ColorBlock repairCB     = UIHelper.BtnColors(_theme?.buttonNav,
-                new Color(0.12f, 0.45f, 0.12f), new Color(0.18f, 0.65f, 0.18f), new Color(0.08f, 0.30f, 0.08f));
-            repairCB.disabledColor  = new Color(0.30f, 0.30f, 0.30f);
-            _repairButton.colors    = repairCB;
-            repairGO.AddComponent<LayoutElement>().preferredHeight = 44f;
-
-            GameObject repairTextGO    = new GameObject("RepairText");
-            repairTextGO.transform.SetParent(repairGO.transform, false);
-            RectTransform repairTextRT = repairTextGO.AddComponent<RectTransform>();
-            repairTextRT.anchorMin     = Vector2.zero;
-            repairTextRT.anchorMax     = Vector2.one;
-            repairTextRT.offsetMin     = repairTextRT.offsetMax = Vector2.zero;
-            _repairButtonText          = repairTextGO.AddComponent<TextMeshProUGUI>();
-            _repairButtonText.text     = "Repair";
-            _repairButtonText.fontSize = 19f;
-            _repairButtonText.alignment = TextAlignmentOptions.Center;
-            _repairButtonText.color    = Color.white;
-            if (font != null) _repairButtonText.font = font;
-
-            repairGO.SetActive(false);
-        }
-
-        // ── Standard tier-upgrade section ─────────────────────────────────────
-        _upgradeSection = MakeGroup(rightCol.transform, "UpgradeSection");
-        {
-            VerticalLayoutGroup uVLG    = _upgradeSection.AddComponent<VerticalLayoutGroup>();
-            uVLG.spacing                = 6f;
-            uVLG.childAlignment         = TextAnchor.UpperCenter;
-            uVLG.childControlHeight     = false;
-            uVLG.childControlWidth      = true;
-            uVLG.childForceExpandHeight = false;
-            uVLG.childForceExpandWidth  = true;
-            SetPrefHeight(_upgradeSection, 88f);
-
-            _infoLevel = MakeLabel(_upgradeSection.transform, "InfoLevel", "", font, 16f,
-                                   new Color(0.45f, 0.85f, 1f), TextAlignmentOptions.Center);
-            SetPrefHeight(_infoLevel.gameObject, 26f);
-
-            GameObject btnGO = new GameObject("UpgradeBtn");
-            btnGO.transform.SetParent(_upgradeSection.transform, false);
-            Image btnImg         = btnGO.AddComponent<Image>();
-            UIHelper.ApplyImage(btnImg, _theme?.buttonNav, new Color(0.12f, 0.55f, 0.12f, 1f));
-            _upgradeButton       = btnGO.AddComponent<Button>();
-            _upgradeButton.targetGraphic = btnImg;
-            _upgradeButton.onClick.AddListener(OnUpgradeClicked);
-            ColorBlock upgCB     = UIHelper.BtnColors(_theme?.buttonNav,
-                new Color(0.12f, 0.55f, 0.12f), new Color(0.18f, 0.75f, 0.18f), new Color(0.08f, 0.38f, 0.08f));
-            upgCB.disabledColor  = new Color(0.35f, 0.35f, 0.35f);
-            _upgradeButton.colors = upgCB;
-            btnGO.AddComponent<LayoutElement>().preferredHeight = 56f;
-
-            GameObject btnTextGO    = new GameObject("BtnText");
-            btnTextGO.transform.SetParent(btnGO.transform, false);
-            RectTransform btnTextRT = btnTextGO.AddComponent<RectTransform>();
-            btnTextRT.anchorMin     = Vector2.zero;
-            btnTextRT.anchorMax     = Vector2.one;
-            btnTextRT.offsetMin     = Vector2.zero;
-            btnTextRT.offsetMax     = Vector2.zero;
-            _upgradeButtonText      = btnTextGO.AddComponent<TextMeshProUGUI>();
-            _upgradeButtonText.text = "Upgrade";
-            _upgradeButtonText.fontSize   = 19f;
-            _upgradeButtonText.alignment  = TextAlignmentOptions.Center;
-            _upgradeButtonText.color      = Color.white;
-            if (font != null) _upgradeButtonText.font = font;
-        }
-
-        // ── Choice-upgrade section ────────────────────────────────────────────
-        _choiceSection = MakeGroup(rightCol.transform, "ChoiceSection");
-        {
-            VerticalLayoutGroup cVLG    = _choiceSection.AddComponent<VerticalLayoutGroup>();
-            cVLG.spacing                = 5f;
-            cVLG.childAlignment         = TextAnchor.UpperCenter;
-            cVLG.childControlHeight     = false;
-            cVLG.childControlWidth      = true;
-            cVLG.childForceExpandHeight = false;
-            cVLG.childForceExpandWidth  = true;
-            SetPrefHeight(_choiceSection, 24f + MaxChoices * (56f + 5f));
-
-            MakeLabel(_choiceSection.transform, "ChoiceHeader", "Upgrade to:", font, 14f,
-                      new Color(0.6f, 0.6f, 0.6f), TextAlignmentOptions.Center);
-
-            for (int i = 0; i < MaxChoices; i++)
-            {
-                int idx = i;
-
-                GameObject cBtn   = new GameObject($"ChoiceBtn_{i}");
-                cBtn.transform.SetParent(_choiceSection.transform, false);
-                Image cImg        = cBtn.AddComponent<Image>();
-                UIHelper.ApplyImage(cImg, _theme?.buttonNav, new Color(0.12f, 0.38f, 0.55f, 1f));
-                Button btn        = cBtn.AddComponent<Button>();
-                btn.targetGraphic = cImg;
-                btn.onClick.AddListener(() => OnChoiceClicked(idx));
-                ColorBlock cb     = UIHelper.BtnColors(_theme?.buttonNav,
-                    new Color(0.12f, 0.38f, 0.55f), new Color(0.18f, 0.52f, 0.75f), new Color(0.08f, 0.25f, 0.38f));
-                cb.disabledColor  = new Color(0.25f, 0.25f, 0.25f);
-                btn.colors        = cb;
-                cBtn.AddComponent<LayoutElement>().preferredHeight = 56f;
-                _choiceButtons[i] = btn;
-
-                VerticalLayoutGroup bVLG    = cBtn.AddComponent<VerticalLayoutGroup>();
-                bVLG.padding                = new RectOffset(8, 8, 6, 6);
-                bVLG.spacing                = 2f;
-                bVLG.childAlignment         = TextAnchor.MiddleLeft;
-                bVLG.childControlHeight     = true;
-                bVLG.childControlWidth      = true;
-                bVLG.childForceExpandHeight = true;
-                bVLG.childForceExpandWidth  = true;
-
-                _choiceNameTexts[i] = MakeLabel(cBtn.transform, "ChoiceName", "", font, 14f,
-                                                Color.white, TextAlignmentOptions.Left);
-                _choiceNameTexts[i].enableWordWrapping = true;
-
-                _choiceCostTexts[i] = MakeLabel(cBtn.transform, "ChoiceCost", "", font, 12f,
-                                                new Color(0.8f, 0.9f, 0.55f), TextAlignmentOptions.Left);
-            }
-        }
-
-        panel.SetActive(false);
+        // Cancel button (fixed right)
+        GameObject cancelGO = new GameObject("CancelBtn");
+        cancelGO.transform.SetParent(_placingPage.transform, false);
+        LayoutElement cle   = cancelGO.AddComponent<LayoutElement>();
+        cle.minWidth        = 80f; cle.preferredWidth = 80f; cle.flexibleWidth = 0f;
+        Image cancelImg     = cancelGO.AddComponent<Image>();
+        UIHelper.ApplyImage(cancelImg, _theme?.buttonDanger, new Color(0.50f, 0.05f, 0.05f, 1f));
+        Button cancelBtn    = cancelGO.AddComponent<Button>();
+        cancelBtn.targetGraphic = cancelImg;
+        cancelBtn.colors    = UIHelper.BtnColors(_theme?.buttonDanger,
+            new Color(0.50f, 0.05f, 0.05f), new Color(0.75f, 0.12f, 0.12f), new Color(0.35f, 0.03f, 0.03f));
+        cancelBtn.onClick.AddListener(() => BuildingManager.Instance?.CancelPlacement());
+        MakeOverlayLabel(cancelGO.transform, "✕", font, 28f, Color.white);
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
+    private void BuildInfoPage(Transform parent, TMP_FontAsset font)
+    {
+        _infoPage = new GameObject("InfoPage");
+        _infoPage.transform.SetParent(parent, false);
+        RectTransform rt = _infoPage.AddComponent<RectTransform>();
+        rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one;
+        rt.offsetMin = rt.offsetMax = Vector2.zero;
+
+        HorizontalLayoutGroup hlg = _infoPage.AddComponent<HorizontalLayoutGroup>();
+        hlg.padding               = new RectOffset(12, 12, 6, 6);
+        hlg.spacing               = 14f;
+        hlg.childAlignment        = TextAnchor.MiddleLeft;
+        hlg.childControlHeight    = true;
+        hlg.childControlWidth     = true;
+        hlg.childForceExpandHeight = true;
+        hlg.childForceExpandWidth  = false;
+
+        // Building icon (square, fixed)
+        GameObject iconGO = new GameObject("BuildingIcon");
+        iconGO.transform.SetParent(_infoPage.transform, false);
+        LayoutElement ile = iconGO.AddComponent<LayoutElement>();
+        ile.minWidth = 60f; ile.preferredWidth = 60f; ile.flexibleWidth = 0f;
+        _infoBuildingIcon = iconGO.AddComponent<Image>();
+        _infoBuildingIcon.color = new Color(0.5f, 0.7f, 1f);
+
+        // Name + HP bar column (flex)
+        GameObject hpCol = MakeGroup(_infoPage.transform, "HPCol");
+        hpCol.AddComponent<LayoutElement>().flexibleWidth = 1f;
+        VerticalLayoutGroup hpVLG = hpCol.AddComponent<VerticalLayoutGroup>();
+        hpVLG.childAlignment       = TextAnchor.MiddleLeft;
+        hpVLG.spacing              = 4f;
+        hpVLG.childControlHeight   = true;
+        hpVLG.childControlWidth    = true;
+        hpVLG.childForceExpandHeight = false;
+        hpVLG.childForceExpandWidth  = true;
+
+        _infoBuildingName = MakeLabel(hpCol.transform, "BuildingName", "", font, 18f,
+                                      new Color(1f, 0.85f, 0.3f), TextAlignmentOptions.Left);
+        SetPrefHeight(_infoBuildingName.gameObject, 24f);
+
+        // HP bar background
+        GameObject hpBgGO = new GameObject("HPBarBg");
+        hpBgGO.transform.SetParent(hpCol.transform, false);
+        hpBgGO.AddComponent<RectTransform>();
+        SetPrefHeight(hpBgGO, 20f);
+        Image hpBgImg = hpBgGO.AddComponent<Image>();
+        hpBgImg.color = new Color(0.12f, 0.12f, 0.12f, 1f);
+
+        // HP fill
+        GameObject hpFillGO = new GameObject("HPFill");
+        hpFillGO.transform.SetParent(hpBgGO.transform, false);
+        RectTransform fillRT = hpFillGO.AddComponent<RectTransform>();
+        fillRT.anchorMin = Vector2.zero; fillRT.anchorMax = Vector2.one;
+        fillRT.offsetMin = fillRT.offsetMax = Vector2.zero;
+        _infoHpFill = hpFillGO.AddComponent<Image>();
+        _infoHpFill.color      = ColHpHigh;
+        _infoHpFill.type       = Image.Type.Filled;
+        _infoHpFill.fillMethod = Image.FillMethod.Horizontal;
+        _infoHpFill.fillOrigin = (int)Image.OriginHorizontal.Left;
+        _infoHpFill.fillAmount = 1f;
+
+        // HP text overlaid on bar
+        GameObject hpTxtGO = new GameObject("HPText");
+        hpTxtGO.transform.SetParent(hpBgGO.transform, false);
+        RectTransform hpTxtRT = hpTxtGO.AddComponent<RectTransform>();
+        hpTxtRT.anchorMin = Vector2.zero; hpTxtRT.anchorMax = Vector2.one;
+        hpTxtRT.offsetMin = new Vector2(4f, 0f); hpTxtRT.offsetMax = new Vector2(-4f, 0f);
+        _infoHpText = hpTxtGO.AddComponent<TextMeshProUGUI>();
+        _infoHpText.fontSize  = 14f;
+        _infoHpText.color     = Color.white;
+        _infoHpText.fontStyle = FontStyles.Bold;
+        _infoHpText.alignment = TextAlignmentOptions.Center;
+        _infoHpText.raycastTarget = false;
+        if (font != null) _infoHpText.font = font;
+
+        // ── Action buttons ────────────────────────────────────────────────────
+        GameObject actionRow = MakeGroup(_infoPage.transform, "ActionRow");
+        actionRow.AddComponent<LayoutElement>().flexibleWidth = 0f;
+        HorizontalLayoutGroup aHLG = actionRow.AddComponent<HorizontalLayoutGroup>();
+        aHLG.childAlignment        = TextAnchor.MiddleRight;
+        aHLG.spacing               = 8f;
+        aHLG.childControlHeight    = true;
+        aHLG.childControlWidth     = true;
+        aHLG.childForceExpandHeight = true;
+        aHLG.childForceExpandWidth  = false;
+
+        _repairBtn  = BuildActionIconButton(actionRow.transform, "Repair",  _theme?.iconRepair,
+                          new Color(0.12f, 0.45f, 0.12f), new Color(0.18f, 0.65f, 0.18f), OnRepairClicked, font);
+        _upgradeBtn = BuildActionIconButton(actionRow.transform, "Upgrade", _theme?.iconUpgrade,
+                          new Color(0.12f, 0.40f, 0.65f), new Color(0.18f, 0.55f, 0.85f), OnUpgradeClicked, font);
+        _destroyBtn = BuildActionIconButton(actionRow.transform, "Destroy", _theme?.iconDestroy,
+                          new Color(0.55f, 0.08f, 0.08f), new Color(0.80f, 0.15f, 0.15f), OnDestroyClicked, font);
+
+        // ── Close button ──────────────────────────────────────────────────────
+        GameObject closeGO  = new GameObject("CloseBtn");
+        closeGO.transform.SetParent(_infoPage.transform, false);
+        LayoutElement cle   = closeGO.AddComponent<LayoutElement>();
+        cle.minWidth        = 56f; cle.preferredWidth = 56f; cle.flexibleWidth = 0f;
+        Image closeImg      = closeGO.AddComponent<Image>();
+        UIHelper.ApplyImage(closeImg, _theme?.buttonDanger, new Color(0.28f, 0.06f, 0.06f, 0.9f));
+        Button closeBtn     = closeGO.AddComponent<Button>();
+        closeBtn.targetGraphic = closeImg;
+        closeBtn.colors     = UIHelper.BtnColors(_theme?.buttonDanger,
+            new Color(0.28f, 0.06f, 0.06f), new Color(0.50f, 0.12f, 0.12f), new Color(0.18f, 0.04f, 0.04f));
+        closeBtn.onClick.AddListener(() => { HideChoicePanel(); PlacedBuilding.Deselect(); });
+        MakeOverlayLabel(closeGO.transform, "✕", font, 22f, Color.white);
+    }
+
+    private Button BuildActionIconButton(Transform parent, string goName, Sprite icon,
+        Color normalCol, Color hoverCol, UnityEngine.Events.UnityAction onClick, TMP_FontAsset font)
+    {
+        const float sz = 60f;
+        GameObject go  = new GameObject(goName + "Btn");
+        go.transform.SetParent(parent, false);
+        LayoutElement le = go.AddComponent<LayoutElement>();
+        le.minWidth = sz; le.preferredWidth = sz; le.flexibleWidth = 0f;
+
+        Image img       = go.AddComponent<Image>();
+        UIHelper.ApplyImage(img, _theme?.buttonNav, normalCol);
+
+        Button btn      = go.AddComponent<Button>();
+        btn.targetGraphic = img;
+        ColorBlock cb   = UIHelper.BtnColors(_theme?.buttonNav, normalCol, hoverCol, normalCol * 0.7f);
+        cb.disabledColor = new Color(0.25f, 0.25f, 0.25f, 0.6f);
+        btn.colors      = cb;
+        btn.onClick.AddListener(onClick);
+
+        GameObject iconGO  = new GameObject("Icon");
+        iconGO.transform.SetParent(go.transform, false);
+        RectTransform irt  = iconGO.AddComponent<RectTransform>();
+        irt.anchorMin      = new Vector2(0.15f, 0.15f);
+        irt.anchorMax      = new Vector2(0.85f, 0.85f);
+        irt.offsetMin      = irt.offsetMax = Vector2.zero;
+        Image iconImg      = iconGO.AddComponent<Image>();
+        iconImg.raycastTarget = false;
+        ApplyIconOrColor(iconImg, icon, Color.white);
+
+        return btn;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  Build menu overlay
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private void BuildBuildMenuOverlay(Transform root, TMP_FontAsset font)
+    {
+        // Full-screen backdrop — sits behind menu, closes it on tap
+        _buildMenuBackdrop = new GameObject("BuildMenuBackdrop");
+        _buildMenuBackdrop.transform.SetParent(root, false);
+        RectTransform brt = _buildMenuBackdrop.AddComponent<RectTransform>();
+        brt.anchorMin = Vector2.zero; brt.anchorMax = Vector2.one;
+        brt.offsetMin = new Vector2(0f, ActionBarHeight);   // leave action bar uncovered
+        brt.offsetMax = Vector2.zero;
+        Image backdropImg = _buildMenuBackdrop.AddComponent<Image>();
+        backdropImg.color = new Color(0f, 0f, 0f, 0.01f);   // nearly invisible but receives touch
+        Button backdropBtn = _buildMenuBackdrop.AddComponent<Button>();
+        backdropBtn.targetGraphic = backdropImg;
+        backdropBtn.transition    = Selectable.Transition.None;
+        backdropBtn.onClick.AddListener(HideBuildMenu);
+        _buildMenuBackdrop.SetActive(false);
+
+        // Panel — anchored at bottom, slides up
+        _buildMenuPanel = new GameObject("BuildMenuPanel");
+        _buildMenuPanel.transform.SetParent(root, false);
+        _buildMenuRT = _buildMenuPanel.AddComponent<RectTransform>();
+        _buildMenuRT.anchorMin        = new Vector2(0f, 0f);
+        _buildMenuRT.anchorMax        = new Vector2(1f, 0f);
+        _buildMenuRT.pivot            = new Vector2(0.5f, 0f);
+        _buildMenuRT.anchoredPosition = new Vector2(0f, -BuildMenuHeight);   // hidden below
+        _buildMenuRT.sizeDelta        = new Vector2(0f, BuildMenuHeight);
+
+        Image panelBg = _buildMenuPanel.AddComponent<Image>();
+        UIHelper.ApplyImage(panelBg, _theme?.hudPanelBackground, new Color(0.04f, 0.04f, 0.10f, 0.95f), Image.Type.Tiled);
+
+        // ScrollRect
+        ScrollRect scroll   = _buildMenuPanel.AddComponent<ScrollRect>();
+        scroll.horizontal   = true;
+        scroll.vertical     = false;
+        scroll.scrollSensitivity = 30f;
+
+        GameObject viewport = new GameObject("Viewport");
+        viewport.transform.SetParent(_buildMenuPanel.transform, false);
+        RectTransform vpRT  = viewport.AddComponent<RectTransform>();
+        vpRT.anchorMin      = Vector2.zero; vpRT.anchorMax = Vector2.one;
+        vpRT.offsetMin      = new Vector2(12f, 10f);
+        vpRT.offsetMax      = new Vector2(-12f, -10f);
+        viewport.AddComponent<RectMask2D>();
+        scroll.viewport     = vpRT;
+
+        GameObject content  = new GameObject("Content");
+        content.transform.SetParent(viewport.transform, false);
+        RectTransform cRT   = content.AddComponent<RectTransform>();
+        cRT.anchorMin       = new Vector2(0f, 0f);
+        cRT.anchorMax       = new Vector2(0f, 1f);
+        cRT.pivot           = new Vector2(0f, 0.5f);
+        cRT.anchoredPosition = Vector2.zero;
+        cRT.sizeDelta        = new Vector2(0f, 0f);
+
+        HorizontalLayoutGroup cHLG  = content.AddComponent<HorizontalLayoutGroup>();
+        cHLG.childAlignment         = TextAnchor.MiddleLeft;
+        cHLG.spacing                = 10f;
+        cHLG.childControlHeight     = true;
+        cHLG.childControlWidth      = true;
+        cHLG.childForceExpandHeight = true;
+        cHLG.childForceExpandWidth  = false;
+        cHLG.padding                = new RectOffset(60, 60, 4, 4);
+
+        ContentSizeFitter csf = content.AddComponent<ContentSizeFitter>();
+        csf.horizontalFit     = ContentSizeFitter.FitMode.PreferredSize;
+        csf.verticalFit       = ContentSizeFitter.FitMode.Unconstrained;
+
+        scroll.content = cRT;
+        _buildMenuContent = content.transform;
+        _buildMenuPanel.SetActive(false);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  Choice panel overlay
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private void BuildChoicePanelOverlay(Transform root, TMP_FontAsset font)
+    {
+        _choicePanel = new GameObject("ChoicePanel");
+        _choicePanel.transform.SetParent(root, false);
+        _choicePanelRT = _choicePanel.AddComponent<RectTransform>();
+        _choicePanelRT.anchorMin        = new Vector2(0f, 0f);
+        _choicePanelRT.anchorMax        = new Vector2(1f, 0f);
+        _choicePanelRT.pivot            = new Vector2(0.5f, 0f);
+        _choicePanelRT.anchoredPosition = new Vector2(0f, -ChoicePanelHeight);
+        _choicePanelRT.sizeDelta        = new Vector2(0f, ChoicePanelHeight);
+
+        Image panelBg = _choicePanel.AddComponent<Image>();
+        UIHelper.ApplyImage(panelBg, _theme?.hudPanelBackground, new Color(0.06f, 0.06f, 0.14f, 0.95f), Image.Type.Tiled);
+
+        // Header label
+        TMP_FontAsset f = _theme?.font != null
+            ? _theme.font
+            : Resources.Load<TMP_FontAsset>("Fonts & Materials/LiberationSans SDF");
+
+        GameObject headerGO = new GameObject("Header");
+        headerGO.transform.SetParent(_choicePanel.transform, false);
+        RectTransform hRT   = headerGO.AddComponent<RectTransform>();
+        hRT.anchorMin       = new Vector2(0f, 1f); hRT.anchorMax = new Vector2(1f, 1f);
+        hRT.pivot           = new Vector2(0.5f, 1f);
+        hRT.anchoredPosition = new Vector2(0f, -4f);
+        hRT.sizeDelta        = new Vector2(0f, 24f);
+        _choicePanelHeader = headerGO.AddComponent<TextMeshProUGUI>();
+        _choicePanelHeader.text      = "CHOOSE UPGRADE";
+        _choicePanelHeader.fontSize  = 16f;
+        _choicePanelHeader.color     = new Color(0.65f, 0.65f, 0.65f);
+        _choicePanelHeader.alignment = TextAlignmentOptions.Center;
+        _choicePanelHeader.raycastTarget = false;
+        if (f != null) _choicePanelHeader.font = f;
+
+        // Scrollable row of choices
+        ScrollRect scroll = _choicePanel.AddComponent<ScrollRect>();
+        scroll.horizontal = true;
+        scroll.vertical   = false;
+        scroll.scrollSensitivity = 30f;
+
+        GameObject viewport = new GameObject("Viewport");
+        viewport.transform.SetParent(_choicePanel.transform, false);
+        RectTransform vpRT  = viewport.AddComponent<RectTransform>();
+        vpRT.anchorMin      = new Vector2(0f, 0f);
+        vpRT.anchorMax      = new Vector2(1f, 1f);
+        vpRT.offsetMin      = new Vector2(12f, 8f);
+        vpRT.offsetMax      = new Vector2(-12f, -28f);
+        viewport.AddComponent<RectMask2D>();
+        scroll.viewport     = vpRT;
+
+        GameObject content  = new GameObject("Content");
+        content.transform.SetParent(viewport.transform, false);
+        RectTransform cRT   = content.AddComponent<RectTransform>();
+        cRT.anchorMin       = new Vector2(0f, 0f);
+        cRT.anchorMax       = new Vector2(0f, 1f);
+        cRT.pivot           = new Vector2(0f, 0.5f);
+        cRT.anchoredPosition = Vector2.zero;
+        cRT.sizeDelta        = Vector2.zero;
+
+        HorizontalLayoutGroup cHLG  = content.AddComponent<HorizontalLayoutGroup>();
+        cHLG.childAlignment         = TextAnchor.MiddleLeft;
+        cHLG.spacing                = 10f;
+        cHLG.childControlHeight     = true;
+        cHLG.childControlWidth      = true;
+        cHLG.childForceExpandHeight = true;
+        cHLG.childForceExpandWidth  = false;
+        cHLG.padding                = new RectOffset(60, 60, 4, 4);
+
+        ContentSizeFitter csf = content.AddComponent<ContentSizeFitter>();
+        csf.horizontalFit     = ContentSizeFitter.FitMode.PreferredSize;
+        csf.verticalFit       = ContentSizeFitter.FitMode.Unconstrained;
+
+        scroll.content      = cRT;
+        _choicePanelContent = content.transform;
+        _choicePanel.SetActive(false);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  Boss health bar (unchanged)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private void BuildBossHealthBar(Transform canvas, TMP_FontAsset font)
+    {
+        _bossPanel = new GameObject("BossHealthBar");
+        _bossPanel.transform.SetParent(canvas, false);
+
+        RectTransform rt  = _bossPanel.AddComponent<RectTransform>();
+        rt.anchorMin      = new Vector2(0.5f, 1f);
+        rt.anchorMax      = new Vector2(0.5f, 1f);
+        rt.pivot          = new Vector2(0.5f, 1f);
+        rt.anchoredPosition = new Vector2(0f, -96f);
+        rt.sizeDelta      = new Vector2(500f, 60f);
+
+        _bossPanel.AddComponent<Image>().color = new Color(0.05f, 0f, 0.1f, 0.85f);
+
+        GameObject glowGO  = new GameObject("VulnGlow");
+        glowGO.transform.SetParent(_bossPanel.transform, false);
+        RectTransform grt  = glowGO.AddComponent<RectTransform>();
+        grt.anchorMin = Vector2.zero; grt.anchorMax = Vector2.one;
+        grt.offsetMin = grt.offsetMax = Vector2.zero;
+        _bossVulnGlow = glowGO.AddComponent<Image>();
+        _bossVulnGlow.color = new Color(1f, 1f, 0f, 0f);
+
+        GameObject nameGO = new GameObject("BossName");
+        nameGO.transform.SetParent(_bossPanel.transform, false);
+        RectTransform nrt  = nameGO.AddComponent<RectTransform>();
+        nrt.anchorMin = new Vector2(0f, 0.5f); nrt.anchorMax = new Vector2(0.65f, 1f);
+        nrt.offsetMin = new Vector2(8f, 0f);   nrt.offsetMax = Vector2.zero;
+        _bossNameText = nameGO.AddComponent<TextMeshProUGUI>();
+        _bossNameText.font      = font;
+        _bossNameText.text      = "The Vampire";
+        _bossNameText.fontSize  = 18f;
+        _bossNameText.fontStyle = FontStyles.Bold;
+        _bossNameText.color     = new Color(0.85f, 0.5f, 1f);
+        _bossNameText.alignment = TextAlignmentOptions.MidlineLeft;
+
+        GameObject lvlGO  = new GameObject("BossLevel");
+        lvlGO.transform.SetParent(_bossPanel.transform, false);
+        RectTransform lrt  = lvlGO.AddComponent<RectTransform>();
+        lrt.anchorMin = new Vector2(0.65f, 0.5f); lrt.anchorMax = new Vector2(1f, 1f);
+        lrt.offsetMin = Vector2.zero; lrt.offsetMax = new Vector2(-8f, 0f);
+        _bossLevelText = lvlGO.AddComponent<TextMeshProUGUI>();
+        _bossLevelText.font      = font;
+        _bossLevelText.text      = "Lv 1";
+        _bossLevelText.fontSize  = 16f;
+        _bossLevelText.color     = new Color(1f, 0.9f, 0.4f);
+        _bossLevelText.alignment = TextAlignmentOptions.MidlineRight;
+
+        GameObject barBg = new GameObject("HealthBg");
+        barBg.transform.SetParent(_bossPanel.transform, false);
+        RectTransform brt  = barBg.AddComponent<RectTransform>();
+        brt.anchorMin = new Vector2(0f, 0f); brt.anchorMax = new Vector2(1f, 0.5f);
+        brt.offsetMin = new Vector2(8f, 6f); brt.offsetMax = new Vector2(-8f, 0f);
+        barBg.AddComponent<Image>().color = new Color(0.15f, 0.05f, 0.2f);
+
+        GameObject fillGO  = new GameObject("HealthFill");
+        fillGO.transform.SetParent(barBg.transform, false);
+        RectTransform frt   = fillGO.AddComponent<RectTransform>();
+        frt.anchorMin = Vector2.zero; frt.anchorMax = Vector2.one;
+        frt.offsetMin = frt.offsetMax = Vector2.zero;
+        _bossHealthFill = fillGO.AddComponent<Image>();
+        _bossHealthFill.color      = new Color(0.7f, 0.1f, 0.9f);
+        _bossHealthFill.type       = Image.Type.Filled;
+        _bossHealthFill.fillMethod = Image.FillMethod.Horizontal;
+        _bossHealthFill.fillOrigin = (int)Image.OriginHorizontal.Left;
+        _bossHealthFill.fillAmount = 1f;
+
+        _bossPanel.SetActive(false);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  Toast
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private void BuildToast(Transform canvas, TMP_FontAsset font)
+    {
+        GameObject toastGO  = new GameObject("Toast");
+        toastGO.transform.SetParent(canvas, false);
+
+        RectTransform rt    = toastGO.AddComponent<RectTransform>();
+        rt.anchorMin        = new Vector2(0.5f, 0.5f);
+        rt.anchorMax        = new Vector2(0.5f, 0.5f);
+        rt.pivot            = new Vector2(0.5f, 0.5f);
+        rt.anchoredPosition = new Vector2(0f, 120f);
+        rt.sizeDelta        = new Vector2(700f, 64f);
+
+        toastGO.AddComponent<Image>().color = new Color(0f, 0f, 0f, 0.80f);
+        _toastGroup       = toastGO.AddComponent<CanvasGroup>();
+        _toastGroup.alpha = 0f;
+
+        GameObject textGO    = new GameObject("ToastText");
+        textGO.transform.SetParent(toastGO.transform, false);
+        RectTransform textRT = textGO.AddComponent<RectTransform>();
+        textRT.anchorMin     = Vector2.zero; textRT.anchorMax = Vector2.one;
+        textRT.offsetMin     = new Vector2(20f, 0f); textRT.offsetMax = new Vector2(-20f, 0f);
+
+        _toastText           = textGO.AddComponent<TextMeshProUGUI>();
+        _toastText.fontSize  = 28f;
+        _toastText.alignment = TextAlignmentOptions.Center;
+        _toastText.fontStyle = FontStyles.Bold;
+        _toastText.color     = Color.white;
+        if (font != null) _toastText.font = font;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  Build button callback
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private void OnBuildButtonClicked()
+    {
+        if (_buildMenuOpen)
+        {
+            HideBuildMenu();
+            return;
+        }
+
+        // Cancel any active build placement or building selection
+        if (BuildingManager.Instance != null && BuildingManager.Instance.IsPlacing)
+            BuildingManager.Instance.CancelPlacement();
+
+        HideChoicePanel();
+        ShowBuildMenu();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  Generic panel slide coroutine
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private IEnumerator SlidePanel(RectTransform rt, float targetY, bool deactivateAfter,
+                                   float duration, System.Action onDone)
+    {
+        float startY  = rt.anchoredPosition.y;
+        float elapsed = 0f;
+        while (elapsed < duration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float t  = Mathf.SmoothStep(0f, 1f, elapsed / duration);
+            rt.anchoredPosition = new Vector2(0f, Mathf.LerpUnclamped(startY, targetY, t));
+            yield return null;
+        }
+        rt.anchoredPosition = new Vector2(0f, targetY);
+        if (deactivateAfter) rt.gameObject.SetActive(false);
+        onDone?.Invoke();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  Helpers
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private static Sprite GetBuildingIcon(BuildingDefinition def)
+    {
+        if (def == null) return null;
+        if (def.icon != null) return def.icon;
+        return def.prefab != null
+            ? def.prefab.GetComponentInChildren<SpriteRenderer>()?.sprite
+            : null;
+    }
+
+    private static void ApplyIconOrColor(Image img, Sprite sprite, Color fallback)
+    {
+        if (sprite != null) { img.sprite = sprite; img.color = Color.white; }
+        else                { img.color  = fallback; }
+    }
 
     private static GameObject MakeGroup(Transform parent, string goName)
     {
@@ -1261,7 +1833,6 @@ public class UIManager : MonoBehaviour
         GameObject go = new GameObject(goName);
         go.transform.SetParent(parent, false);
         go.AddComponent<RectTransform>();
-
         TextMeshProUGUI tmp = go.AddComponent<TextMeshProUGUI>();
         tmp.text      = text;
         tmp.fontSize  = fontSize;
@@ -1269,6 +1840,23 @@ public class UIManager : MonoBehaviour
         tmp.alignment = alignment;
         if (font != null) tmp.font = font;
         return tmp;
+    }
+
+    private static void MakeOverlayLabel(Transform parent, string text, TMP_FontAsset font,
+        float fontSize, Color color)
+    {
+        GameObject go    = new GameObject("Label");
+        go.transform.SetParent(parent, false);
+        RectTransform rt = go.AddComponent<RectTransform>();
+        rt.anchorMin     = Vector2.zero; rt.anchorMax = Vector2.one;
+        rt.offsetMin     = rt.offsetMax = Vector2.zero;
+        TextMeshProUGUI tmp = go.AddComponent<TextMeshProUGUI>();
+        tmp.text      = text;
+        tmp.fontSize  = fontSize;
+        tmp.color     = color;
+        tmp.alignment = TextAlignmentOptions.Center;
+        tmp.raycastTarget = false;
+        if (font != null) tmp.font = font;
     }
 
     private static void SetPrefHeight(GameObject go, float h)

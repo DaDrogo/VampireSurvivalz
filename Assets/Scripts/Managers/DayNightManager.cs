@@ -80,8 +80,9 @@ public class DayNightManager : MonoBehaviour
     // Visual
     private Image            _overlayImage;
     private Image            _cycleArc;
-    private Image            _phaseImage;       // full-bleed background of the widget
-    private Image            _dimOverlay;       // semi-transparent overlay on the phase image
+    private Image            _phaseImage;       // background of the widget
+    private Image            _dayNightIcon;     // phase icon inside the strip
+    private Image            _dimOverlay;
     private TextMeshProUGUI  _phaseNameLabel;
     private TextMeshProUGUI  _timeLabel;
 
@@ -251,8 +252,8 @@ public class DayNightManager : MonoBehaviour
             _cycleArc.color      = Color.Lerp(ArcDay, ArcNight, nightT);
         }
 
-        // Phase image (full-bleed widget background)
-        if (_phaseImage != null)
+        // Phase icon swap
+        if (_dayNightIcon != null)
         {
             Sprite phaseSprite = CurrentPhase switch
             {
@@ -263,29 +264,23 @@ public class DayNightManager : MonoBehaviour
                 _                    => null
             };
 
-            if (phaseSprite != null)
-            {
-                _phaseImage.sprite  = phaseSprite;
-                _phaseImage.color   = Color.white;
-            }
-            else
-            {
-                // Colour-only fallback when no theme sprite is assigned
-                _phaseImage.sprite = null;
-                _phaseImage.color  = Color.Lerp(
-                    new Color(0.90f, 0.75f, 0.25f, 1f),
-                    new Color(0.05f, 0.05f, 0.22f, 1f),
-                    nightT);
-            }
+            if (phaseSprite != null) { _dayNightIcon.sprite = phaseSprite; _dayNightIcon.color = Color.white; }
+            else _dayNightIcon.color = Color.Lerp(new Color(1f, 0.85f, 0.2f), new Color(0.4f, 0.5f, 1f), nightT);
         }
+
+        // Phase name colour shifts day→night
+        if (_phaseNameLabel != null)
+            _phaseNameLabel.color = Color.Lerp(
+                new Color(1f, 0.90f, 0.55f),
+                new Color(0.65f, 0.75f, 1.00f),
+                nightT);
 
         // Dim overlay: deepen slightly at night so text stays readable
         if (_dimOverlay != null)
             _dimOverlay.color = new Color(0f, 0f, 0f, Mathf.Lerp(0.30f, 0.55f, nightT));
 
-        // Phase name
+        // Phase name text
         if (_phaseNameLabel != null)
-        {
             _phaseNameLabel.text = CurrentPhase switch
             {
                 Phase.Day            => "Day",
@@ -294,7 +289,6 @@ public class DayNightManager : MonoBehaviour
                 Phase.DawnTransition => "Dawn",
                 _                    => ""
             };
-        }
 
         // Time remaining
         if (_timeLabel != null)
@@ -331,14 +325,8 @@ public class DayNightManager : MonoBehaviour
         _overlayImage.color        = DayOverlay;
         _overlayImage.raycastTarget = false;
 
-        // ── Widget canvas (above HUD) ─────────────────────────────────────────
-        Canvas widgetCanvas = MakeCanvas("DayNightWidgetCanvas", 101);
-        CanvasScaler scaler = widgetCanvas.gameObject.AddComponent<CanvasScaler>();
-        scaler.uiScaleMode         = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = new Vector2(1920f, 1080f);
-        scaler.matchWidthOrHeight  = 1f;
-
-        BuildWidget(widgetCanvas.transform, font);
+        // Widget is now built by UIManager.Start() into the HUD canvas so that
+        // both share the same CanvasScaler — see UIManager.Start().
     }
 
     private Canvas MakeCanvas(string name, int order)
@@ -353,49 +341,59 @@ public class DayNightManager : MonoBehaviour
         return c;
     }
 
-    private void BuildWidget(Transform parent, TMP_FontAsset font)
+    public void BuildWidget(Transform parent, TMP_FontAsset font)
     {
-        // ── Root — top-centre, below the 68 px HUD bar ───────────────────
-        GameObject root       = new GameObject("DayNightWidget");
+        // Small icon + timer stacked vertically, anchored top-right below the 90 px top bar.
+        const float topBarH = 90f;
+        const float iconSz  = 32f;
+        const float timerH  = 18f;
+        const float spacing = 2f;
+        const float totalW  = iconSz;
+        const float totalH  = iconSz + spacing + timerH;
+
+        GameObject root   = new GameObject("DayNightWidget");
         root.transform.SetParent(parent, false);
-        RectTransform rrt     = root.AddComponent<RectTransform>();
-        rrt.anchorMin         = new Vector2(1f, 1f);
-        rrt.anchorMax         = new Vector2(1f, 1f);
-        rrt.pivot             = new Vector2(0.5f, 1f);
-        rrt.anchoredPosition  = new Vector2(-130f, -74f);
-        rrt.sizeDelta         = new Vector2(120f, 120f);
+        RectTransform rrt = root.AddComponent<RectTransform>();
+        rrt.anchorMin        = new Vector2(1f, 1f);
+        rrt.anchorMax        = new Vector2(1f, 1f);
+        rrt.pivot            = new Vector2(1f, 1f);
+        rrt.anchoredPosition = new Vector2(-12f, -topBarH - 8f);
+        rrt.sizeDelta        = new Vector2(totalW, totalH);
 
-        // ── Phase image (full-bleed background) ──────────────────────────
-        GameObject imgGO          = new GameObject("PhaseImage");
-        imgGO.transform.SetParent(root.transform, false);
-        Stretch(imgGO.AddComponent<RectTransform>());
-        _phaseImage               = imgGO.AddComponent<Image>();
-        _phaseImage.preserveAspect = false;
-        _phaseImage.raycastTarget  = false;
-        _phaseImage.color          = new Color(0.90f, 0.75f, 0.25f, 1f); // day fallback
+        VerticalLayoutGroup vlg  = root.AddComponent<VerticalLayoutGroup>();
+        vlg.spacing              = spacing;
+        vlg.childAlignment       = TextAnchor.UpperCenter;
+        vlg.childControlWidth    = true;
+        vlg.childControlHeight   = true;
+        vlg.childForceExpandWidth  = true;
+        vlg.childForceExpandHeight = false;
 
-        // ── Dim overlay ───────────────────────────────────────────────────
-        GameObject dimGO      = new GameObject("DimOverlay");
-        dimGO.transform.SetParent(root.transform, false);
-        Stretch(dimGO.AddComponent<RectTransform>());
-        _dimOverlay               = dimGO.AddComponent<Image>();
-        _dimOverlay.color         = new Color(0f, 0f, 0f, 0.35f);
-        _dimOverlay.raycastTarget = false;
+        // Icon
+        GameObject iconGO      = new GameObject("PhaseIcon");
+        iconGO.transform.SetParent(root.transform, false);
+        LayoutElement ile      = iconGO.AddComponent<LayoutElement>();
+        ile.minHeight          = iconSz;
+        ile.preferredHeight    = iconSz;
+        ile.flexibleHeight     = 0f;
+        _dayNightIcon          = iconGO.AddComponent<Image>();
+        _dayNightIcon.raycastTarget = false;
+        Sprite daySprite = _theme?.dayNightDay;
+        if (daySprite != null) { _dayNightIcon.sprite = daySprite; _dayNightIcon.color = Color.white; }
+        else _dayNightIcon.color = new Color(1f, 0.85f, 0.2f);
 
-        // ── Text block (left portion, leaves 90 px for the arc) ──────────
-        GameObject textGO         = new GameObject("TextBlock");
-        textGO.transform.SetParent(root.transform, false);
-        Stretch(textGO.AddComponent<RectTransform>());
-
-        GameObject timeGO    = new GameObject("TimeLabel");
-        timeGO.transform.SetParent(textGO.transform, false);
-        RectTransform textRT      = timeGO.AddComponent<RectTransform>();
-        textRT.anchorMin          = new Vector2(0.5f, 0f);
-        textRT.anchorMax          = new Vector2(0.5f, 0f);
-        _timeLabel           = timeGO.AddComponent<TextMeshProUGUI>();
-        _timeLabel.fontSize  = 28f;
-        _timeLabel.alignment = TextAlignmentOptions.Center;
-        _timeLabel.color     = new Color(0.85f, 0.85f, 0.85f, 1f);
+        // Timer below icon
+        GameObject timeGO      = new GameObject("TimeLabel");
+        timeGO.transform.SetParent(root.transform, false);
+        LayoutElement tle      = timeGO.AddComponent<LayoutElement>();
+        tle.minHeight          = timerH;
+        tle.preferredHeight    = timerH;
+        tle.flexibleHeight     = 0f;
+        _timeLabel             = timeGO.AddComponent<TextMeshProUGUI>();
+        _timeLabel.fontSize    = 13f;
+        _timeLabel.fontStyle   = FontStyles.Bold;
+        _timeLabel.color       = new Color(0.85f, 0.85f, 0.85f);
+        _timeLabel.alignment   = TextAlignmentOptions.Center;
+        _timeLabel.raycastTarget = false;
         if (font != null) _timeLabel.font = font;
     }
 

@@ -14,8 +14,12 @@ public class Enemy : MonoBehaviour, IDamageable, ILexikonSource
     [Header("Attack")]
     [SerializeField] private float attackDamage   = 10f;
     [SerializeField] private float attackInterval = 1.5f;
-    [Tooltip("Maximum distance at which the enemy stops to attack a blocker.")]
-    [SerializeField] private float attackRange    = 1.2f;
+    [Tooltip("Melee reach — enemy must be within this distance to deal damage to a building.")]
+    [SerializeField] private float attackRange    = 0.8f;
+    [Tooltip("Radius within which a nearby building is detected and the enemy detours to attack it.")]
+    [SerializeField] private float attackDetectionRadius = 2.0f;
+    [Tooltip("How often (seconds) the detection radius is scanned for buildings.")]
+    [SerializeField] private float attackScanInterval    = 0.3f;
 
     [Header("Linecast Block")]
     [Tooltip("Optional Animator — the bool 'IsAttacking' is set while the enemy is stopped attacking a blocker.")]
@@ -49,7 +53,6 @@ public class Enemy : MonoBehaviour, IDamageable, ILexikonSource
     private const float DOOR_REACH      = 0.8f;
     private const float STUCK_THRESHOLD = 3f;
     private const float STUCK_MIN_MOVE  = 0.20f;
-    private const float STUCK_ATTACK_RADIUS = 1.5f;
 
     // Wall-break stuck system
     private const float WALL_BREAK_DURATION  = 10f;   // seconds against a wall before it breaks
@@ -86,7 +89,9 @@ public class Enemy : MonoBehaviour, IDamageable, ILexikonSource
     // Attack
     private IEnemyAttackable _attackTarget;
     private MonoBehaviour    _attackTargetMB;
+    private Collider2D       _attackTargetCollider;
     private float            _attackTimer;
+    private float            _attackScanTimer;
 
     private float _contactTimer;
 
@@ -108,8 +113,7 @@ public class Enemy : MonoBehaviour, IDamageable, ILexikonSource
     private StatusEffectHandler _statusEffects;
 
     // Reusable physics buffers — avoid per-frame allocations
-    private readonly RaycastHit2D[] _castBuffer    = new RaycastHit2D[16];
-    private readonly Collider2D[]   _overlapBuffer = new Collider2D[8];
+    private readonly Collider2D[] _overlapBuffer = new Collider2D[8];
 
     // Base stats preserved for pool reset (ApplyWaveScaling mutates the fields)
     private float _baseMaxHealth;
@@ -165,9 +169,11 @@ public class Enemy : MonoBehaviour, IDamageable, ILexikonSource
         CurrentHealth = maxHealth;
 
         // Reset runtime navigation / combat state
-        _attackTarget    = null;
-        _attackTargetMB  = null;
-        _attackTimer     = 0f;
+        _attackTarget         = null;
+        _attackTargetMB       = null;
+        _attackTargetCollider = null;
+        _attackTimer          = 0f;
+        _attackScanTimer = 0f;
         _contactTimer    = 0f;
         _resourceContact = null;
         _resourceContactTimer = 0f;
@@ -261,7 +267,7 @@ public class Enemy : MonoBehaviour, IDamageable, ILexikonSource
 
         // ── Periodic navigation refresh ───────────────────────────────────────
         _navTimer -= Time.fixedDeltaTime;
-        if (_navTimer <= 0f)
+        if (_navTimer <= 0f && _attackTarget == null)
         {
             _navTimer = pathRefreshInterval;
             UpdateNavigation();
@@ -288,23 +294,45 @@ public class Enemy : MonoBehaviour, IDamageable, ILexikonSource
         // ── Active attack target ──────────────────────────────────────────────
         if (_attackTarget != null)
         {
-            // Target was destroyed — check for an adjacent blocker immediately.
-            // A plain linecast misses colliders whose interior contains the cast origin
-            // (e.g. a second barricade the enemy is already touching), so we use the
-            // overlap check here rather than waiting for the next linecast or the 5-s
-            // stuck timer.
             if (_attackTargetMB == null || _attackTarget.IsDestroyed || _attackTarget.CurrentHealth <= 0f)
             {
+                // Building dead — ClearAttackTarget scans for the next one internally.
                 ClearAttackTarget();
-                if (TryAttackNearbyBlocker()) return;
-                // Target gone and no adjacent blocker — fall through to
-                // CheckLinecastBlock / Navigate so movement resumes this frame.
             }
             else
             {
-                _rb.linearVelocity = Vector2.zero;
-                TickAttack();
-                return;
+                // Navigate toward building surface (not centre) so the enemy doesn't
+                // try to walk through the collider of a large building like the Citadel.
+                _navTarget = _attackTargetCollider != null
+                    ? (Vector2)_attackTargetCollider.ClosestPoint(_rb.position)
+                    : (Vector2)_attackTargetMB.transform.position;
+
+                float dist = _attackTargetCollider != null
+                    ? Vector2.Distance(_rb.position, (Vector2)_attackTargetCollider.ClosestPoint(_rb.position))
+                    : Vector2.Distance(_rb.position, (Vector2)_attackTargetMB.transform.position);
+
+                if (dist <= attackRange)
+                {
+                    // In melee range — stop and deal damage.
+                    _rb.linearVelocity = Vector2.zero;
+                    if (enemyAnimator != null) enemyAnimator.SetBool("IsAttacking", true);
+                    TickAttack();
+                    return;
+                }
+
+                // Not close enough yet — walk toward the building; fall through to Navigate().
+                if (enemyAnimator != null) enemyAnimator.SetBool("IsAttacking", false);
+            }
+        }
+
+        // ── Periodic attack radius scan ───────────────────────────────────────
+        if (_attackTarget == null)
+        {
+            _attackScanTimer -= Time.fixedDeltaTime;
+            if (_attackScanTimer <= 0f)
+            {
+                _attackScanTimer = attackScanInterval;
+                ScanForAttackableInRadius(); // sets _navTarget to building if found
             }
         }
 
@@ -322,11 +350,10 @@ public class Enemy : MonoBehaviour, IDamageable, ILexikonSource
                 _stuckTimer    = 0f;
                 _stuckCheckPos = _rb.position;
 
-                // Attack whatever is physically blocking us before trying to reposition.
-                if (TryAttackNearbyBlocker()) return;
-
-                // Nothing attackable — push 1 tile away from nearby walls and reroute.
-                PushAwayFromWalls();
+                // Scan for a nearby building before trying to reposition.
+                bool foundTarget = _attackTarget == null && ScanForAttackableInRadius();
+                if (!foundTarget)
+                    PushAwayFromWalls();
             }
         }
 
@@ -347,8 +374,6 @@ public class Enemy : MonoBehaviour, IDamageable, ILexikonSource
         // ── Wall-break stuck system ───────────────────────────────────────────
         TickWallBreak();
 
-        // ── Linecast block check then move ────────────────────────────────────
-        if (CheckLinecastBlock()) return;
         Navigate(wallContact, wallNormal);
 
         // ── Animator movement parameters ──────────────────────────────────────
@@ -533,18 +558,22 @@ public class Enemy : MonoBehaviour, IDamageable, ILexikonSource
 
                 if (_nextDoor.IsHorizontalWall)
                 {
-                    // Dividing wall runs left-right → align in X with door centre
+                    // Dividing wall runs left-right → align in X with door centre.
+                    // Clamp to exactly cover the remaining offset in one step so the
+                    // enemy decelerates near centre and never overshoots (no oscillation).
                     float dx = _nextDoor.WorldPosition.x - _rb.position.x;
-                    slideDir = Mathf.Abs(dx) > 0.05f
-                        ? new Vector2(Mathf.Sign(dx), 0f)
+                    float vx = Mathf.Clamp(dx / Time.fixedDeltaTime, -speed, speed);
+                    slideDir = Mathf.Abs(vx) > speed * 0.01f
+                        ? new Vector2(vx / speed, 0f)
                         : Vector2.zero;
                 }
                 else
                 {
-                    // Dividing wall runs top-bottom → align in Y with door centre
+                    // Dividing wall runs top-bottom → align in Y with door centre.
                     float dy = _nextDoor.WorldPosition.y - _rb.position.y;
-                    slideDir = Mathf.Abs(dy) > 0.05f
-                        ? new Vector2(0f, Mathf.Sign(dy))
+                    float vy = Mathf.Clamp(dy / Time.fixedDeltaTime, -speed, speed);
+                    slideDir = Mathf.Abs(vy) > speed * 0.01f
+                        ? new Vector2(0f, vy / speed)
                         : Vector2.zero;
                 }
 
@@ -725,97 +754,56 @@ public class Enemy : MonoBehaviour, IDamageable, ILexikonSource
         _wallBreakTimer     = 0f;
     }
 
-    // ── Stuck-blocker attack ──────────────────────────────────────────────────
+    // ── Attack radius scan ───────────────────────────────────────────────────
 
     /// <summary>
-    /// Called when the stuck timer expires.  Searches for any <see cref="IEnemyAttackable"/>
-    /// within <see cref="STUCK_ATTACK_RADIUS"/> of the enemy and locks on to it.
-    /// Handles objects that the linecast misses because the enemy is already
-    /// pressed against them (cast origin inside the collider).
+    /// Searches within <see cref="attackDetectionRadius"/> for the nearest
+    /// <see cref="IEnemyAttackable"/>.  When found, locks on and redirects
+    /// <see cref="_navTarget"/> so the enemy walks toward the building.
+    /// Damage is only dealt once the enemy closes to within <see cref="attackRange"/>.
     /// </summary>
-    /// <returns>True if a target was found and attack mode was entered.</returns>
-    private bool TryAttackNearbyBlocker()
+    /// <returns>True if a target was found and locked on to.</returns>
+    private bool ScanForAttackableInRadius()
     {
-        // Exclude triggers (room bounds, etc.) so they can't fill the buffer and
-        // crowd out the barricades we actually want to find.
         var filter = new ContactFilter2D();
         filter.useTriggers = false;
-        int count = Physics2D.OverlapCircle(_rb.position, STUCK_ATTACK_RADIUS, filter, _overlapBuffer);
+        int count = Physics2D.OverlapCircle(_rb.position, attackDetectionRadius, filter, _overlapBuffer);
+
+        IEnemyAttackable nearest   = null;
+        MonoBehaviour    nearestMB = null;
+        float            nearestSq = float.MaxValue;
 
         for (int i = 0; i < count; i++)
         {
             Collider2D col = _overlapBuffer[i];
-
             if (col.gameObject == gameObject) continue;
             if (col.CompareTag("Enemy"))       continue;
             if (col.CompareTag("Player"))      continue;
-
             if (!col.TryGetComponent(out IEnemyAttackable attackable)) continue;
             if (attackable.IsDestroyed || attackable.CurrentHealth <= 0f) continue;
 
-            _attackTarget      = attackable;
-            _attackTargetMB    = attackable as MonoBehaviour;
-            _attackTimer       = 0f;
-            _rb.linearVelocity = Vector2.zero;
-
-            if (enemyAnimator != null)
-                enemyAnimator.SetBool("IsAttacking", true);
-
-            return true;
+            float sq = ((Vector2)col.transform.position - _rb.position).sqrMagnitude;
+            if (sq < nearestSq)
+            {
+                nearestSq = sq;
+                nearest   = attackable;
+                nearestMB = attackable as MonoBehaviour;
+            }
         }
 
-        return false;
-    }
+        if (nearest == null) return false;
 
-    // ── Linecast block detection ──────────────────────────────────────────────
+        _attackTarget         = nearest;
+        _attackTargetMB       = nearestMB;
+        _attackTargetCollider = nearestMB != null ? nearestMB.GetComponent<Collider2D>() : null;
+        _attackTimer          = 0f;
+        _nextDoor             = null;
+        _approachingDoor = false;
+        _navTarget       = nearestMB != null
+            ? (Vector2)nearestMB.transform.position
+            : _rb.position;
 
-    /// <summary>
-    /// Casts a line from the enemy toward the current nav target and walks
-    /// through every hit in order.  The first hit that is an <see cref="IEnemyAttackable"/>
-    /// (and is not an enemy or the player) becomes the attack target.
-    ///
-    /// Uses <see cref="ContactFilter2D"/> so that trigger colliders are also
-    /// detected — important because some structures use trigger volumes.
-    /// Results are written into a pre-allocated buffer to avoid per-frame GC.
-    /// </summary>
-    /// <returns>True when a blocker was found (caller should skip Navigate).</returns>
-    private bool CheckLinecastBlock()
-    {
-        // Build filter: exclude this enemy's own layer; include trigger colliders.
-        var filter = new ContactFilter2D();
-        filter.SetLayerMask(~(1 << gameObject.layer));
-        filter.useTriggers = true;
-
-        int count = Physics2D.Linecast(_rb.position, _navTarget, filter, _castBuffer);
-
-        for (int i = 0; i < count; i++)
-        {
-            RaycastHit2D rayHit = _castBuffer[i];
-
-            // Hits are sorted nearest-first; once beyond attack range there is no point continuing.
-            if (rayHit.distance > attackRange) break;
-
-            Collider2D col = rayHit.collider;
-
-            if (col.gameObject == gameObject)  continue;   // self
-            if (col.CompareTag("Enemy"))        continue;   // other enemies
-            if (col.CompareTag("Player"))       continue;   // player — handled by contact damage
-
-            if (!col.TryGetComponent(out IEnemyAttackable attackable)) continue;  // not a blocker
-            if (attackable.IsDestroyed || attackable.CurrentHealth <= 0f) continue;  // already dead
-
-            _attackTarget      = attackable;
-            _attackTargetMB    = attackable as MonoBehaviour;
-            _attackTimer       = 0f;
-            _rb.linearVelocity = Vector2.zero;
-
-            if (enemyAnimator != null)
-                enemyAnimator.SetBool("IsAttacking", true);
-
-            return true;
-        }
-
-        return false;
+        return true;
     }
 
     // ── Attack ────────────────────────────────────────────────────────────────
@@ -832,13 +820,17 @@ public class Enemy : MonoBehaviour, IDamageable, ILexikonSource
 
     private void ClearAttackTarget()
     {
-        _attackTarget   = null;
-        _attackTargetMB = null;
+        _attackTarget         = null;
+        _attackTargetMB       = null;
+        _attackTargetCollider = null;
 
         if (enemyAnimator != null)
             enemyAnimator.SetBool("IsAttacking", false);
 
-        UpdateNavigation();
+        // Immediately chain to the next building in range; only resume player
+        // navigation if the radius is clear.
+        if (!ScanForAttackableInRadius())
+            UpdateNavigation();
     }
 
     // ── IDamageable ───────────────────────────────────────────────────────────

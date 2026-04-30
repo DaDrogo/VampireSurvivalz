@@ -15889,7 +15889,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   wallTilemap: {fileID: 993896336}
   wallTiles:
-  - {fileID: 11400000, guid: 9432e1326784dce458e748daa076cc71, type: 2}
+  - {fileID: 0}
   cellSize: 1
 --- !u!4 &1033044616
 Transform:
@@ -16048,6 +16048,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   buildings:
   - buildingName: Watchtower
+    icon: {fileID: 0}
     prefab: {fileID: 1235989768153408661, guid: 3879803ff30ac3743887e12103ec009e, type: 3}
     footprint: {x: 1, y: 1}
     woodCost: 10
@@ -16059,6 +16060,7 @@ MonoBehaviour:
     upgradeChoices: []
     groundTiles: []
   - buildingName: Barricade
+    icon: {fileID: 0}
     prefab: {fileID: 5080038164091897146, guid: ea33fb6a9282979478b604fff1a24a74, type: 3}
     footprint: {x: 1, y: 1}
     woodCost: 5
@@ -16070,6 +16072,7 @@ MonoBehaviour:
     upgradeChoices: []
     groundTiles: []
   - buildingName: Warehouse
+    icon: {fileID: 0}
     prefab: {fileID: 1823645102394756890, guid: c8a7f9e2d5b31048b6e8c7f9d2a4b871, type: 3}
     footprint: {x: 1, y: 1}
     woodCost: 15
@@ -16081,21 +16084,25 @@ MonoBehaviour:
     upgradeChoices:
     - label: Wood Mill
       prefab: {fileID: 1823645102394756890, guid: be1330661bc6334429dc8ba50a0e57c4, type: 3}
+      icon: {fileID: 0}
       woodCost: 0
       metalCost: 0
       description: More Wood, faster cycles.
     - label: Metal Smelter
       prefab: {fileID: 1823645102394756890, guid: 66670b63f6f65784d8cb603561bd01fc, type: 3}
+      icon: {fileID: 0}
       woodCost: 0
       metalCost: 0
       description: Produces Metal each cycle.
     - label: Trade Post
       prefab: {fileID: 1823645102394756890, guid: 6449fc98b372151448e53b215e3fb260, type: 3}
+      icon: {fileID: 0}
       woodCost: 100
       metalCost: 100
       description: Produces both Wood and Metal.
     groundTiles: []
   - buildingName: Warehouse
+    icon: {fileID: 0}
     prefab: {fileID: 1823645102394756890, guid: c8a7f9e2d5b31048b6e8c7f9d2a4b871, type: 3}
     footprint: {x: 1, y: 1}
     woodCost: 15
@@ -16107,16 +16114,19 @@ MonoBehaviour:
     upgradeChoices:
     - label: Wood Mill
       prefab: {fileID: 1823645102394756890, guid: be1330661bc6334429dc8ba50a0e57c4, type: 3}
+      icon: {fileID: 0}
       woodCost: 0
       metalCost: 0
       description: More Wood, faster cycles.
     - label: Metal Smelter
       prefab: {fileID: 1823645102394756890, guid: 66670b63f6f65784d8cb603561bd01fc, type: 3}
+      icon: {fileID: 0}
       woodCost: 0
       metalCost: 0
       description: Produces Metal each cycle.
     - label: Trade Post
       prefab: {fileID: 1823645102394756890, guid: 6449fc98b372151448e53b215e3fb260, type: 3}
+      icon: {fileID: 0}
       woodCost: 100
       metalCost: 100
       description: Produces both Wood and Metal.

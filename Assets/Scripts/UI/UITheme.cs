@@ -63,4 +63,32 @@ public class UITheme : ScriptableObject
     public Sprite sliderBackground;
     public Sprite sliderFill;
     public Sprite sliderHandle;
+
+    [Header("HUD Icons — leave empty to use flat-colour fallbacks")]
+    [Tooltip("Wood resource icon.")]
+    public Sprite iconWood;
+    [Tooltip("Metal resource icon.")]
+    public Sprite iconMetal;
+    [Tooltip("Coin / currency icon.")]
+    public Sprite iconCoin;
+    [Tooltip("Health / heart icon.")]
+    public Sprite iconHealth;
+    [Tooltip("Hammer — opens the build menu.")]
+    public Sprite iconBuild;
+    [Tooltip("Wrench — repair action button.")]
+    public Sprite iconRepair;
+    [Tooltip("Arrow-up — upgrade action button.")]
+    public Sprite iconUpgrade;
+    [Tooltip("Trash — destroy action button.")]
+    public Sprite iconDestroy;
+    [Tooltip("Sword — shown in top bar during a wave.")]
+    public Sprite iconWave;
+    [Tooltip("Hourglass — shown in top bar during preparation.")]
+    public Sprite iconPrep;
+
+    [Header("HUD Backgrounds")]
+    [Tooltip("Background for the action bar and build menu panel.")]
+    public Sprite hudPanelBackground;
+    [Tooltip("Background for individual building slots in the build menu.")]
+    public Sprite buildSlotBackground;
 }

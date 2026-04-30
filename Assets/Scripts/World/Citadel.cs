@@ -20,7 +20,7 @@ using UnityEngine.UI;
 ///   If the Citadel is destroyed, the game is over.
 ///
 /// Build radius:
-///   BuildingManager refuses placement outside CitadelBuildRadius.
+///   BuildingManager restricts placement to the Citadel's island and its adjacent bridges.
 /// </summary>
 [RequireComponent(typeof(BoxCollider2D))]
 public class Citadel : Building
@@ -40,12 +40,6 @@ public class Citadel : Building
         new() { label = "Tier 3",  woodCost = 120, metalCost = 80 },
     };
 
-    [Header("Build Radius")]
-    [Tooltip("Max world-space distance from the Citadel at which buildings can be placed.")]
-    [SerializeField] private float buildRadius = 12f;
-    [Tooltip("Width of the radius indicator circle line in world units.")]
-    [SerializeField] private float radiusLineWidth = 0.08f;
-
     [Header("Production")]
     [Tooltip("\"Wood\", \"Metal\", or \"Both\"")]
     [SerializeField] private string outputType         = "Both";
@@ -64,17 +58,6 @@ public class Citadel : Building
     /// <summary>Buildings may only be upgraded up to this level (0-based). Tier-1.</summary>
     public int MaxBuildingLevel => Tier - 1;
 
-    public float BuildRadius
-    {
-        get
-        {
-            float r = buildRadius;
-            for (int i = 0; i < Tier - 1 && i < tierUpgrades.Length; i++)
-                r += tierUpgrades[i].buildRadiusBonus;
-            return r;
-        }
-    }
-
     public string ProductionOutput   => outputType;
     public int    ProductionAmount   => amountPerCycle;
     public float  ProductionInterval => productionInterval;
@@ -90,10 +73,6 @@ public class Citadel : Building
     // UI hint
     private GameObject      _hintGO;
     private TextMeshProUGUI _hintText;
-
-    // Radius indicator
-    private LineRenderer _radiusLine;
-    private const int    RADIUS_SEGMENTS = 64;
 
     // Production
     private float _productionTimer;
@@ -113,7 +92,6 @@ public class Citadel : Building
     {
         BuildingManager.OnBuildingPlaced += OnNewBuildingPlaced;
         BuildHint();
-        BuildRadiusIndicator();
     }
 
     private void OnDestroy()
@@ -269,53 +247,36 @@ public class Citadel : Building
             3 => new Color(0.3f, 1f, 0.5f),
             _ => Color.white,
         };
-        UpdateRadiusIndicator();
     }
 
-    // ── Radius indicator ──────────────────────────────────────────────────────
+    // ── Build zone ────────────────────────────────────────────────────────────
 
-    private void BuildRadiusIndicator()
+    /// <summary>
+    /// Returns true when <paramref name="worldPos"/> is a legal building placement:
+    /// inside the same BSP room as the Citadel, or on a door tile that connects
+    /// directly to that room.  Falls back to true when HouseManager is absent.
+    /// </summary>
+    public bool IsAllowedBuildPosition(Vector2 worldPos)
     {
-        var go = new GameObject("RadiusIndicator");
-        go.transform.SetParent(transform, false);
-        go.transform.localPosition = Vector3.zero;
+        HouseManager hm = HouseManager.Instance;
+        if (hm == null) return true;
 
-        _radiusLine                  = go.AddComponent<LineRenderer>();
-        _radiusLine.useWorldSpace    = false;
-        _radiusLine.loop             = true;
-        _radiusLine.positionCount    = RADIUS_SEGMENTS;
-        _radiusLine.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-        _radiusLine.receiveShadows   = false;
+        Room citadelRoom = hm.GetRoomAt(transform.position);
+        if (citadelRoom == null) return true;
 
-        // Use a plain unlit material so it works without a texture
-        _radiusLine.material         = new Material(Shader.Find("Sprites/Default"));
-        _radiusLine.sortingOrder     = 2;
+        if (citadelRoom.WorldBounds.Contains(new Vector3(worldPos.x, worldPos.y, 0f)))
+            return true;
 
-        UpdateRadiusIndicator();
-    }
-
-    private void UpdateRadiusIndicator()
-    {
-        if (_radiusLine == null) return;
-
-        float r = BuildRadius;
-        _radiusLine.startWidth = radiusLineWidth;
-        _radiusLine.endWidth   = radiusLineWidth;
-
-        Color c = Tier switch
+        foreach (Door door in citadelRoom.Doors)
         {
-            2 => new Color(1f, 0.85f, 0.3f, 0.65f),
-            3 => new Color(0.3f, 1f, 0.5f, 0.65f),
-            _ => new Color(0.4f, 0.8f, 1f, 0.55f),
-        };
-        _radiusLine.startColor = c;
-        _radiusLine.endColor   = c;
-
-        for (int i = 0; i < RADIUS_SEGMENTS; i++)
-        {
-            float angle = i * (2f * Mathf.PI / RADIUS_SEGMENTS);
-            _radiusLine.SetPosition(i, new Vector3(Mathf.Cos(angle) * r, Mathf.Sin(angle) * r, 0f));
+            float halfW = door.IsHorizontalWall ? door.TileWidth * 0.5f : 0.5f;
+            float halfH = door.IsHorizontalWall ? 0.5f : door.TileWidth * 0.5f;
+            if (Mathf.Abs(worldPos.x - door.WorldPosition.x) <= halfW &&
+                Mathf.Abs(worldPos.y - door.WorldPosition.y) <= halfH)
+                return true;
         }
+
+        return false;
     }
 
     // ── World-space hint label ────────────────────────────────────────────────
@@ -357,21 +318,14 @@ public class Citadel : Building
         if (_hintGO != null) _hintGO.SetActive(false);
     }
 
-    private void OnDrawGizmosSelected()
-    {
-        Gizmos.color = new Color(0.3f, 1f, 0.3f, 0.25f);
-        Gizmos.DrawWireSphere(transform.position, BuildRadius);
-    }
 }
 
 [Serializable]
 public class CitadelTierData
 {
-    public string label            = "Upgrade";
+    public string label         = "Upgrade";
     public int    woodCost;
     public int    metalCost;
-    [Tooltip("How much the build radius grows when this tier is reached.")]
-    public float  buildRadiusBonus  = 4f;
     [Tooltip("Multiplier applied to production amount and interval on reaching this tier (1.3 = +30% more, 30% faster).")]
-    public float  productionMult    = 1.3f;
+    public float  productionMult = 1.3f;
 }

@@ -12,6 +12,7 @@ public class BuildingCard : ScriptableObject, ILexikonSource
     public string displayName = "Building";
     [TextArea(1, 2)]
     public string description;
+    public Sprite icon;
     public Color  color       = Color.white;
     public int    woodCost;
     public int    metalCost;

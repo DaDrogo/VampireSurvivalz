@@ -27,6 +27,7 @@ public class BuildingUpgradeChoice
 {
     public string     label;
     public GameObject prefab;
+    public Sprite     icon;
     public int        woodCost;
     public int        metalCost;
     [TextArea(1, 2)]
@@ -41,6 +42,7 @@ public class BuildingUpgradeChoice
 public class BuildingDefinition
 {
     public string       buildingName;
+    public Sprite       icon;
     public GameObject   prefab;
     [Tooltip("World-space size used for the OverlapBox placement check")]
     public Vector2      footprint    = Vector2.one;
@@ -397,7 +399,7 @@ public class BuildingManager : MonoBehaviour
     private static bool IsWithinCitadelRange(Vector2 pos)
     {
         if (Citadel.Instance == null) return true;
-        return Vector2.Distance(pos, Citadel.Instance.transform.position) <= Citadel.Instance.BuildRadius;
+        return Citadel.Instance.IsAllowedBuildPosition(pos);
     }
 
     private bool CitadelRequiredAndMissing()
