@@ -304,7 +304,7 @@ public class GameManager : MonoBehaviour
         PersistentDataManager.Instance?.RecordGameOver(WaveNumber);
         PersistentDataManager.Instance?.SaveKills();
 
-        AudioManager.Instance?.PlayGameOver();
+        AudioManager.Instance?.PlayGameOverMusic();
         OnStateChanged?.Invoke(CurrentState);
         ShowGameOverScreen();
     }
@@ -386,7 +386,7 @@ public class GameManager : MonoBehaviour
         StopAllCoroutines();
         CurrentState   = GameState.GameOver;
         Time.timeScale = 0f;
-        AudioManager.Instance?.PlayVictory();
+        AudioManager.Instance?.PlayVictoryMusic();
         OnStateChanged?.Invoke(CurrentState);
         ShowVictoryScreen();
     }
@@ -474,12 +474,14 @@ public class GameManager : MonoBehaviour
 
     public void RestartGame()
     {
+        AudioManager.Instance?.StopEndScreenMusic();
         Time.timeScale = 1f;
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
 
     public void ReturnToMainMenu()
     {
+        AudioManager.Instance?.StopEndScreenMusic();
         Time.timeScale = 1f;
         SceneTransitionManager.Instance?.LoadScene("MainMenuScene");
     }

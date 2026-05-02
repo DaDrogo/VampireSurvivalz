@@ -15,11 +15,13 @@ MonoBehaviour:
   displayName: Barricade
   description: A reinforced wooden wall. Blocks enemy movement and absorbs damage
     so your Citadel doesn't have to.
+  icon: {fileID: 0}
   color: {r: 0.65, g: 0.44, b: 0.22, a: 1}
   woodCost: 15
   metalCost: 0
   buildingDef:
     buildingName: Barricade
+    icon: {fileID: 0}
     prefab: {fileID: 5080038164091897146, guid: ea33fb6a9282979478b604fff1a24a74, type: 3}
     footprint: {x: 1, y: 1}
     woodCost: 10
@@ -59,7 +61,8 @@ MonoBehaviour:
       fireRateMult: 0
       rangeMult: 0
     upgradeChoices: []
-    groundTiles: []
+    groundTiles:
+    - {fileID: 11400000, guid: a2baa42ef7f4083439f397a4d87c1a81, type: 2}
   isBasic: 0
   isCitadel: 0
   statsSummary: 

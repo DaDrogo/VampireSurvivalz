@@ -42,7 +42,7 @@ public class CharacterApplicator : MonoBehaviour
         player.ApplyCharacter(def);
         player.GetComponent<PlayerAnimationController>()?.ApplyOverride(def.animatorOverride);
 
-        ResourceManager.Instance?.AddResource("Wood",  def.startingWood);
-        ResourceManager.Instance?.AddResource("Metal", def.startingMetal);
+        ResourceManager.Instance?.AddResource("Wood",  def.startingWood  + (CampManager.Instance?.GetTotalWoodBonus()  ?? 0));
+        ResourceManager.Instance?.AddResource("Metal", def.startingMetal + (CampManager.Instance?.GetTotalMetalBonus() ?? 0));
     }
 }

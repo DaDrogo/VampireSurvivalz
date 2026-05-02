@@ -263,7 +263,11 @@ public class Enemy : MonoBehaviour, IDamageable, ILexikonSource
                 if (go != null) _player = go.transform;
             }
         }
-        if (_player == null) return;
+        if (_player == null)
+        {
+            _rb.linearVelocity = Vector2.zero;
+            return;
+        }
 
         // ── Periodic navigation refresh ───────────────────────────────────────
         _navTimer -= Time.fixedDeltaTime;
@@ -659,8 +663,9 @@ public class Enemy : MonoBehaviour, IDamageable, ILexikonSource
             _navTarget = _player.position;
         }
 
-        // Force a full nav re-evaluation once the enemy reaches the push target
-        UpdateNavigation();
+        // Schedule a normal nav refresh after the push; calling UpdateNavigation()
+        // here would immediately override _navTarget before the enemy moves at all.
+        _navTimer = pathRefreshInterval;
     }
 
     // ── Wall-break stuck system ───────────────────────────────────────────────

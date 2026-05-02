@@ -159,6 +159,7 @@ public class MainMenuManager : MonoBehaviour
 
         // Nav buttons
         AddNavButton(sidebar.transform, "PLAY",        OnPlayClicked, new Color(0.14f, 0.42f, 0.14f), new Color(0.18f, 0.55f, 0.18f));
+        AddNavButton(sidebar.transform, "Camp",       OnCampClicked, new Color(0.22f, 0.16f, 0.08f), new Color(0.34f, 0.24f, 0.10f));
         AddNavButton(sidebar.transform, "Lexikon",    () => ShowPanel(_lexikonPanel));
         AddNavButton(sidebar.transform, "Milestones", () => ShowPanel(_milestonesPanel));
         AddNavButton(sidebar.transform, "Settings",   () => ShowPanel(_settingsPanel));
@@ -214,6 +215,14 @@ public class MainMenuManager : MonoBehaviour
     private void OnPlayClicked()
     {
         SceneManager.LoadScene("SetupScene");
+    }
+
+    private void OnCampClicked()
+    {
+        if (SceneTransitionManager.Instance != null)
+            SceneTransitionManager.Instance.LoadScene("CampScene");
+        else
+            SceneManager.LoadScene("CampScene");
     }
 
     private static void QuitGame()

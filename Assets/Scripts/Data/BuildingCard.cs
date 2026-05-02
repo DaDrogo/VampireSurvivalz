@@ -21,6 +21,10 @@ public class BuildingCard : ScriptableObject, ILexikonSource
     [Tooltip("The BuildingDefinition in BuildingManager that this card represents. Must be set for loadout transfer to work.")]
     public BuildingDefinition buildingDef;
 
+    [Header("Camp")]
+    [Tooltip("If true, this building only appears in the loadout after being unlocked via a Camp tent. Leave false for always-available buildings.")]
+    public bool requiresCampUnlock = false;
+
     [Header("Roster Flags")]
     [Tooltip("Always included in the loadout — player cannot deselect it.")]
     public bool isBasic    = false;

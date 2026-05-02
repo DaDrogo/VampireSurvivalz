@@ -17,11 +17,6 @@ public class Building : MonoBehaviour, IDamageable, IEnemyAttackable, IHoldInter
     [SerializeField] private float repairTickPercent  = 0.05f;
     [Tooltip("% of max HP healed as a flat bonus when the hold completes (0.30 = 30 %).")]
     [SerializeField] private float repairBonusPercent = 0.30f;
-    [SerializeField] private AudioClip repairSfx;
-
-    [Header("Audio")]
-    [SerializeField] private AudioClip hitSfx;
-    [SerializeField] private AudioClip destroySfx;
 
     public float CurrentHealth { get; protected set; }
     public float MaxHealth     => maxHealth;
@@ -48,14 +43,14 @@ public class Building : MonoBehaviour, IDamageable, IEnemyAttackable, IHoldInter
         if (CurrentHealth <= 0f)
             OnDied();
         else
-            AudioManager.Instance?.PlaySFX(hitSfx);
+            AudioManager.Instance?.PlayBuildingHit();
     }
 
     public void ReceiveEnemyAttack(float damage, float _) => TakeDamage(damage);
 
     protected virtual void OnDied()
     {
-        AudioManager.Instance?.PlaySFX(destroySfx);
+        AudioManager.Instance?.PlayBuildingDestroyed();
         Destroy(gameObject);
     }
 
@@ -78,6 +73,6 @@ public class Building : MonoBehaviour, IDamageable, IEnemyAttackable, IHoldInter
         if (CurrentHealth >= maxHealth) return;
         CurrentHealth = Mathf.Min(maxHealth, CurrentHealth + repairBonusPercent * maxHealth);
         OnHealthChanged?.Invoke(CurrentHealth, maxHealth);
-        AudioManager.Instance?.PlaySFX(repairSfx);
+        AudioManager.Instance?.PlayBuildingRepaired();
     }
 }

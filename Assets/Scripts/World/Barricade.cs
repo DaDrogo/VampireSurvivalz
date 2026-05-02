@@ -19,9 +19,6 @@ public class Barricade : Building, IInteractable, ILexikonSource
     [Tooltip("Health regenerated per second as a fraction of max health (e.g. 0.02 = 2%/s).")]
     [SerializeField] private float regenPercentPerSecond = 0.02f;
 
-    [Header("Audio")]
-    [SerializeField] private AudioClip buildSfx;
-
     // Read-only state exposed for UI / enemy AI
     public BarricadeState State { get; private set; } = BarricadeState.Ghost;
 
@@ -121,7 +118,7 @@ public class Barricade : Building, IInteractable, ILexikonSource
 
         PathfindingGrid.Instance?.RegisterBarricade(transform.position, this);
 
-        AudioManager.Instance?.PlaySFX(buildSfx);
+        AudioManager.Instance?.PlayBuildingBuilt();
         OnStateChanged?.Invoke(State);
         RaiseHealthChanged();
     }

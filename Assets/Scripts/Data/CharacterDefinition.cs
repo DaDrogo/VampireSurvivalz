@@ -27,6 +27,10 @@ public class CharacterDefinition : ScriptableObject, ILexikonSource
     public string description;
     public Color  color = Color.white;
 
+    [Header("Camp")]
+    [Tooltip("If true, this character only appears after being unlocked via a Camp tent. Leave false for starter characters.")]
+    public bool requiresCampUnlock = false;
+
     [Header("Stat Modifiers (1 = no change)")]
     public float healthMultiplier = 1f;
     public float speedMultiplier  = 1f;

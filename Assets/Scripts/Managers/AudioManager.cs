@@ -35,21 +35,38 @@ public class AudioManager : MonoBehaviour
     [SerializeField] private AudioClip gameOverSfx;
     [SerializeField] private AudioClip victorySfx;
 
+    [Header("End Screen Music")]
+    [SerializeField] private AudioClip gameOverMusic;
+    [SerializeField] private AudioClip victoryMusic;
+
+    [Header("Camp Playlist")]
+    [SerializeField] private AudioClip[] campPlaylist;
+    [Tooltip("Seconds to crossfade between menu/camp music.")]
+    [SerializeField] private float campFadeDuration = 1f;
+
+    [Header("Building Sounds")]
+    [SerializeField] private BuildingSounds buildingSounds;
+
     [Header("UI Sounds")]
     [SerializeField] private AudioClip buttonClickSfx;
 
     // ── Private ───────────────────────────────────────────────────────────────
 
     private AudioSource      _nightMusicSource;
+    private AudioSource      _endScreenSource;
     private float            _masterMusicVolume = 0.8f;
 
     private bool             _gameplayMusicActive;
     private bool             _menuPlaylistActive;
+    private bool             _campPlaylistActive;
     private float            _fadeInTimer;
 
     private ShuffledPlaylist _menuList;
+    private ShuffledPlaylist _campList;
     private ShuffledPlaylist _dayList;
     private ShuffledPlaylist _nightList;
+
+    private Coroutine        _crossfadeCoroutine;
 
     // ── Unity lifecycle ───────────────────────────────────────────────────────
 
@@ -70,6 +87,11 @@ public class AudioManager : MonoBehaviour
         _nightMusicSource.loop        = false;
         _nightMusicSource.playOnAwake = false;
         _nightMusicSource.volume      = 0f;
+
+        _endScreenSource             = gameObject.AddComponent<AudioSource>();
+        _endScreenSource.loop        = true;
+        _endScreenSource.playOnAwake = false;
+        _endScreenSource.volume      = _masterMusicVolume;
 
         if (sfxSource == null)
         {
@@ -103,6 +125,12 @@ public class AudioManager : MonoBehaviour
             return;
         }
 
+        if (_campPlaylistActive && !_gameplayMusicActive)
+        {
+            _campList?.Tick(musicSource);
+            return;
+        }
+
         if (!_gameplayMusicActive) return;
 
         // Fade-in ramp (0 → 1 over fadeInDuration)
@@ -127,6 +155,8 @@ public class AudioManager : MonoBehaviour
         // During gameplay Update drives the volumes; in menu set directly.
         if (!_gameplayMusicActive)
             musicSource.volume = _masterMusicVolume;
+        if (_endScreenSource.isPlaying)
+            _endScreenSource.volume = _masterMusicVolume;
     }
 
     public void SetSFXVolume(float v) => sfxSource.volume = Mathf.Clamp01(v);
@@ -154,7 +184,9 @@ public class AudioManager : MonoBehaviour
         AudioClip[] list = (clips != null && clips.Length > 0) ? clips : menuPlaylist;
         if (list == null || list.Length == 0) return;
 
+        if (_crossfadeCoroutine != null) { StopCoroutine(_crossfadeCoroutine); _crossfadeCoroutine = null; }
         _gameplayMusicActive = false;
+        _campPlaylistActive  = false;
         _menuPlaylistActive  = true;
 
         musicSource.loop   = false;
@@ -163,6 +195,46 @@ public class AudioManager : MonoBehaviour
 
         _menuList = new ShuffledPlaylist(list);
         _menuList.StartOn(musicSource);
+    }
+
+    // ── Camp playlist ─────────────────────────────────────────────────────────
+
+    /// <summary>Crossfades from whatever is playing to the camp playlist.</summary>
+    public void PlayCampPlaylist()
+    {
+        if (campPlaylist == null || campPlaylist.Length == 0) return;
+        if (_crossfadeCoroutine != null) StopCoroutine(_crossfadeCoroutine);
+        _crossfadeCoroutine = StartCoroutine(CrossfadeTo(campPlaylist, camp: true));
+    }
+
+    private IEnumerator CrossfadeTo(AudioClip[] clips, bool camp)
+    {
+        // Fade out
+        float startVol = musicSource.volume;
+        for (float t = 0f; t < campFadeDuration; t += Time.unscaledDeltaTime)
+        {
+            musicSource.volume = Mathf.Lerp(startVol, 0f, t / campFadeDuration);
+            yield return null;
+        }
+        musicSource.Stop();
+        _nightMusicSource.Stop();
+        _gameplayMusicActive = false;
+        _menuPlaylistActive  = !camp;
+        _campPlaylistActive  = camp;
+
+        var list = new ShuffledPlaylist(clips);
+        if (camp) _campList  = list;
+        else      _menuList  = list;
+        list.StartOn(musicSource);
+
+        // Fade in
+        for (float t = 0f; t < campFadeDuration; t += Time.unscaledDeltaTime)
+        {
+            musicSource.volume = Mathf.Lerp(0f, _masterMusicVolume, t / campFadeDuration);
+            yield return null;
+        }
+        musicSource.volume  = _masterMusicVolume;
+        _crossfadeCoroutine = null;
     }
 
     // ── Game playlist ─────────────────────────────────────────────────────────
@@ -174,6 +246,8 @@ public class AudioManager : MonoBehaviour
     /// </summary>
     public void StartGameMusic()
     {
+        if (_crossfadeCoroutine != null) { StopCoroutine(_crossfadeCoroutine); _crossfadeCoroutine = null; }
+        _campPlaylistActive = false;
         // Stop menu loop and silence both sources before starting playlists
         musicSource.loop = false;
         musicSource.Stop();
@@ -219,13 +293,53 @@ public class AudioManager : MonoBehaviour
     public void PlayGameOver()     => PlaySFX(gameOverSfx);
     public void PlayVictory()      => PlaySFX(victorySfx);
 
+    public void PlayGameOverMusic()
+    {
+        StopGameMusic();
+        if (gameOverMusic == null) return;
+        _endScreenSource.volume = _masterMusicVolume;
+        _endScreenSource.clip   = gameOverMusic;
+        _endScreenSource.Play();
+    }
+
+    public void PlayVictoryMusic()
+    {
+        StopGameMusic();
+        if (victoryMusic == null) return;
+        _endScreenSource.volume = _masterMusicVolume;
+        _endScreenSource.clip   = victoryMusic;
+        _endScreenSource.Play();
+    }
+
+    public void StopEndScreenMusic() => _endScreenSource.Stop();
+
+    public void PlayBuildingBuilt()     => PlaySFX(buildingSounds?.built);
+    public void PlayBuildingRepaired()  => PlaySFX(buildingSounds?.repaired);
+    public void PlayBuildingDestroyed() => PlaySFX(buildingSounds?.destroyed);
+    public void PlayBuildingHit()       => PlaySFX(buildingSounds?.hit);
+
     // ── Button sounds ─────────────────────────────────────────────────────────
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        // Return to menu — stop game playlists so menu music can take over
-        if (_gameplayMusicActive && scene.name == "MainMenuScene")
-            StopGameMusic();
+        if (scene.name == "CampScene")
+        {
+            // Crossfade from whatever is playing to the camp playlist
+            if (_gameplayMusicActive) StopGameMusic();
+            PlayCampPlaylist();
+        }
+        else if (scene.name == "MainMenuScene")
+        {
+            // Stop game or camp music — MainMenuManager.Start() will restart menu music
+            if (_gameplayMusicActive) StopGameMusic();
+            if (_campPlaylistActive)
+            {
+                if (_crossfadeCoroutine != null) { StopCoroutine(_crossfadeCoroutine); _crossfadeCoroutine = null; }
+                _campPlaylistActive = false;
+                musicSource.Stop();
+                musicSource.volume = _masterMusicVolume;
+            }
+        }
 
         StartCoroutine(HookButtonsNextFrame());
     }

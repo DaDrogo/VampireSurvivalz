@@ -323,17 +323,23 @@ public class SetupManager : MonoBehaviour
     {
         var def = characters[i];
         var idx = i;
+        bool campLocked = def != null && def.requiresCampUnlock &&
+            !(CampManager.Instance?.IsCharacterAvailable(def) ?? false);
 
         var card    = GroupGO(parent, $"CharCard{i}");
         var cardImg = card.AddComponent<Image>();
-        UIHelper.ApplyImage(cardImg, _theme?.cardBackground, C_CardNorm, Image.Type.Tiled);
+        UIHelper.ApplyImage(cardImg, _theme?.cardBackground, campLocked ? C_CardLock : C_CardNorm, Image.Type.Tiled);
         _charCardBgs[i] = cardImg;
         _charCardRTs[i] = card.GetComponent<RectTransform>();
 
         var btn = card.AddComponent<Button>();
         btn.targetGraphic = cardImg;
-        SetBtn(btn, Color.white, new Color(1.05f, 1.05f, 1.05f), new Color(0.92f, 0.92f, 0.92f));
-        btn.onClick.AddListener(() => SelectCharacter(idx));
+        btn.interactable  = !campLocked;
+        if (!campLocked)
+        {
+            SetBtn(btn, Color.white, new Color(1.05f, 1.05f, 1.05f), new Color(0.92f, 0.92f, 0.92f));
+            btn.onClick.AddListener(() => SelectCharacter(idx));
+        }
 
         var cardVLG = card.AddComponent<VerticalLayoutGroup>();
         cardVLG.spacing                = 0f;
@@ -353,7 +359,9 @@ public class SetupManager : MonoBehaviour
         var portrait    = GroupGO(card.transform, "Portrait");
         portrait.AddComponent<LayoutElement>().flexibleHeight = 1f;
         var portraitImg = portrait.AddComponent<Image>();
-        portraitImg.color = new Color(def.color.r, def.color.g, def.color.b, 0.28f);
+        portraitImg.color = campLocked
+            ? new Color(0.08f, 0.08f, 0.10f, 1f)
+            : new Color(def.color.r, def.color.g, def.color.b, 0.28f);
         _charPortraitBgs[i] = portraitImg;
 
         // Avatar circle — anchored, ignores layout
@@ -365,14 +373,15 @@ public class SetupManager : MonoBehaviour
         avatarRT.pivot            = new Vector2(0.5f, 0.5f);
         avatarRT.anchoredPosition = Vector2.zero;
         avatarRT.sizeDelta        = new Vector2(108f, 108f);
-        avatar.AddComponent<Image>().color =
-            new Color(def.color.r, def.color.g, def.color.b, 0.88f);
+        avatar.AddComponent<Image>().color = campLocked
+            ? new Color(0.16f, 0.16f, 0.20f, 1f)
+            : new Color(def.color.r, def.color.g, def.color.b, 0.88f);
 
         var initGO  = GroupGO(avatar.transform, "Initial");
         StretchRT(initGO.GetComponent<RectTransform>());
         var initTxt = Lbl(initGO.transform,
-            def.characterName.Length > 0 ? def.characterName.Substring(0, 1).ToUpper() : "?",
-            50f, Color.white);
+            campLocked ? "?" : (def.characterName.Length > 0 ? def.characterName.Substring(0, 1).ToUpper() : "?"),
+            50f, campLocked ? new Color(0.35f, 0.35f, 0.35f) : Color.white);
         initTxt.fontStyle = FontStyles.Bold;
         initTxt.alignment = TextAlignmentOptions.Center;
         StretchRT(initTxt.GetComponent<RectTransform>());
@@ -387,7 +396,10 @@ public class SetupManager : MonoBehaviour
         nameBarRT.anchoredPosition = Vector2.zero;
         nameBarRT.sizeDelta        = new Vector2(0f, 46f);
         nameBar.AddComponent<Image>().color = new Color(0f, 0f, 0f, 0.62f);
-        var nameTxt = Lbl(nameBar.transform, def.characterName.ToUpper(), 24f, Color.white);
+        var nameTxt = Lbl(nameBar.transform,
+            campLocked ? "CAMP LOCKED" : def.characterName.ToUpper(),
+            campLocked ? 17f : 24f,
+            campLocked ? new Color(0.50f, 0.50f, 0.50f) : Color.white);
         nameTxt.fontStyle = FontStyles.Bold;
         nameTxt.alignment = TextAlignmentOptions.Center;
         StretchRT(nameTxt.GetComponent<RectTransform>());
@@ -425,20 +437,36 @@ public class SetupManager : MonoBehaviour
         infoVLG.childForceExpandHeight = false;
         infoVLG.childForceExpandWidth  = true;
 
-        var desc = Lbl(info.transform, def.description ?? "", 20f, C_TxtMid);
-        desc.enableWordWrapping = true;
-        desc.gameObject.AddComponent<LayoutElement>().preferredHeight = 34f;
+        if (campLocked)
+        {
+            var lockLbl = Lbl(info.transform,
+                "Unlock this character\nby purchasing a tent in the Camp.",
+                20f, C_TxtDim);
+            lockLbl.enableWordWrapping = true;
+            lockLbl.gameObject.AddComponent<LayoutElement>().preferredHeight = 80f;
 
-        Sep(info.transform);
+            var visitLbl = Lbl(info.transform, "Visit Camp to unlock", 16f,
+                new Color(1f, 0.80f, 0.20f));
+            visitLbl.fontStyle = FontStyles.Bold;
+            visitLbl.gameObject.AddComponent<LayoutElement>().preferredHeight = 22f;
+        }
+        else
+        {
+            var desc = Lbl(info.transform, def.description ?? "", 20f, C_TxtMid);
+            desc.enableWordWrapping = true;
+            desc.gameObject.AddComponent<LayoutElement>().preferredHeight = 34f;
 
-        StatRowCompact(info.transform, "HP",  def.color, def.healthMultiplier);
-        StatRowCompact(info.transform, "SPD", def.color, def.speedMultiplier);
-        StatRowCompact(info.transform, "DMG", def.color, def.damageMultiplier);
+            Sep(info.transform);
 
-        var res = Lbl(info.transform,
-            $"{def.startingWood}W  ·  {def.startingMetal}M  starting",
-            20f, new Color(0.58f, 0.74f, 0.38f));
-        res.gameObject.AddComponent<LayoutElement>().preferredHeight = 18f;
+            StatRowCompact(info.transform, "HP",  def.color, def.healthMultiplier);
+            StatRowCompact(info.transform, "SPD", def.color, def.speedMultiplier);
+            StatRowCompact(info.transform, "DMG", def.color, def.damageMultiplier);
+
+            var res = Lbl(info.transform,
+                $"{def.startingWood}W  ·  {def.startingMetal}M  starting",
+                20f, new Color(0.58f, 0.74f, 0.38f));
+            res.gameObject.AddComponent<LayoutElement>().preferredHeight = 18f;
+        }
     }
 
     private void StatRowCompact(Transform parent, string label, Color barColor, float multiplier)
@@ -562,9 +590,13 @@ public class SetupManager : MonoBehaviour
 
         if (buildingCards != null)
             for (int i = 0; i < buildingCards.Length; i++)
-                if (buildingCards[i] != null && !buildingCards[i].isCitadel && !buildingCards[i].isBasic)
-                    if (allowed == null || allowed.Contains(buildingCards[i]))
-                        BuildLoadoutCard(_loadoutListContent, i);
+            {
+                if (buildingCards[i] == null || buildingCards[i].isCitadel || buildingCards[i].isBasic) continue;
+                if (allowed != null && !allowed.Contains(buildingCards[i])) continue;
+                if (buildingCards[i].requiresCampUnlock &&
+                    !(CampManager.Instance?.IsCardAvailable(buildingCards[i]) ?? false)) continue;
+                BuildLoadoutCard(_loadoutListContent, i);
+            }
     }
 
     // ─── Loadout card ──────────────────────────────────────────────────────────
@@ -1028,6 +1060,9 @@ public class SetupManager : MonoBehaviour
     private void SelectCharacter(int idx, bool save = true)
     {
         if (characters == null || idx < 0 || idx >= characters.Length) return;
+        var checkDef = characters[idx];
+        if (checkDef != null && checkDef.requiresCampUnlock &&
+            !(CampManager.Instance?.IsCharacterAvailable(checkDef) ?? false)) return;
         _charIndex    = idx;
         _selectedChar = characters[idx];
 

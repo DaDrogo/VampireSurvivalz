@@ -152,7 +152,7 @@ MonoBehaviour:
   projectilePrefab: {fileID: 2220000000000000001, guid: 3647a055d0ed4fd4e9620c753db82c87, type: 3}
   firePoint: {fileID: 2221100000000012}
   head: {fileID: 2221100000000009}
-  fireSfx: {fileID: 0}
+  fireSfx: {fileID: 8300000, guid: d1d7cffd21836bc48808a7f82a0d7833, type: 3}
 --- !u!114 &2221100000000006
 MonoBehaviour:
   m_ObjectHideFlags: 0

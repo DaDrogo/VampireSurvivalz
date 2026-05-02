@@ -71,7 +71,7 @@ CircleCollider2D:
   m_CompositeOperation: 0
   m_CompositeOrder: 0
   m_Offset: {x: 0, y: 0}
-  m_Radius: 0.075
+  m_Radius: 0.46875
 --- !u!212 &5116610055848089174
 SpriteRenderer:
   m_ObjectHideFlags: 0
@@ -144,10 +144,14 @@ MonoBehaviour:
   attackDamage: 10
   attackInterval: 2
   attackRange: 1.5
+  attackDetectionRadius: 2
+  attackScanInterval: 0.3
   enemyAnimator: {fileID: 0}
   contactDamage: 10
   contactCooldown: 1
   resourceDestroyTime: 3
+  hurtSfx: {fileID: 0}
+  deathSfx: {fileID: 0}
   pathRefreshInterval: 0.5
   siegeMode: 1
 --- !u!50 &6710654032271347214

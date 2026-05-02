@@ -15,11 +15,13 @@ MonoBehaviour:
   displayName: Crossbow
   description: An elevated sniper post with long reach. Targets the nearest enemy
     and fires with deadly accuracy.
+  icon: {fileID: 0}
   color: {r: 1, g: 1, b: 1, a: 1}
   woodCost: 40
   metalCost: 10
   buildingDef:
     buildingName: Crossbow
+    icon: {fileID: 0}
     prefab: {fileID: 1111100000000001, guid: 9f2b48e2931b95140b783df3604c2faa, type: 3}
     footprint: {x: 1, y: 1}
     woodCost: 40
@@ -54,7 +56,7 @@ MonoBehaviour:
       rangeMult: 2
     upgradeChoices: []
     groundTiles:
-    - {fileID: 0}
+    - {fileID: 11400000, guid: a2baa42ef7f4083439f397a4d87c1a81, type: 2}
   isBasic: 0
   isCitadel: 0
   statsSummary: 

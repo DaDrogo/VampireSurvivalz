@@ -9,6 +9,9 @@ EditorBuildSettings:
     path: Assets/Scenes/MainMenuScene.unity
     guid: ccfcb5c1c665c7540a97b6b919ff293c
   - enabled: 1
+    path: Assets/Scenes/CampScene.unity
+    guid: dbe7b3e2ef64e5946b08ab081b660e46
+  - enabled: 1
     path: Assets/Scenes/SetupScene.unity
     guid: 8184679077b0b044bb6cc705fb908634
   - enabled: 1

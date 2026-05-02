@@ -138,7 +138,12 @@ public class PauseMenuManager : MonoBehaviour
                 AddButton(p, "MainMenu",    "Main Menu",   BtnRed,   ReturnToMainMenu,   _theme?.buttonDanger);
             });
 
-        _settingsPanel = BuildPanel("SettingsPanel", new Vector2(460f, 340f), _pauseCanvas.transform,
+#if UNITY_ANDROID || UNITY_IOS
+        const float settingsPanelHeight = 420f;
+#else
+        const float settingsPanelHeight = 340f;
+#endif
+        _settingsPanel = BuildPanel("SettingsPanel", new Vector2(460f, settingsPanelHeight), _pauseCanvas.transform,
             p => {
                 AddTitle(p, "SETTINGS", 38f, Color.white);
                 AddVolumeSlider(p, "Music Volume",
@@ -147,6 +152,11 @@ public class PauseMenuManager : MonoBehaviour
                 AddVolumeSlider(p, "SFX Volume",
                     PersistentDataManager.Instance?.SFXVolume ?? 0.8f,
                     v => PersistentDataManager.Instance?.SetSFXVolume(v));
+#if UNITY_ANDROID || UNITY_IOS
+                AddToggle(p, "Virtual Joystick",
+                    PersistentDataManager.Instance?.VirtualJoystickEnabled ?? true,
+                    v => PersistentDataManager.Instance?.SetVirtualJoystickEnabled(v));
+#endif
                 AddButton(p, "Back", "Back", BtnGray, ShowPausePanel, _theme?.buttonNav);
             });
 
@@ -209,6 +219,54 @@ public class PauseMenuManager : MonoBehaviour
         lblRT.anchorMax = Vector2.one;
         lblRT.offsetMin = Vector2.zero;
         lblRT.offsetMax = Vector2.zero;
+    }
+
+    private void AddToggle(Transform parent, string labelText, bool initial, System.Action<bool> onChange)
+    {
+        var row = new GameObject(labelText + "Row");
+        row.transform.SetParent(parent, false);
+        row.AddComponent<RectTransform>();
+        var hl = row.AddComponent<HorizontalLayoutGroup>();
+        hl.childControlHeight = true;
+        hl.childAlignment     = TextAnchor.MiddleLeft;
+        hl.spacing            = 10f;
+
+        var lbl = MakeLabel(row.transform, "Lbl", labelText, 22f);
+        lbl.alignment = TextAlignmentOptions.Left;
+        lbl.color     = new Color(0.8f, 0.8f, 0.8f);
+        lbl.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1f;
+
+        bool state = initial;
+        Color onColor  = new Color(0.15f, 0.52f, 0.15f);
+        Color offColor = new Color(0.35f, 0.35f, 0.35f);
+
+        var btnGO = new GameObject("ToggleBtn");
+        btnGO.transform.SetParent(row.transform, false);
+        btnGO.AddComponent<RectTransform>();
+        var btnLE = btnGO.AddComponent<LayoutElement>();
+        btnLE.preferredWidth = 80f;
+
+        Image btnImg = btnGO.AddComponent<Image>();
+        btnImg.color = initial ? onColor : offColor;
+
+        Button btn = btnGO.AddComponent<Button>();
+        btn.targetGraphic = btnImg;
+        btn.colors = UIHelper.BtnColors(null, btnImg.color, btnImg.color * 1.3f, btnImg.color * 0.65f);
+
+        var valLbl  = MakeLabel(btnGO.transform, "Val", initial ? "ON" : "OFF", 20f);
+        var valRT   = valLbl.GetComponent<RectTransform>();
+        valRT.anchorMin = Vector2.zero;
+        valRT.anchorMax = Vector2.one;
+        valRT.offsetMin = valRT.offsetMax = Vector2.zero;
+
+        btn.onClick.AddListener(() =>
+        {
+            state          = !state;
+            btnImg.color   = state ? onColor : offColor;
+            btn.colors     = UIHelper.BtnColors(null, btnImg.color, btnImg.color * 1.3f, btnImg.color * 0.65f);
+            valLbl.text    = state ? "ON" : "OFF";
+            onChange?.Invoke(state);
+        });
     }
 
     private void AddVolumeSlider(Transform parent, string label, float initial,

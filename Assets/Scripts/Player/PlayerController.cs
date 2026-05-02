@@ -78,6 +78,12 @@ public class PlayerController : MonoBehaviour, IDamageable
         EnhancedTouchSupport.Enable();   // required for Touch.activeTouches on mobile
         BuildHoldBar();
 
+        if (VirtualJoystick.Instance == null)
+        {
+            var go = new GameObject("VirtualJoystick");
+            go.AddComponent<VirtualJoystick>();
+        }
+
         if (DayNightManager.Instance != null)
             DayNightManager.Instance.OnPlayerSpeedMultChanged += OnDaySpeedMultChanged;
     }
@@ -139,11 +145,15 @@ public class PlayerController : MonoBehaviour, IDamageable
             return;
         }
 
-        if (_moveInput.sqrMagnitude > 0.01f)
+        // Hardware input takes priority; joystick fills in when idle
+        Vector2 frameInput = _moveInput.sqrMagnitude > 0.01f
+            ? _moveInput
+            : (VirtualJoystick.Instance?.Direction ?? Vector2.zero);
+
+        if (frameInput.sqrMagnitude > 0.01f)
         {
-            // Keyboard/stick takes priority — cancel any click-to-move
             ClearPointToMove();
-            var vel = _moveInput.normalized * (moveSpeed * _daySpeedMult);
+            var vel = frameInput.normalized * (moveSpeed * _daySpeedMult);
             _rb.linearVelocity = vel;
             _anim?.SetMovement(vel);
             return;
@@ -232,11 +242,22 @@ public class PlayerController : MonoBehaviour, IDamageable
         // Check for an interactable at the tapped position
         Collider2D hit = Physics2D.OverlapCircle(worldPos, 0.4f, interactableMask);
 
-        // Select any placed building at the click position to open the upgrade panel
+        // Select any placed building at the click position to open the upgrade panel.
+        // Do NOT navigate — the player only walks to a building when explicitly repairing.
         if (hit != null)
-            hit.GetComponent<PlacedBuilding>()?.Select();
+        {
+            var pb = hit.GetComponent<PlacedBuilding>();
+            if (pb != null)
+            {
+                pb.Select();
+                ClearPendingInteract();
+                return;
+            }
+        }
         else
+        {
             PlacedBuilding.Deselect();
+        }
 
         // Left-click only auto-holds non-building interactables (harvesting).
         // Buildings require right-click to repair.

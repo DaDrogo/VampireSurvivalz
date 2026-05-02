@@ -15,11 +15,13 @@ MonoBehaviour:
   displayName: Inferno
   description: An elevated sniper post with long reach. Targets the nearest enemy
     and fires with deadly accuracy.
+  icon: {fileID: 0}
   color: {r: 1, g: 0, b: 0.08614111, a: 1}
   woodCost: 40
   metalCost: 10
   buildingDef:
     buildingName: Inferno
+    icon: {fileID: 0}
     prefab: {fileID: 7771100000000001, guid: 93a53aa89f9019f4195b14d87854b9ee, type: 3}
     footprint: {x: 1, y: 1}
     woodCost: 40
@@ -54,7 +56,7 @@ MonoBehaviour:
       rangeMult: 2
     upgradeChoices: []
     groundTiles:
-    - {fileID: 11400000, guid: 2a2bc5156453e854ba040d2fbc77088d, type: 2}
+    - {fileID: 11400000, guid: a2baa42ef7f4083439f397a4d87c1a81, type: 2}
   isBasic: 0
   isCitadel: 0
   statsSummary: 

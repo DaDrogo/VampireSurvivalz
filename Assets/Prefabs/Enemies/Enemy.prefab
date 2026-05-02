@@ -145,6 +145,8 @@ MonoBehaviour:
   attackDamage: 10
   attackInterval: 2
   attackRange: 1.5
+  attackDetectionRadius: 2
+  attackScanInterval: 0.3
   enemyAnimator: {fileID: 5200045949114384609}
   contactDamage: 10
   contactCooldown: 1

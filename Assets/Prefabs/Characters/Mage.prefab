@@ -173,6 +173,8 @@ MonoBehaviour:
     m_Bits: 768
   maxHealth: 100
   iFrameDuration: 0.5
+  hurtSfx: {fileID: 0}
+  deathSfx: {fileID: 0}
 --- !u!114 &7315491149026036325
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -12,8 +12,9 @@ public class PersistentDataManager : MonoBehaviour
     public static PersistentDataManager Instance { get; private set; }
 
     // ── Settings ──────────────────────────────────────────────────────────────
-    public float MusicVolume { get; private set; } = 0.8f;
-    public float SFXVolume   { get; private set; } = 0.8f;
+    public float MusicVolume          { get; private set; } = 0.8f;
+    public float SFXVolume            { get; private set; } = 0.8f;
+    public bool  VirtualJoystickEnabled { get; private set; }
 
     // ── Selections ────────────────────────────────────────────────────────────
     public int   SelectedCharacterIndex   { get; private set; } = 0;
@@ -68,6 +69,14 @@ public class PersistentDataManager : MonoBehaviour
         SFXVolume = Mathf.Clamp01(v);
         AudioManager.Instance?.SetSFXVolume(SFXVolume);
         PlayerPrefs.SetFloat("SFXVolume", SFXVolume);
+        PlayerPrefs.Save();
+    }
+
+    public void SetVirtualJoystickEnabled(bool v)
+    {
+        VirtualJoystickEnabled = v;
+        VirtualJoystick.Instance?.SetVisible(v);
+        PlayerPrefs.SetInt("VirtualJoystick", v ? 1 : 0);
         PlayerPrefs.Save();
     }
 
@@ -228,6 +237,8 @@ public class PersistentDataManager : MonoBehaviour
     {
         MusicVolume            = PlayerPrefs.GetFloat("MusicVolume",       0.8f);
         SFXVolume              = PlayerPrefs.GetFloat("SFXVolume",         0.8f);
+        int defaultJoystick    = VirtualJoystick.IsMobilePlatform() ? 1 : 0;
+        VirtualJoystickEnabled = PlayerPrefs.GetInt("VirtualJoystick", defaultJoystick) == 1;
         SelectedCharacterIndex = PlayerPrefs.GetInt("SelectedCharacter",   0);
         SelectedLevelIndex     = PlayerPrefs.GetInt("SelectedLevel",       0);
         BestWave               = PlayerPrefs.GetInt("BestWave",            0);

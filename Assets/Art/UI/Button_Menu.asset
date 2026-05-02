@@ -32,11 +32,12 @@ MonoBehaviour:
   sliderBackground: {fileID: 1514073853490403208, guid: d6ce1ac047ffce148a1342cb77e7a9f2, type: 3}
   sliderFill: {fileID: -7904285823810203936, guid: d6ce1ac047ffce148a1342cb77e7a9f2, type: 3}
   sliderHandle: {fileID: -2743947241941205161, guid: d6ce1ac047ffce148a1342cb77e7a9f2, type: 3}
+  iconCancel: {fileID: -4876103623510945428, guid: d6ce1ac047ffce148a1342cb77e7a9f2, type: 3}
   iconWood: {fileID: 1694423127279311771, guid: f89a3df39590ba04fabd848306f43733, type: 3}
   iconMetal: {fileID: -8088531633045188372, guid: f89a3df39590ba04fabd848306f43733, type: 3}
   iconCoin: {fileID: -5724663620967133827, guid: d6ce1ac047ffce148a1342cb77e7a9f2, type: 3}
   iconHealth: {fileID: 7864756605949714246, guid: d6ce1ac047ffce148a1342cb77e7a9f2, type: 3}
-  iconBuild: {fileID: -1622096468857647187, guid: d6ce1ac047ffce148a1342cb77e7a9f2, type: 3}
+  iconBuild: {fileID: -8117870965034653579, guid: d6ce1ac047ffce148a1342cb77e7a9f2, type: 3}
   iconRepair: {fileID: 5462992811388359267, guid: d6ce1ac047ffce148a1342cb77e7a9f2, type: 3}
   iconUpgrade: {fileID: -962884654305444305, guid: d6ce1ac047ffce148a1342cb77e7a9f2, type: 3}
   iconDestroy: {fileID: -4876103623510945428, guid: d6ce1ac047ffce148a1342cb77e7a9f2, type: 3}

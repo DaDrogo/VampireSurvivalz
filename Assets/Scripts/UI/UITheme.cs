@@ -65,6 +65,8 @@ public class UITheme : ScriptableObject
     public Sprite sliderHandle;
 
     [Header("HUD Icons — leave empty to use flat-colour fallbacks")]
+    [Tooltip("X icon for close/cancel buttons. Leave empty to use a generated fallback.")]
+    public Sprite iconCancel;
     [Tooltip("Wood resource icon.")]
     public Sprite iconWood;
     [Tooltip("Metal resource icon.")]

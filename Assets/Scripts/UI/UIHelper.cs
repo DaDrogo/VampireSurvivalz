@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 
+
 /// <summary>
 /// Shared helpers used by all procedural UI scripts to apply a <see cref="UITheme"/>.
 /// If a sprite is provided the Image uses it (Sliced type, white tint so the sprite
@@ -25,6 +26,49 @@ public static class UIHelper
         {
             img.color = fallback;
         }
+    }
+
+    /// <summary>
+    /// Returns a white X sprite on a transparent background.
+    /// Generated once and cached — safe to call repeatedly.
+    /// </summary>
+    public static Sprite MakeCancelIconSprite()
+    {
+        if (_cancelIcon != null) return _cancelIcon;
+
+        const int   size      = 64;
+        const float thickness = 5f;
+        const float margin    = 0.18f;
+
+        var tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
+        tex.filterMode = FilterMode.Bilinear;
+        var pixels = new Color32[size * size];
+
+        for (int y = 0; y < size; y++)
+        for (int x = 0; x < size; x++)
+        {
+            float fx = x / (float)(size - 1);
+            float fy = y / (float)(size - 1);
+            float d1 = SegmentDist(fx, fy, margin, margin,        1f - margin, 1f - margin);
+            float d2 = SegmentDist(fx, fy, margin, 1f - margin,   1f - margin, margin);
+            float a  = Mathf.Clamp01(thickness - Mathf.Min(d1, d2) * size + 0.5f);
+            pixels[y * size + x] = new Color32(255, 255, 255, (byte)(a * 255f));
+        }
+
+        tex.SetPixels32(pixels);
+        tex.Apply();
+        _cancelIcon = Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), size);
+        return _cancelIcon;
+    }
+
+    private static Sprite _cancelIcon;
+
+    private static float SegmentDist(float px, float py, float ax, float ay, float bx, float by)
+    {
+        float dx = bx - ax, dy = by - ay;
+        float t  = Mathf.Clamp01(((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy));
+        float ex = px - (ax + t * dx), ey = py - (ay + t * dy);
+        return Mathf.Sqrt(ex * ex + ey * ey);
     }
 
     /// <summary>

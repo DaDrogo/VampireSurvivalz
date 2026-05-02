@@ -32,7 +32,8 @@
       "mcp__ai-game-developer__assets-prefab-open",
       "mcp__ai-game-developer__assets-prefab-close",
       "Bash(python -c \"from PIL import Image; img = Image.open\\('Assets/Art/UI/Mediavel.png'\\); print\\(img.size\\)\")",
-      "PowerShell(Add-Type -AssemblyName System.Drawing; $img = [System.Drawing.Image]::FromFile\\(\"D:\\\\Github\\\\VampireSurvivalz\\\\Assets\\\\Art\\\\UI\\\\Mediavel.png\"\\); Write-Output \"$\\($img.Width\\)x$\\($img.Height\\)\"; $img.Dispose\\(\\))"
+      "PowerShell(Add-Type -AssemblyName System.Drawing; $img = [System.Drawing.Image]::FromFile\\(\"D:\\\\Github\\\\VampireSurvivalz\\\\Assets\\\\Art\\\\UI\\\\Mediavel.png\"\\); Write-Output \"$\\($img.Width\\)x$\\($img.Height\\)\"; $img.Dispose\\(\\))",
+      "mcp__ai-game-developer__scene-create"
     ]
   },
   "enableAllProjectMcpServers": true,

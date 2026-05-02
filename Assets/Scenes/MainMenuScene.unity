@@ -132,8 +132,9 @@ GameObject:
   - component: {fileID: 243077325}
   - component: {fileID: 243077328}
   - component: {fileID: 243077327}
+  - component: {fileID: 243077329}
   m_Layer: 0
-  m_Name: Manager
+  m_Name: MainMenuManager
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -197,6 +198,15 @@ MonoBehaviour:
   waveSurvivedSfx: {fileID: 0}
   gameOverSfx: {fileID: 0}
   victorySfx: {fileID: 0}
+  gameOverMusic: {fileID: 8300000, guid: 894b8e85b3b86464c99a5acccdbedaee, type: 3}
+  victoryMusic: {fileID: 8300000, guid: 965f1968a63c00e4786920a20090f1dd, type: 3}
+  campPlaylist:
+  - {fileID: 8300000, guid: 676ad430c4abc1c42b903983c4ba8a3f, type: 3}
+  - {fileID: 8300000, guid: ef7b1eb1d3028fe4b870aa19a014ffe2, type: 3}
+  - {fileID: 8300000, guid: 9da7973b5708b7745adea0474bbd9f7f, type: 3}
+  - {fileID: 8300000, guid: a0d90b481e15ee94aa6fee31d7c0b8fe, type: 3}
+  campFadeDuration: 1
+  buildingSounds: {fileID: 11400000, guid: 3862032e837ac6547927154636f87dcf, type: 2}
   buttonClickSfx: {fileID: 8300000, guid: a90d0758e518a1e4c902a13315f9442e, type: 3}
 --- !u!114 &243077327
 MonoBehaviour:
@@ -242,6 +252,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 578bfbbf22882ef46abb64573eb77de1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &243077329
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 243077323}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4b6139b76a6f36d4abb3523e679497e4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _allTents:
+  - {fileID: 11400000, guid: f2ed67fdd986ce04ea91fa82577bca45, type: 2}
+  - {fileID: 11400000, guid: 72e57394b8f70af4dbc733e5608b80c4, type: 2}
 --- !u!1 &900000001
 GameObject:
   m_ObjectHideFlags: 0

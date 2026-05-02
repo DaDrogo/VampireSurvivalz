@@ -25,7 +25,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: a067f7992d56636488361f5c3af49a1b, type: 2}
   - {fileID: 11400000, guid: 21b49d9a38072a94f81b4cc26975e443, type: 2}
   passiveEffects: []
-  selectSound: {fileID: 0}
+  selectSound: {fileID: 8300000, guid: a4f7bef11ad44624684db2347f121505, type: 3}
   animatorOverride: {fileID: 0}
   auraType: 1
   auraStrengthPerTier: 2

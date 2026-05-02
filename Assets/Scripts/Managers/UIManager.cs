@@ -33,7 +33,7 @@ public class UIManager : MonoBehaviour
 
     // ── Boss health bar ───────────────────────────────────────────────────────
     private GameObject      _bossPanel;
-    private Image           _bossHealthFill;
+    private Slider          _bossSlider;
     private TextMeshProUGUI _bossNameText;
     private TextMeshProUGUI _bossLevelText;
     private Image           _bossVulnGlow;
@@ -1018,8 +1018,11 @@ public class UIManager : MonoBehaviour
         bool vampireActive = _boundVampire != null && _boundVampire.gameObject.activeSelf;
         _bossPanel.SetActive(vampireActive);
 
-        if (vampireActive && !wasVisible)
-            OnVampireHealthChanged(_boundVampire.CurrentHealth, _boundVampire.MaxHealth);
+        // Poll HP every frame so the slider stays in sync regardless of event timing
+        if (vampireActive && _bossSlider != null)
+            _bossSlider.value = _boundVampire.MaxHealth > 0f
+                ? _boundVampire.CurrentHealth / _boundVampire.MaxHealth
+                : 0f;
 
         if (vampireActive && _bossVulnGlow != null)
         {
@@ -1030,8 +1033,8 @@ public class UIManager : MonoBehaviour
 
     private void OnVampireHealthChanged(float current, float max)
     {
-        if (_bossHealthFill != null)
-            _bossHealthFill.fillAmount = max > 0f ? current / max : 0f;
+        if (_bossSlider != null)
+            _bossSlider.value = max > 0f ? current / max : 0f;
     }
 
     private void OnVampireLevelChanged(int level)
@@ -1351,7 +1354,7 @@ public class UIManager : MonoBehaviour
         cancelBtn.colors    = UIHelper.BtnColors(_theme?.buttonDanger,
             new Color(0.50f, 0.05f, 0.05f), new Color(0.75f, 0.12f, 0.12f), new Color(0.35f, 0.03f, 0.03f));
         cancelBtn.onClick.AddListener(() => BuildingManager.Instance?.CancelPlacement());
-        MakeOverlayLabel(cancelGO.transform, "✕", font, 28f, Color.white);
+        AddCancelIcon(cancelGO.transform);
     }
 
     private void BuildInfoPage(Transform parent, TMP_FontAsset font)
@@ -1459,7 +1462,20 @@ public class UIManager : MonoBehaviour
         closeBtn.colors     = UIHelper.BtnColors(_theme?.buttonDanger,
             new Color(0.28f, 0.06f, 0.06f), new Color(0.50f, 0.12f, 0.12f), new Color(0.18f, 0.04f, 0.04f));
         closeBtn.onClick.AddListener(() => { HideChoicePanel(); PlacedBuilding.Deselect(); });
-        MakeOverlayLabel(closeGO.transform, "✕", font, 22f, Color.white);
+        AddCancelIcon(closeGO.transform);
+    }
+
+    private void AddCancelIcon(Transform parent)
+    {
+        var go  = new GameObject("Icon");
+        go.transform.SetParent(parent, false);
+        var rt  = go.AddComponent<RectTransform>();
+        rt.anchorMin = new Vector2(0.15f, 0.15f);
+        rt.anchorMax = new Vector2(0.85f, 0.85f);
+        rt.offsetMin = rt.offsetMax = Vector2.zero;
+        var img = go.AddComponent<Image>();
+        img.raycastTarget = false;
+        ApplyIconOrColor(img, _theme?.iconCancel ?? UIHelper.MakeCancelIconSprite(), Color.white);
     }
 
     private Button BuildActionIconButton(Transform parent, string goName, Sprite icon,
@@ -1702,24 +1718,47 @@ public class UIManager : MonoBehaviour
         _bossLevelText.color     = new Color(1f, 0.9f, 0.4f);
         _bossLevelText.alignment = TextAlignmentOptions.MidlineRight;
 
-        GameObject barBg = new GameObject("HealthBg");
-        barBg.transform.SetParent(_bossPanel.transform, false);
-        RectTransform brt  = barBg.AddComponent<RectTransform>();
-        brt.anchorMin = new Vector2(0f, 0f); brt.anchorMax = new Vector2(1f, 0.5f);
-        brt.offsetMin = new Vector2(8f, 6f); brt.offsetMax = new Vector2(-8f, 0f);
-        barBg.AddComponent<Image>().color = new Color(0.15f, 0.05f, 0.2f);
+        // Slider container (same rect as the old HealthBg)
+        GameObject sliderGO = new GameObject("HpSlider");
+        sliderGO.transform.SetParent(_bossPanel.transform, false);
+        RectTransform sliderRT = sliderGO.AddComponent<RectTransform>();
+        sliderRT.anchorMin = new Vector2(0f, 0f); sliderRT.anchorMax = new Vector2(1f, 0.5f);
+        sliderRT.offsetMin = new Vector2(8f, 6f); sliderRT.offsetMax = new Vector2(-8f, 0f);
 
-        GameObject fillGO  = new GameObject("HealthFill");
-        fillGO.transform.SetParent(barBg.transform, false);
-        RectTransform frt   = fillGO.AddComponent<RectTransform>();
-        frt.anchorMin = Vector2.zero; frt.anchorMax = Vector2.one;
-        frt.offsetMin = frt.offsetMax = Vector2.zero;
-        _bossHealthFill = fillGO.AddComponent<Image>();
-        _bossHealthFill.color      = new Color(0.7f, 0.1f, 0.9f);
-        _bossHealthFill.type       = Image.Type.Filled;
-        _bossHealthFill.fillMethod = Image.FillMethod.Horizontal;
-        _bossHealthFill.fillOrigin = (int)Image.OriginHorizontal.Left;
-        _bossHealthFill.fillAmount = 1f;
+        // Background
+        GameObject bgGO = new GameObject("Background");
+        bgGO.transform.SetParent(sliderGO.transform, false);
+        RectTransform bgRT = bgGO.AddComponent<RectTransform>();
+        bgRT.anchorMin = Vector2.zero; bgRT.anchorMax = Vector2.one;
+        bgRT.offsetMin = bgRT.offsetMax = Vector2.zero;
+        Image bgImg = bgGO.AddComponent<Image>();
+        UIHelper.ApplyImage(bgImg, _theme?.sliderBackground, new Color(0.15f, 0.05f, 0.2f));
+
+        // Fill Area
+        GameObject fillAreaGO = new GameObject("Fill Area");
+        fillAreaGO.transform.SetParent(sliderGO.transform, false);
+        RectTransform fillAreaRT = fillAreaGO.AddComponent<RectTransform>();
+        fillAreaRT.anchorMin = Vector2.zero; fillAreaRT.anchorMax = Vector2.one;
+        fillAreaRT.offsetMin = fillAreaRT.offsetMax = Vector2.zero;
+
+        // Fill
+        GameObject fillGO = new GameObject("Fill");
+        fillGO.transform.SetParent(fillAreaGO.transform, false);
+        RectTransform fillRT = fillGO.AddComponent<RectTransform>();
+        fillRT.anchorMin = Vector2.zero; fillRT.anchorMax = Vector2.one;
+        fillRT.offsetMin = fillRT.offsetMax = Vector2.zero;
+        Image fillImg = fillGO.AddComponent<Image>();
+        UIHelper.ApplyImage(fillImg, _theme?.sliderFill, new Color(0.7f, 0.1f, 0.9f));
+
+        // Slider (added after children so fillRect assignment resolves correctly)
+        _bossSlider              = sliderGO.AddComponent<Slider>();
+        _bossSlider.interactable = false;
+        _bossSlider.direction    = Slider.Direction.LeftToRight;
+        _bossSlider.minValue     = 0f;
+        _bossSlider.maxValue     = 1f;
+        _bossSlider.value        = 1f;
+        _bossSlider.fillRect     = fillRT;
+        _bossSlider.handleRect   = null;
 
         _bossPanel.SetActive(false);
     }
